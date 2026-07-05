@@ -2,7 +2,8 @@ name: Schedule Test
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 20 * * *'
+      timezone: 'Asia/Kolkata'
   workflow_dispatch:
 
 jobs:
