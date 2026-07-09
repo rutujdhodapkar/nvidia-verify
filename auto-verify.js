@@ -267,11 +267,6 @@ async function main() {
         console.warn(`  ${enrollment.id}: No project found for index ${index}`);
         continue;
       }
-      if (project.type === "quiz") {
-        console.log(`  ${enrollment.id}: Task ${index} is a quiz (auto-graded on submit), skipping.`);
-        continue;
-      }
-
       const taskTitle = project.title || `Task ${index + 1}`;
       const taskDescription = project.description || "";
       const taskNotice = project.notice || "";
