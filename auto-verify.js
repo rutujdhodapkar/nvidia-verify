@@ -1,9 +1,9 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { CosmosClient } from "@azure/cosmos";
 
 const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 const NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
-const FIRESTORE_DB_ID = "intern";
+const COSMOS_DATABASE = "devcraft";
+const COSMOS_CONTAINER = "main";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", ".github", "__pycache__", ".next", "dist", "build", ".vscode", "venv", "env", "vendor", ".idea", "coverage", ".nyc_output"]);
 const CODE_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".cpp", ".c", ".h", ".hpp", ".cs", ".go", ".rb", ".php", ".swift", ".kt", ".scala", ".rs", ".html", ".css", ".scss", ".sass", ".less", ".vue", ".svelte", ".json", ".yaml", ".yml", ".md", ".txt", ".sql", ".sh", ".bash"]);
@@ -11,22 +11,46 @@ const MAX_FILES = 15;
 const MAX_FILE_SIZE = 200000;
 const MAX_CODE_CHARS = 10000;
 
-function getServiceAccount() {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (raw) {
-    const json = raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
-    const parsed = JSON.parse(json);
-    if (parsed.private_key) parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
-    return parsed;
+function getCosmosClient() {
+  const connStr = process.env.COSMOS_DB_CONNECTION_STRING;
+  if (!connStr) throw new Error("COSMOS_DB_CONNECTION_STRING not set");
+  return new CosmosClient(connStr);
+}
+
+function cleanDoc(doc) {
+  if (!doc) return null;
+  const { entityType, _rid, _self, _etag, _attachments, _ts, ...rest } = doc;
+  return rest;
+}
+
+async function listEnrollments(container) {
+  const query = "SELECT * FROM c WHERE c.entityType = 'enrollments'";
+  const { resources } = await container.items.query(query).fetchAll();
+  return resources.map(r => ({ id: r.id, ...cleanDoc(r) }));
+}
+
+async function updateEnrollment(container, id, updates) {
+  try {
+    const { resource: existing } = await container.item(id, "enrollments").read();
+    if (!existing) { console.warn(`  Enrollment ${id} not found in Cosmos DB`); return; }
+    const merged = { ...existing };
+    for (const [key, value] of Object.entries(updates)) {
+      if (key.includes(".")) {
+        const parts = key.split(".");
+        let obj = merged;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!(parts[i] in obj) || typeof obj[parts[i]] !== "object") obj[parts[i]] = {};
+          obj = obj[parts[i]];
+        }
+        obj[parts[parts.length - 1]] = value;
+      } else {
+        merged[key] = value;
+      }
+    }
+    await container.item(id, "enrollments").replace(merged);
+  } catch (err) {
+    console.error(`  Failed to update enrollment ${id}: ${err.message}`);
   }
-  if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-    return {
-      project_id: process.env.FIREBASE_PROJECT_ID || "login-data-680b9",
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    };
-  }
-  return null;
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
@@ -96,7 +120,7 @@ async function fetchGithubRepoCode(owner, repo, dirPath = "") {
           try {
             const content = await fetchRawFile(items.download_url);
             code.push({ path: items.path, content: content.slice(0, MAX_CODE_CHARS), size: items.size });
-          } catch { /* skip */ }
+          } catch {}
         }
       }
       return;
@@ -110,7 +134,7 @@ async function fetchGithubRepoCode(owner, repo, dirPath = "") {
           try {
             const content = await fetchRawFile(item.download_url);
             code.push({ path: item.path, content: content.slice(0, MAX_CODE_CHARS), size: item.size });
-          } catch { /* skip */ }
+          } catch {}
         }
       }
     }
@@ -135,7 +159,7 @@ async function fetchCodeFromSubmission(submissionText, submissionUrl) {
         try {
           const content = await fetchRawFile(url);
           codeFiles.push({ path: url, content: content.slice(0, MAX_CODE_CHARS) });
-        } catch { /* skip */ }
+        } catch {}
       }
       continue;
     }
@@ -146,7 +170,7 @@ async function fetchCodeFromSubmission(submissionText, submissionUrl) {
         try {
           const content = await fetchRawFile(rawUrl);
           files = [{ path: `${info.repo}/${info.filePath}`, content: content.slice(0, MAX_CODE_CHARS) }];
-        } catch { /* skip */ }
+        } catch {}
       } else {
         files = await fetchGithubRepoCode(info.owner, info.repo, info.dirPath || "");
       }
@@ -209,23 +233,17 @@ async function callNvidiaApi(prompt) {
 }
 
 async function main() {
-  const sa = getServiceAccount();
-  if (!sa) {
-    console.error("Firebase credentials not configured. Set FIREBASE_SERVICE_ACCOUNT_KEY.");
-    process.exit(1);
-  }
   if (!process.env.NVIDIA_API_KEY) {
     console.error("NVIDIA_API_KEY not set.");
     process.exit(1);
   }
 
-  const apps = getApps();
-  const app = apps.length ? apps[0] : initializeApp({ credential: cert(sa) });
-  const db = getFirestore(app, FIRESTORE_DB_ID);
+  const cosmos = getCosmosClient();
+  const db = cosmos.database(COSMOS_DATABASE);
+  const container = db.container(COSMOS_CONTAINER);
 
-  console.log("Fetching all enrollments...");
-  const snapshot = await db.collection("enrollments").get();
-  const enrollments = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  console.log("Fetching all enrollments from Cosmos DB...");
+  const enrollments = await listEnrollments(container);
   console.log(`Found ${enrollments.length} enrollments.`);
 
   let verified = 0;
@@ -301,7 +319,7 @@ async function main() {
           update[`${base}.resubmit`] = true;
           update[`${base}.feedback`] = result.message || result.reason || "Task did not meet requirements. Please review and resubmit.";
         }
-        await db.collection("enrollments").doc(enrollment.id).update(update);
+        await updateEnrollment(container, enrollment.id, update);
 
         if (result.verified) {
           verified++;
