@@ -16,7 +16,13 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
     assetUrn = await uploadImage(headers, personUrn, imageBuffer);
   }
 
-  const postBody = { author: personUrn, commentary: content, visibility: 'PUBLIC' };
+  const postBody = {
+    author: personUrn,
+    commentary: content,
+    visibility: 'PUBLIC',
+    distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
+    lifecycleState: 'PUBLISHED',
+  };
   if (assetUrn) postBody.content = { media: { id: assetUrn } };
 
   const postRes = await fetch('https://api.linkedin.com/v2/posts', {
