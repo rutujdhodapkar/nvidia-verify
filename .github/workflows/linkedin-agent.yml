@@ -38,6 +38,6 @@ jobs:
           git config user.name "devcraft-agent"
           git config user.email "agent@devcraft.fennark.xyz"
           git pull --rebase
-          git add data/state.json data/screenshots/
+          git add data/state.json
           git diff --cached --quiet || git commit -m "chore: agent run [skip ci]"
           git push
