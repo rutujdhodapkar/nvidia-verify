@@ -11,8 +11,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = join(__dirname, '..', 'data', 'state.json');
 
 function loadState() {
-  if (!existsSync(STATE_FILE)) return { previousPosts: [], postHashes: [], lastRun: null };
-  return JSON.parse(readFileSync(STATE_FILE, 'utf-8'));
+  const def = { previousPosts: [], postHashes: [], lastRun: null };
+  if (!existsSync(STATE_FILE)) return def;
+  try { return { ...def, ...JSON.parse(readFileSync(STATE_FILE, 'utf-8')) }; } catch { return def; }
 }
 
 function saveState(s) {
