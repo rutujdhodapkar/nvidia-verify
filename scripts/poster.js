@@ -1,5 +1,4 @@
 import { chromium } from 'playwright';
-import { writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,7 +7,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export async function postToLinkedin({ content, imageBuffer, email, password }) {
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'],
+    args: [
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-dev-shm-usage',
+    ],
   });
   const context = await browser.newContext({
     viewport: { width: 1366, height: 900 },
@@ -17,19 +20,20 @@ export async function postToLinkedin({ content, imageBuffer, email, password }) 
   });
   const page = await context.newPage();
 
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+  });
+
   try {
     await login(page, email, password);
-
-    if (imageBuffer) {
-      await postWithImage(page, content, imageBuffer);
-    } else {
-      await postTextOnly(page, content);
-    }
-
+    let posted = false;
+    if (imageBuffer) posted = await postWithImage(page, content, imageBuffer);
+    if (!posted) await postTextOnly(page, content);
     console.log('[POST] ✓ Posted successfully');
   } catch (err) {
-    await page.screenshot({ path: join(__dirname, '..', 'data', 'linkedin-error.png') });
-    console.error('[POST] ✗ Failed — screenshot saved to data/linkedin-error.png');
+    await page.screenshot({ path: join(__dirname, '..', 'data', 'linkedin-error.png'), fullPage: true });
+    console.error('[POST] ✗ Failed — screenshot saved');
     throw err;
   } finally {
     await context.close();
@@ -37,58 +41,42 @@ export async function postToLinkedin({ content, imageBuffer, email, password }) 
   }
 }
 
-const LOGIN_SELECTORS = {
-  email: ['#username', 'input[name="session_key"]', '#session_key', 'input[type="text"]'],
-  password: ['#password', 'input[name="session_password"]', 'input[type="password"]'],
-  submit: ['button[type="submit"]', 'button[class*="sign-in"]', '.sign-in-form__submit-btn'],
-};
-
 async function login(page, email, password) {
   console.log('[POST] Logging in...');
-  await page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
+  await page.goto('https://www.linkedin.com/checkpoint/lg/login', {
+    waitUntil: 'networkidle',
+    timeout: 30000,
+  });
   await page.waitForTimeout(2000);
-  await page.evaluate(() => document.querySelector('script')?.remove()); // basic evasion
 
-  for (const sel of LOGIN_SELECTORS.email) {
-    const el = page.locator(sel).first();
-    if (await el.isVisible().catch(() => false)) {
-      await el.fill(email);
-      console.log(`[POST] Filled email using: ${sel}`);
-      break;
-    }
-  }
+  const emailField = page.locator('#session_key, input[name="session_key"], #username');
+  await emailField.waitFor({ state: 'visible', timeout: 15000 });
+  await emailField.fill(email);
+  await page.waitForTimeout(500);
 
-  for (const sel of LOGIN_SELECTORS.password) {
-    const el = page.locator(sel).first();
-    if (await el.isVisible().catch(() => false)) {
-      await el.fill(password);
-      break;
-    }
-  }
+  const passField = page.locator('#session_password, input[name="session_password"], #password');
+  await passField.fill(password);
+  await page.waitForTimeout(500);
 
-  for (const sel of LOGIN_SELECTORS.submit) {
-    const el = page.locator(sel).first();
-    if (await el.isVisible().catch(() => false)) {
-      await el.click();
-      console.log(`[POST] Clicked submit: ${sel}`);
-      break;
-    }
-  }
+  const submitBtn = page.locator('button[type="submit"]').first();
+  await submitBtn.click();
 
   await page.waitForURL('**/feed/**', { timeout: 30000 });
   console.log('[POST] ✓ Logged in');
 }
 
 async function postTextOnly(page, content) {
-  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle' });
+  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.waitForTimeout(2000);
 
-  const startPost = page.locator('[role="combobox"], [data-placeholder*="What"], .share-box__open, div[role="button"]:has-text("Start a post")').first();
+  const startPost = page.locator('[role="combobox"], div[data-placeholder*="What"]').first();
   await startPost.waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForTimeout(500);
   await startPost.click();
   await page.waitForTimeout(2000);
 
-  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"][data-placeholder*="What"]').first();
+  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"]').first();
   await editor.waitFor({ state: 'visible', timeout: 10000 });
   await editor.fill(content);
   await page.waitForTimeout(1000);
@@ -96,14 +84,15 @@ async function postTextOnly(page, content) {
   const postBtn = page.locator('button[type="submit"]:not([disabled])').first();
   await postBtn.waitFor({ state: 'visible', timeout: 10000 });
   await postBtn.click();
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(5000);
 }
 
 async function postWithImage(page, content, imageBuffer) {
-  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle' });
+  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.waitForTimeout(2000);
 
-  const startPost = page.locator('[role="combobox"], [data-placeholder*="What"], .share-box__open, div[role="button"]:has-text("Start a post")').first();
-  await startPost.waitFor({ state: 'visible', timeout: 15000 });
+  const startPost = page.locator('[role="combobox"], div[data-placeholder*="What"]').first();
+  if (!(await startPost.isVisible().catch(() => false))) return false;
   await startPost.click();
   await page.waitForTimeout(2000);
 
@@ -113,13 +102,14 @@ async function postWithImage(page, content, imageBuffer) {
     await page.waitForTimeout(4000);
   }
 
-  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"][data-placeholder*="What"]').first();
-  await editor.waitFor({ state: 'visible', timeout: 10000 });
+  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"]').first();
+  if (!(await editor.isVisible().catch(() => false))) return false;
   await editor.fill(content);
   await page.waitForTimeout(1500);
 
   const postBtn = page.locator('button[type="submit"]:not([disabled])').first();
   await postBtn.waitFor({ state: 'visible', timeout: 10000 });
   await postBtn.click();
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(5000);
+  return true;
 }
