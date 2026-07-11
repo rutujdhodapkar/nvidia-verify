@@ -11,24 +11,43 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
   const personUrn = `urn:li:person:${profile.sub}`;
   console.log(`[POST] Authenticated: ${profile.sub}`);
 
-  let assetUrn = null;
+  let mediaUrn = null;
   if (imageBuffer) {
-    assetUrn = await uploadImage(headers, personUrn, imageBuffer);
+    mediaUrn = await uploadImage(headers, personUrn, imageBuffer);
   }
 
-  const postBody = {
-    author: personUrn,
-    commentary: content,
-    visibility: 'PUBLIC',
-    distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
-    lifecycleState: 'PUBLISHED',
-  };
-  if (assetUrn) postBody.content = { media: { id: assetUrn } };
+  let body;
+  if (mediaUrn) {
+    body = {
+      author: personUrn,
+      lifecycleState: 'PUBLISHED',
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: { text: content },
+          shareMediaCategory: 'IMAGE',
+          media: [{ status: 'READY', media: mediaUrn }],
+        },
+      },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+    };
+  } else {
+    body = {
+      author: personUrn,
+      lifecycleState: 'PUBLISHED',
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: { text: content },
+          shareMediaCategory: 'NONE',
+        },
+      },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+    };
+  }
 
-  const postRes = await fetch('https://api.linkedin.com/v2/posts', {
+  const postRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
     headers,
-    body: JSON.stringify(postBody),
+    body: JSON.stringify(body),
   });
 
   const result = await postRes.json();
