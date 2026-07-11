@@ -1,48 +1,51 @@
-export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret }) {
+export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret, pageId }) {
   if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN');
 
   const accessToken = await refreshAccessToken(clientId, clientSecret, refreshToken);
   console.log('[POST] ✓ Token refreshed');
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 
-  const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', { headers });
-  const profile = await profileRes.json();
-  if (!profileRes.ok) throw new Error(`Profile: ${JSON.stringify(profile)}`);
-  const personUrn = `urn:li:person:${profile.sub}`;
-  console.log(`[POST] Authenticated: ${profile.sub}`);
+  let authorUrn;
+  if (pageId) {
+    authorUrn = `urn:li:organization:${pageId}`;
+    console.log(`[POST] Posting as organization: ${pageId}`);
+  } else {
+    const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', { headers });
+    const profile = await profileRes.json();
+    if (!profileRes.ok) throw new Error(`Profile: ${JSON.stringify(profile)}`);
+    authorUrn = `urn:li:person:${profile.sub}`;
+    console.log(`[POST] Posting as user: ${profile.sub}`);
+  }
 
   let mediaUrn = null;
   if (imageBuffer) {
-    mediaUrn = await uploadImage(headers, personUrn, imageBuffer);
+    mediaUrn = await uploadImage(headers, authorUrn, imageBuffer);
   }
 
-  let body;
-  if (mediaUrn) {
-    body = {
-      author: personUrn,
-      lifecycleState: 'PUBLISHED',
-      specificContent: {
-        'com.linkedin.ugc.ShareContent': {
-          shareCommentary: { text: content },
-          shareMediaCategory: 'IMAGE',
-          media: [{ status: 'READY', media: mediaUrn }],
+  const body = mediaUrn
+    ? {
+        author: authorUrn,
+        lifecycleState: 'PUBLISHED',
+        specificContent: {
+          'com.linkedin.ugc.ShareContent': {
+            shareCommentary: { text: content },
+            shareMediaCategory: 'IMAGE',
+            media: [{ status: 'READY', media: mediaUrn }],
+          },
         },
-      },
-      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-    };
-  } else {
-    body = {
-      author: personUrn,
-      lifecycleState: 'PUBLISHED',
-      specificContent: {
-        'com.linkedin.ugc.ShareContent': {
-          shareCommentary: { text: content },
-          shareMediaCategory: 'NONE',
+        visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+      }
+    : {
+        author: authorUrn,
+        lifecycleState: 'PUBLISHED',
+        specificContent: {
+          'com.linkedin.ugc.ShareContent': {
+            shareCommentary: { text: content },
+            shareMediaCategory: 'NONE',
+          },
         },
-      },
-      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-    };
-  }
+        visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+      };
 
   const postRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
@@ -66,24 +69,22 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   return data.access_token;
 }
 
-async function uploadImage(headers, personUrn, imageBuffer) {
+async function uploadImage(headers, authorUrn, imageBuffer) {
   const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
     method: 'POST',
     headers,
     body: JSON.stringify({
       registerUploadRequest: {
         recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-        owner: personUrn,
+        owner: authorUrn,
         serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
       },
     }),
   });
   const register = await registerRes.json();
   if (!registerRes.ok) throw new Error(`Upload reg: ${JSON.stringify(register)}`);
-
   const uploadUrl = register.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
   const asset = register.value.asset;
-
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',
     headers: { Authorization: headers.Authorization, 'Content-Type': 'image/png' },
