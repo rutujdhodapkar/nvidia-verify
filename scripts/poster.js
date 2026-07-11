@@ -24,7 +24,8 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
     isOrg = false;
   }
 
-  const finalContent = isOrg ? content : (content.includes(SITE_URL) ? `${content}\n\n${COMPANY_URL}` : `${content}\n\nRegister free: ${SITE_URL}\n${COMPANY_URL}`);
+  const safe = content.length > 2900 ? content.slice(0, 2890).trim().replace(/[\s,]+$/,'') + '…' : content;
+  const finalContent = isOrg ? safe : (safe.includes(SITE_URL) ? `${safe}\n\n${COMPANY_URL}` : `${safe}\n\nRegister free: ${SITE_URL}\n${COMPANY_URL}`);
   const ok = await tryPost(authorUrn, finalContent, imageBuffer, headers);
   if (!ok) throw new Error('Post failed as user too');
   console.log(`[POST] ✓ Posted as user: ${p.sub}`);
