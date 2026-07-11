@@ -30,7 +30,7 @@ function isDup(post, state) {
     const words = [...new Set(post.toLowerCase().match(/\b\w{4,}\b/g) || [])];
     const prevWords = [...new Set(prev.toLowerCase().match(/\b\w{4,}\b/g) || [])];
     const common = words.filter(w => prevWords.includes(w)).length;
-    if (common / Math.max(1, Math.min(words.length, prevWords.length)) > 0.5) return true;
+    if (common / Math.max(1, Math.min(words.length, prevWords.length)) > 0.75) return true;
   }
   return false;
 }
