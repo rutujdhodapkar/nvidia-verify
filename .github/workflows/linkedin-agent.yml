@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '0 10 * * 1-5'
   workflow_dispatch:
+  push:
+    branches: [master]
 
 jobs:
   run-agent:
@@ -22,19 +24,19 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium
 
-      - name: Run LinkedIn agent
+      - name: Run agent
         run: node scripts/agent.js
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
-          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
-          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
-          LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
+          LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
+          LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
 
-      - name: Commit updated state
+      - name: Commit state
         run: |
           git config user.name "devcraft-agent"
           git config user.email "agent@devcraft.fennark.xyz"
-          git add data/state.json
-          git diff --cached --quiet || git commit -m "chore: update agent run state [skip ci]"
+          git pull --rebase
+          git add data/state.json data/screenshots/
+          git diff --cached --quiet || git commit -m "chore: agent run state [skip ci]"
           git push

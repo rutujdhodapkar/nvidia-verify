@@ -1,135 +1,82 @@
-const LINKEDIN_API = 'https://api.linkedin.com';
+import { chromium } from 'playwright';
 
-let _accessToken = null;
-
-async function getAccessToken({ clientId, clientSecret, refreshToken }) {
-  const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }).toString(),
+export async function postToLinkedin({ content, imageBuffer, email, password }) {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1366, height: 900 },
+    locale: 'en-US',
   });
+  const page = await context.newPage();
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
+  try {
+    await login(page, email, password);
 
-  _accessToken = data.access_token;
-  console.log('[POST] Access token refreshed');
-  return data.access_token;
+    if (imageBuffer) {
+      await postWithImage(page, content, imageBuffer);
+    } else {
+      await postTextOnly(page, content);
+    }
+
+    console.log('[POST] ✓ Posted to LinkedIn');
+  } finally {
+    await context.close();
+    await browser.close();
+  }
 }
 
-async function linkedinFetch(path, options = {}) {
-  const res = await fetch(`${LINKEDIN_API}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${_accessToken}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+async function login(page, email, password) {
+  console.log('[POST] Logging in...');
+  await page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-  if (res.status === 401 && options._retry) throw new Error('Auth failed after retry');
-  if (res.status === 401) {
-    console.log('[POST] Token expired, refreshing...');
-    await getAccessToken(options.creds);
-    return linkedinFetch(path, { ...options, _retry: true });
+  await page.waitForSelector('#username', { timeout: 15000 });
+  await page.fill('#username', email);
+  await page.fill('#password', password);
+  await page.click('button[type="submit"]');
+
+  await page.waitForURL('**/feed/**', { timeout: 30000 });
+  console.log('[POST] ✓ Logged in');
+}
+
+async function postTextOnly(page, content) {
+  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle' });
+
+  const startPost = page.locator('[data-placeholder*="What do you want"], .share-box__open, [role="combobox"]').first();
+  await startPost.waitFor({ state: 'visible', timeout: 15000 });
+  await startPost.click();
+  await page.waitForTimeout(2000);
+
+  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"][data-placeholder*="What"]').first();
+  await editor.waitFor({ state: 'visible', timeout: 10000 });
+  await editor.fill(content);
+  await page.waitForTimeout(1000);
+
+  const postBtn = page.locator('button[type="submit"]:not([disabled])').first();
+  await postBtn.waitFor({ state: 'visible', timeout: 10000 });
+  await postBtn.click();
+  await page.waitForTimeout(4000);
+}
+
+async function postWithImage(page, content, imageBuffer) {
+  await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle' });
+
+  const startPost = page.locator('[data-placeholder*="What do you want"], .share-box__open, [role="combobox"]').first();
+  await startPost.waitFor({ state: 'visible', timeout: 15000 });
+  await startPost.click();
+  await page.waitForTimeout(2000);
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]').first();
+  if (await fileInput.isVisible()) {
+    await fileInput.setInputFiles({ name: 'post-image.png', mimeType: 'image/png', buffer: imageBuffer });
+    await page.waitForTimeout(3000);
   }
 
-  return res;
-}
+  const editor = page.locator('[role="textbox"][aria-label*="Text"], div[contenteditable="true"][data-placeholder*="What"]').first();
+  await editor.waitFor({ state: 'visible', timeout: 10000 });
+  await editor.fill(content);
+  await page.waitForTimeout(1500);
 
-async function getProfileId() {
-  const res = await linkedinFetch('/v2/userinfo');
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Profile fetch failed: ${JSON.stringify(data)}`);
-  return data.sub;
-}
-
-async function registerImageUpload(personId) {
-  const res = await linkedinFetch('/v2/assets?action=registerUpload', {
-    method: 'POST',
-    body: JSON.stringify({
-      registerUploadRequest: {
-        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-        owner: `urn:li:person:${personId}`,
-        serviceRelationships: [{
-          relationshipType: 'OWNER',
-          identifier: 'urn:li:userGeneratedContent',
-        }],
-      },
-    }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Image upload registration failed: ${JSON.stringify(data)}`);
-
-  const uploadUrl = data.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
-  const assetUrn = data.value.asset;
-
-  return { uploadUrl, assetUrn };
-}
-
-async function uploadImage(uploadUrl, imageBuffer) {
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'image/png',
-      'Authorization': `Bearer ${_accessToken}`,
-    },
-    body: imageBuffer,
-  });
-
-  if (!res.ok) throw new Error(`Image upload failed: ${res.status}`);
-  console.log('[POST] Image uploaded');
-}
-
-export async function postToLinkedin(content, imageBuffer, credentials) {
-  const { clientId, clientSecret, refreshToken } = credentials;
-
-  console.log('[POST] Authenticating...');
-  await getAccessToken({ clientId, clientSecret, refreshToken });
-
-  const personId = await getProfileId();
-  console.log(`[POST] Authenticated as user: ${personId}`);
-
-  let assetUrn = null;
-
-  if (imageBuffer) {
-    console.log('[POST] Registering image upload...');
-    const upload = await registerImageUpload(personId);
-    assetUrn = upload.assetUrn;
-    await uploadImage(upload.uploadUrl, imageBuffer);
-  }
-
-  console.log('[POST] Creating post...');
-  const postBody = {
-    author: `urn:li:person:${personId}`,
-    commentary: content,
-    visibility: 'PUBLIC',
-    distribution: {
-      feedDistribution: 'MAIN_FEED',
-      targetEntities: [],
-      thirdPartyDistributionChannels: [],
-    },
-    lifecycleState: 'PUBLISHED',
-    isReshareDisabledByAuthor: false,
-  };
-  if (assetUrn) {
-    postBody.content = { media: { id: assetUrn } };
-  }
-
-  const res = await linkedinFetch('/v2/posts', {
-    method: 'POST',
-    body: JSON.stringify(postBody),
-  });
-
-  const result = await res.json();
-  if (!res.ok) throw new Error(`Post failed: ${JSON.stringify(result)}`);
-
-  console.log(`[POST] ✓ Posted: ${result.id}`);
-  return result;
+  const postBtn = page.locator('button[type="submit"]:not([disabled])').first();
+  await postBtn.waitFor({ state: 'visible', timeout: 10000 });
+  await postBtn.click();
+  await page.waitForTimeout(4000);
 }
