@@ -1,0 +1,40 @@
+name: DEV/CRAFT LinkedIn Agent
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Run LinkedIn agent
+        run: node scripts/agent.js
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
+
+      - name: Commit updated state
+        run: |
+          git config user.name "devcraft-agent"
+          git config user.email "agent@devcraft.fennark.xyz"
+          git add data/state.json
+          git diff --cached --quiet || git commit -m "chore: update agent run state [skip ci]"
+          git push

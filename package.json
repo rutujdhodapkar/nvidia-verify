@@ -1,0 +1,17 @@
+{
+  "name": "devcraft-linkedin-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Autonomous LinkedIn marketing agent for DEV/CRAFT",
+  "scripts": {
+    "agent": "node scripts/agent.js",
+    "scrape": "node scripts/scraper.js",
+    "generate": "node scripts/generator.js",
+    "post": "node scripts/poster.js"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0",
+    "dotenv": "^16.4.7",
+    "nodemailer": "^6.9.16"
+  }
+}
