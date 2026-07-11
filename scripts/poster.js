@@ -1,32 +1,22 @@
-const LINKEDIN_API = 'https://api.linkedin.com';
-
 export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret }) {
-  if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN. Run: node scripts/get-token.js');
+  if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN');
 
   const accessToken = await refreshAccessToken(clientId, clientSecret, refreshToken);
   console.log('[POST] ✓ Token refreshed');
-
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 
   const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', { headers });
   const profile = await profileRes.json();
   if (!profileRes.ok) throw new Error(`Profile: ${JSON.stringify(profile)}`);
-  const personId = profile.sub;
-  console.log(`[POST] Authenticated as: ${personId}`);
+  const personUrn = `urn:li:person:${profile.sub}`;
+  console.log(`[POST] Authenticated: ${profile.sub}`);
 
   let assetUrn = null;
   if (imageBuffer) {
-    assetUrn = await uploadImage(headers, personId, imageBuffer);
+    assetUrn = await uploadImage(headers, personUrn, imageBuffer);
   }
 
-  const postBody = {
-    author: `urn:li:person:${personId}`,
-    commentary: content,
-    visibility: 'PUBLIC',
-    distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
-    lifecycleState: 'PUBLISHED',
-    isReshareDisabledByAuthor: false,
-  };
+  const postBody = { author: personUrn, commentary: content, visibility: 'PUBLIC' };
   if (assetUrn) postBody.content = { media: { id: assetUrn } };
 
   const postRes = await fetch('https://api.linkedin.com/v2/posts', {
@@ -44,26 +34,21 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
   const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }).toString(),
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret }).toString(),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
+  if (!res.ok) throw new Error(`Token refresh: ${JSON.stringify(data)}`);
   return data.access_token;
 }
 
-async function uploadImage(headers, personId, imageBuffer) {
+async function uploadImage(headers, personUrn, imageBuffer) {
   const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
     method: 'POST',
     headers,
     body: JSON.stringify({
       registerUploadRequest: {
         recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-        owner: `urn:li:person:${personId}`,
+        owner: personUrn,
         serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
       },
     }),
@@ -79,7 +64,7 @@ async function uploadImage(headers, personId, imageBuffer) {
     headers: { Authorization: headers.Authorization, 'Content-Type': 'image/png' },
     body: imageBuffer,
   });
-  if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
+  if (!uploadRes.ok) throw new Error(`Upload: ${uploadRes.status}`);
   console.log('[POST] ✓ Image uploaded');
   return asset;
 }
