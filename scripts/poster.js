@@ -1,4 +1,5 @@
 const COMPANY_URL = 'https://www.linkedin.com/company/devcraft-internships/';
+const SITE_URL = 'devcraft.fennark.xyz';
 
 export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret, pageId }) {
   if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN');
@@ -23,7 +24,7 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
     isOrg = false;
   }
 
-  const finalContent = isOrg ? content : `${content}\n\n${COMPANY_URL}`;
+  const finalContent = isOrg ? content : (content.includes(SITE_URL) ? `${content}\n\n${COMPANY_URL}` : `${content}\n\nRegister free: ${SITE_URL}\n${COMPANY_URL}`);
   const ok = await tryPost(authorUrn, finalContent, imageBuffer, headers);
   if (!ok) throw new Error('Post failed as user too');
   console.log(`[POST] ✓ Posted as user: ${p.sub}`);

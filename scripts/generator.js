@@ -66,33 +66,51 @@ function buildContext(siteData, previousPosts) {
     ? `\nSTRICT: NEVER repeat these angles:\n${previousPosts.slice(-5).map(p => `- AVOID: "${p.slice(0, 120)}"`).join('\n')}`
     : '';
 
-  const prompt = `You are DEV/CRAFT's creative director — part marketer, part designer, part psychologist.
+  const prompt = `You are DEV/CRAFT's creative marketing director — expert in SaaS growth, design, and psychology.
 
-SITE DATA:
+SITE DATA (what is scraped from the platform):
 ${siteContext}${dupGuard}
 
-TASK: Create a LinkedIn post + matching image card HTML for DEV/CRAFT (devcraft.fennark.xyz), a 100% free virtual internship for college students.
+ABOUT DEV/CRAFT: A SaaS platform (devcraft.fennark.xyz) that provides a 100% free, self-paced virtual internship program for college students. Students build real projects, get mentorship, earn certifications, and gain practical industry experience — all from home. No fees, no deadlines.
+
+TASK: Write a LinkedIn post + HTML image card for DEV/CRAFT SaaS platform. The goal is student signups at devcraft.fennark.xyz.
+
+CRITICAL: The post MUST mention the link devcraft.fennark.xyz. Every post needs the URL somewhere prominent.
 
 LINKEDIN COMPANY PAGE: https://www.linkedin.com/company/devcraft-internships/
 
-=== DESIGN STYLES (pick ONE) ===
-- brutalist | modern-minimal | glassmorphism | gradient-bold | dark-tech | pixel-art | corporate-clean
+=== DESIGN STYLES — pick ONE that fits the post's mood ===
+- brutalist: heavy black borders, raw typography, monospace, high contrast, no-nonsense
+- modern-minimal: clean whitespace, elegant typography, subtle, premium feel
+- glassmorphism: frosted glass panels, blur effects, layered depth, light borders
+- gradient-bold: vibrant side-by-side panels, dark + accent color split
+- dark-tech: dark bg with subtle grid patterns, neon purple glow, tech/startup vibe
+- pixel-art: retro 8-bit aesthetic, blocky borders, pixel fonts, playful
+- corporate-clean: white bg, structured layout, professional, brand-colored accent panel
+
+=== IMAGE CARD CONTENT RULES ===
+- Card MUST display: headline, supporting subtext, CTA text
+- CTA must reference devcraft.fennark.xyz
+- Use actual content from the site context when possible
+- NO pure gradients as background — use solid colors, patterns, or structured layouts
+- Brand purple #6366f1 should be an accent, not the whole background
+- Card must look like a real marketing asset, not a placeholder
 
 === PSYCHOLOGY RULES ===
-- Purple #6366f1 for ambition, dark bg for premium feel
+- Purple #6366f1 for ambition/wisdom
 - F-pattern: headline top-left, CTA bottom-right
-- Von Restorff: make CTA button visually distinct
-- Social proof, scarcity, commitment ladder, peak-end rule
+- Von Restorff: make CTA distinct
+- Social proof ("join thousands"), scarcity ("free"), commitment ladder
 
 === RESPOND ONLY WITH THIS JSON (no other text) ===
 {
-  "post": "LinkedIn post text (200-280 words). Hook first line. devcraft.fennark.xyz link. 3-5 hashtags. No emojis.",
-  "html": "<!DOCTYPE html><html><head><style>/* 1200x630 card, brand purple #6366f1, dark bg, chosen style */</style></head><body>...</body></html>",
+  "post": "LinkedIn post (220-280 words). Hook in first line. Include devcraft.fennark.xyz link. 3-5 hashtags like #DEVcraft #VirtualInternship #FreeEducation. No emojis.",
+  "html": "Complete 1200x630 HTML/CSS card. Include headline, subtext, CTA with devcraft.fennark.xyz. Use brand purple #6366f1. NO gradients. Proper design matching chosen style.",
   "imageMeta": {
-    "headline": "max 60 chars",
-    "subtext": "max 80 chars",
+    "headline": "max 60 chars — compelling SaaS headline",
+    "subtext": "max 80 chars — supporting benefit",
     "cta": "devcraft.fennark.xyz",
-    "style": "chosen-style-name"
+    "style": "one of: brutalist, modern-minimal, glassmorphism, gradient-bold, dark-tech, pixel-art, corporate-clean"
   }
 }`;
 
