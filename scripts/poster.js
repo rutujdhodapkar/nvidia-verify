@@ -8,49 +8,36 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
   let authorUrn;
   if (pageId) {
     authorUrn = `urn:li:organization:${pageId}`;
-    console.log(`[POST] Posting as organization: ${pageId}`);
+    console.log(`[POST] Posting to page: ${pageId}`);
   } else {
-    const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', { headers });
-    const profile = await profileRes.json();
-    if (!profileRes.ok) throw new Error(`Profile: ${JSON.stringify(profile)}`);
-    authorUrn = `urn:li:person:${profile.sub}`;
-    console.log(`[POST] Posting as user: ${profile.sub}`);
+    const p = await (await fetch('https://api.linkedin.com/v2/userinfo', { headers })).json();
+    authorUrn = `urn:li:person:${p.sub}`;
+    console.log(`[POST] Posting as user: ${p.sub}`);
   }
 
   let mediaUrn = null;
   if (imageBuffer) {
-    mediaUrn = await uploadImage(headers, authorUrn, imageBuffer);
+    const reg = await (await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST', headers,
+      body: JSON.stringify({ registerUploadRequest: { recipes: ['urn:li:digitalmediaRecipe:feedshare-image'], owner: authorUrn, serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }] } }),
+    })).json();
+    const uploadUrl = reg.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
+    mediaUrn = reg.value.asset;
+    await fetch(uploadUrl, { method: 'PUT', headers: { Authorization: headers.Authorization, 'Content-Type': 'image/png' }, body: imageBuffer });
+    console.log('[POST] ✓ Image uploaded');
   }
 
-  const body = mediaUrn
-    ? {
-        author: authorUrn,
-        lifecycleState: 'PUBLISHED',
-        specificContent: {
-          'com.linkedin.ugc.ShareContent': {
-            shareCommentary: { text: content },
-            shareMediaCategory: 'IMAGE',
-            media: [{ status: 'READY', media: mediaUrn }],
-          },
-        },
-        visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-      }
-    : {
-        author: authorUrn,
-        lifecycleState: 'PUBLISHED',
-        specificContent: {
-          'com.linkedin.ugc.ShareContent': {
-            shareCommentary: { text: content },
-            shareMediaCategory: 'NONE',
-          },
-        },
-        visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-      };
-
   const postRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
+    method: 'POST', headers,
+    body: JSON.stringify(mediaUrn ? {
+      author: authorUrn, lifecycleState: 'PUBLISHED',
+      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'IMAGE', media: [{ status: 'READY', media: mediaUrn }] } },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+    } : {
+      author: authorUrn, lifecycleState: 'PUBLISHED',
+      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'NONE' } },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+    }),
   });
 
   const result = await postRes.json();
@@ -64,33 +51,7 @@ async function refreshAccessToken(clientId, clientSecret, refreshToken) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret }).toString(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Token refresh: ${JSON.stringify(data)}`);
-  return data.access_token;
-}
-
-async function uploadImage(headers, authorUrn, imageBuffer) {
-  const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      registerUploadRequest: {
-        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-        owner: authorUrn,
-        serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
-      },
-    }),
-  });
-  const register = await registerRes.json();
-  if (!registerRes.ok) throw new Error(`Upload reg: ${JSON.stringify(register)}`);
-  const uploadUrl = register.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
-  const asset = register.value.asset;
-  const uploadRes = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { Authorization: headers.Authorization, 'Content-Type': 'image/png' },
-    body: imageBuffer,
-  });
-  if (!uploadRes.ok) throw new Error(`Upload: ${uploadRes.status}`);
-  console.log('[POST] ✓ Image uploaded');
-  return asset;
+  const d = await res.json();
+  if (!res.ok) throw new Error(`Token: ${JSON.stringify(d)}`);
+  return d.access_token;
 }

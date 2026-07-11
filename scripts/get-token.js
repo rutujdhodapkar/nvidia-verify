@@ -6,7 +6,7 @@ const CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
 if (!CLIENT_ID || !CLIENT_SECRET) { console.error('Set LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in .env'); process.exit(1); }
 
 const REDIRECT_URI = 'https://www.linkedin.com/developers/tools/oauth/redirect';
-const SCOPES = ['w_member_social', 'rw_organization_admin', 'openid', 'profile'];
+const SCOPES = ['w_member_social', 'w_organization_social', 'rw_organization_admin', 'openid', 'profile'];
 const state = Math.random().toString(36).substring(2);
 
 const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES.join(' '))}&state=${state}`;
