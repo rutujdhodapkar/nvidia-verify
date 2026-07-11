@@ -62,6 +62,8 @@ ${siteContext}${dupGuard}
 
 TASK: Create a LinkedIn post + matching image card HTML for DEV/CRAFT (devcraft.fennark.xyz), a 100% free virtual internship for college students.
 
+LINKEDIN COMPANY PAGE: https://www.linkedin.com/company/devcraft-internships/ — reference the company page naturally (the link will be auto-appended so no need to manually add it)
+
 === DESIGN STYLES (pick ONE that fits best) ===
 - brutalist: bold raw typography, heavy black borders, high contrast, monospace, no-nonsense
 - modern-minimal: clean, lots of whitespace, elegant typography, subtle gradients

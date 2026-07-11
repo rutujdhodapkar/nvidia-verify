@@ -1,3 +1,5 @@
+const COMPANY_URL = 'https://www.linkedin.com/company/devcraft-internships/';
+
 export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret, pageId }) {
   if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN');
 
@@ -5,15 +7,11 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
   console.log('[POST] ✓ Token refreshed');
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 
-  let authorUrn;
-  if (pageId) {
-    authorUrn = `urn:li:organization:${pageId}`;
-    console.log(`[POST] Posting to page: ${pageId}`);
-  } else {
-    const p = await (await fetch('https://api.linkedin.com/v2/userinfo', { headers })).json();
-    authorUrn = `urn:li:person:${p.sub}`;
-    console.log(`[POST] Posting as user: ${p.sub}`);
-  }
+  const p = await (await fetch('https://api.linkedin.com/v2/userinfo', { headers })).json();
+  const authorUrn = `urn:li:person:${p.sub}`;
+  console.log(`[POST] Posting as user: ${p.sub}`);
+
+  const finalContent = pageId ? `${content}\n\n${COMPANY_URL}` : content;
 
   let mediaUrn = null;
   if (imageBuffer) {
@@ -31,11 +29,11 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
     method: 'POST', headers,
     body: JSON.stringify(mediaUrn ? {
       author: authorUrn, lifecycleState: 'PUBLISHED',
-      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'IMAGE', media: [{ status: 'READY', media: mediaUrn }] } },
+      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: finalContent }, shareMediaCategory: 'IMAGE', media: [{ status: 'READY', media: mediaUrn }] } },
       visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
     } : {
       author: authorUrn, lifecycleState: 'PUBLISHED',
-      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'NONE' } },
+      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: finalContent }, shareMediaCategory: 'NONE' } },
       visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
     }),
   });
