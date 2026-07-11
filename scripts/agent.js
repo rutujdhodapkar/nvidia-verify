@@ -28,46 +28,34 @@ async function main() {
   const {
     NVIDIA_API_KEY,
     NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b',
-    LINKEDIN_EMAIL,
-    LINKEDIN_PASSWORD,
+    LINKEDIN_CLIENT_ID,
+    LINKEDIN_CLIENT_SECRET,
+    LINKEDIN_REFRESH_TOKEN,
   } = process.env;
 
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
-  if (!LINKEDIN_EMAIL || !LINKEDIN_PASSWORD) { console.error('[!] Missing LINKEDIN credentials'); process.exit(1); }
+  if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) { console.error('[!] Missing LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET'); process.exit(1); }
+  if (!LINKEDIN_REFRESH_TOKEN) { console.error('[!] Missing LINKEDIN_REFRESH_TOKEN. Run: node scripts/get-token.js'); process.exit(1); }
 
-  /* ── 1. SCRAPE ── */
   console.log('[1/4] Scraping devcraft.fennark.xyz...');
   const siteData = await scrapeSite();
-  console.log(`      ${Object.keys(siteData.pages).length} pages, theme: ${siteData.theme?.primary}\n`);
+  console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
-  /* ── 2. GENERATE POST ── */
-  console.log('[2/4] Generating post (NVIDIA nemotron)...');
+  console.log('[2/4] Generating post...');
   const { post, imageMeta, theme } = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL);
   console.log(`      "${post.slice(0, 90)}..."\n`);
 
-  /* ── 3. GENERATE IMAGE ── */
-  console.log('[3/4] Generating image (Pollinations.ai)...');
+  console.log('[3/4] Generating image...');
   let imageBuffer = null;
-  try {
-    imageBuffer = await generateImage(post, theme, imageMeta);
-  } catch (err) {
-    console.log(`      Image gen skipped: ${err.message}`);
-  }
+  try { imageBuffer = await generateImage(post, theme, imageMeta); } catch (err) { console.log(`      Image skipped: ${err.message}`); }
 
-  /* ── 4. POST TO LINKEDIN ── */
-  console.log('\n[4/4] Posting to LinkedIn...');
-  await postToLinkedin({
-    content: post,
-    imageBuffer,
-    email: LINKEDIN_EMAIL,
-    password: LINKEDIN_PASSWORD,
-  });
+  console.log('\n[4/4] Posting to LinkedIn via API...');
+  await postToLinkedin({ content: post, imageBuffer, refreshToken: LINKEDIN_REFRESH_TOKEN, clientId: LINKEDIN_CLIENT_ID, clientSecret: LINKEDIN_CLIENT_SECRET });
 
   state.previousPosts.push(post);
   state.lastRun = new Date().toISOString();
   if (state.previousPosts.length > 50) state.previousPosts = state.previousPosts.slice(-50);
   saveState(state);
-
   console.log(`\n═══ ✓ Done ═══`);
 }
 

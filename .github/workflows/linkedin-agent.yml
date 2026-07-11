@@ -29,8 +29,9 @@ jobs:
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
-          LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
-          LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
 
       - name: Commit state
         run: |
@@ -38,5 +39,5 @@ jobs:
           git config user.email "agent@devcraft.fennark.xyz"
           git pull --rebase
           git add data/state.json data/screenshots/
-          git diff --cached --quiet || git commit -m "chore: agent run state [skip ci]"
+          git diff --cached --quiet || git commit -m "chore: agent run [skip ci]"
           git push
