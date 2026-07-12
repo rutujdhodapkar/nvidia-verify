@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 
-const HF_FLUX_URL = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev';
-const FLUX_PROMPTS = [
+const POLLINATIONS_URL = 'https://image.pollinations.ai/prompt';
+const BG_PROMPTS = [
   'Professional modern tech workspace with purple neon lighting, laptop with code on screen, dark aesthetic, cinematic lighting, depth of field',
   'Abstract purple and blue technology background with geometric shapes, glowing grid lines, futuristic data visualization, dark mode',
   'Modern open office space with young diverse professionals collaborating, warm lighting, tech startup vibe, large windows with city view',
@@ -16,25 +16,18 @@ const FLUX_PROMPTS = [
   'Digital brain or neural network visualization with purple glowing synapses, dark background, technological aesthetic, abstract intelligence',
 ];
 
-async function generateFluxBackground(post, headline, hfToken) {
+async function generateAiBackground(post, headline) {
   const seed = [...headline].reduce((a, c) => a + c.charCodeAt(0), 0);
-  const prompt = FLUX_PROMPTS[seed % FLUX_PROMPTS.length];
+  const prompt = BG_PROMPTS[seed % BG_PROMPTS.length];
   const fullPrompt = `${prompt}, high quality, 1200x630 banner, professional, no text or letters in the image`;
 
-  const res = await fetch(HF_FLUX_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ inputs: fullPrompt }),
-    signal: AbortSignal.timeout(60000),
-  });
+  const url = `${POLLINATIONS_URL}/${encodeURIComponent(fullPrompt)}?width=1200&height=630&nofeed=true`;
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => 'unknown');
-    throw new Error(`FLUX ${res.status}: ${err.slice(0, 100)}`);
-  }
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error(`Pollinations ${res.status}`);
 
   const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length < 500) throw new Error('FLUX returned too small image');
+  if (buf.length < 500) throw new Error('Image too small');
   return buf;
 }
 
@@ -111,15 +104,13 @@ function pickTemplate(meta) {
 export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) {
   const meta = { headline: '100% Free Virtual Internship', subtext: 'Build real projects. Get certified.', cta: 'Apply at devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
 
-  if (hfToken) {
-    try {
-      const fluxBuffer = await generateFluxBackground(post, meta.headline, hfToken);
-      const composited = await compositeTextOverImage(fluxBuffer, meta);
-      console.log(`[IMAGE] ✓ FLUX + overlay: ${composited.length} bytes`);
-      return composited;
-    } catch (err) {
-      console.log(`[IMAGE] FLUX failed: ${err.message}`);
-    }
+  try {
+    const bgBuffer = await generateAiBackground(post, meta.headline);
+    const composited = await compositeTextOverImage(bgBuffer, meta);
+    console.log(`[IMAGE] ✓ AI bg + overlay: ${composited.length} bytes`);
+    return composited;
+  } catch (err) {
+    console.log(`[IMAGE] AI bg failed: ${err.message}, falling back...`);
   }
 
   if (html && html.length > 200) {
