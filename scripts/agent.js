@@ -50,34 +50,32 @@ async function main() {
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
   console.log(`      "${post.slice(0, 120)}..."\n`);
 
-  // Step 2: Generate image — Canva → Figma → code-based fallback
+  // Step 2: Generate image — code-based primary, Canva/Figma as optional overrides
   console.log('[3/4] Generating image...');
   let imageUrl = null;
 
-  // Try Canva (via Zapier)
-  if (ZAPIER_TOKEN && CANVA_TEMPLATE_ID && designBrief) {
-    console.log('      Trying Canva design...');
+  // Try Canva if configured (optional override)
+  if (!imageUrl && ZAPIER_TOKEN && CANVA_TEMPLATE_ID && designBrief) {
+    console.log('      Trying Canva design (optional)...');
     imageUrl = await createCanvaDesign(ZAPIER_TOKEN, designBrief, CANVA_TEMPLATE_ID);
     if (imageUrl) console.log(`      ✓ Canva: ${imageUrl}`);
-    else console.log('      Canva failed');
   }
 
-  // Try Figma (API)
+  // Try Figma if configured (optional override)
   if (!imageUrl && FIGMA_TOKEN && FIGMA_FILE_KEY && FIGMA_FRAME_ID) {
-    console.log('      Trying Figma export...');
+    console.log('      Trying Figma export (optional)...');
     imageUrl = await getFigmaImageUrl(FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID);
     if (imageUrl) console.log(`      ✓ Figma: ${imageUrl}`);
-    else console.log('      Figma failed');
   }
 
-  // Fall back to code-based generation
+  // Primary: code-based generation (AI bg + modern templates)
   if (!imageUrl) {
-    console.log('      Using code-based image generation...');
+    console.log('      Generating code-based design...');
     let imageBuffer = null;
     for (let i = 0; i < 3; i++) {
       console.log(`      Attempt ${i + 1}...`);
       try {
-        imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY, hfToken: HF_API_TOKEN });
+        imageBuffer = await generateImage({ html: null, post, imageMeta, designBrief, apiKey: NVIDIA_API_KEY, hfToken: HF_API_TOKEN });
         if (imageBuffer && imageBuffer.length > 500) { console.log(`      ✓ Generated (${imageBuffer.length} bytes)`); break; }
       } catch (err) { console.log(`      Failed: ${err.message}`); }
       if (i < 2) console.log('      Retrying...');

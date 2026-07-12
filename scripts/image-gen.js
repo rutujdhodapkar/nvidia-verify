@@ -227,28 +227,35 @@ function pickTemplate(meta) {
   return (templates[meta.style] || brutalist)(meta);
 }
 
-export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) {
+export async function generateImage({ html, post, imageMeta, designBrief, apiKey, hfToken }) {
   const meta = { headline: 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
 
+  // If design brief exists, use its tone to pick a matching template style
+  if (designBrief?.tone) {
+    const toneMap = {
+      'clean': 'modern-minimal',
+      'editorial': 'magazine',
+      'bold': 'dark-tech',
+      'playful': 'bento',
+      'professional': 'corporate-clean',
+      'tech': 'terminal',
+      'creative': 'split-panel',
+    };
+    meta.style = toneMap[designBrief.tone] || meta.style;
+    console.log(`[IMAGE] Style "${meta.style}" from design brief tone "${designBrief.tone}"`);
+  }
+
+  // Try AI background + composite overlay (real image with modern text)
   try {
     const bgBuffer = await generateAiBackground(post, meta.headline);
     const composited = await compositeTextOverImage(bgBuffer, meta);
     console.log(`[IMAGE] AI bg + overlay: ${composited.length} bytes`);
     return composited;
   } catch (err) {
-    console.log(`[IMAGE] AI bg failed: ${err.message}, falling back...`);
+    console.log(`[IMAGE] AI bg failed: ${err.message}, using template...`);
   }
 
-  if (html && html.length > 200) {
-    try {
-      const buf = await renderHtml(html);
-      if (buf && buf.length > 1000) { console.log(`[IMAGE] AI card: ${buf.length} bytes`); return buf; }
-    } catch (err) { console.log(`[IMAGE] AI HTML failed: ${err.message}`); }
-  }
-
-  const nv = await tryNvidiaImage(post, meta, apiKey);
-  if (nv) return nv;
-
+  // Fallback: render a code-based modern template
   const templateHtml = pickTemplate(meta);
   const buf = await renderHtml(templateHtml);
   console.log(`[IMAGE] Template card (${meta.style}): ${buf.length} bytes`);
