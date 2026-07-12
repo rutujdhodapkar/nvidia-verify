@@ -154,6 +154,10 @@ async function sendBatch() {
   if (meta.lastRunDate !== today) {
     meta.dailyCount = 0;
     meta.lastRunDate = today;
+  }
+
+  const ownerCheck = await fetch(`${FIREBASE_URL}/queue/0_rutujdhodapkar_gmail_com.json`);
+  if (ownerCheck.status === 404 || ownerCheck.status === 200 && (await ownerCheck.json()) === null) {
     await fetch(`${FIREBASE_URL}/queue/0_rutujdhodapkar_gmail_com.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
