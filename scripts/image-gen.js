@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 
-const POLLINATIONS_URL = 'https://image.pollinations.ai/prompt';
+const HF_API = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev';
+
 const BG_PROMPTS = [
   'Professional modern tech workspace with purple neon lighting, laptop with code on screen, dark aesthetic, cinematic lighting, depth of field',
   'Abstract purple and blue technology background with geometric shapes, glowing grid lines, futuristic data visualization, dark mode',
@@ -16,15 +17,21 @@ const BG_PROMPTS = [
   'Digital brain or neural network visualization with purple glowing synapses, dark background, technological aesthetic, abstract intelligence',
 ];
 
-async function generateAiBackground(post, headline) {
+async function generateHfBackground(post, headline, hfToken) {
   const seed = [...headline].reduce((a, c) => a + c.charCodeAt(0), 0);
   const prompt = BG_PROMPTS[seed % BG_PROMPTS.length];
   const fullPrompt = `${prompt}, high quality, 1200x630 banner, professional, no text or letters in the image`;
 
-  const url = `${POLLINATIONS_URL}/${encodeURIComponent(fullPrompt)}?width=1200&height=630&nofeed=true`;
-
-  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-  if (!res.ok) throw new Error(`Pollinations ${res.status}`);
+  const res = await fetch(HF_API, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inputs: fullPrompt }),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`HF ${res.status}: ${err.slice(0, 100)}`);
+  }
 
   const buf = Buffer.from(await res.arrayBuffer());
   if (buf.length < 500) throw new Error('Image too small');
@@ -245,14 +252,16 @@ export async function generateImage({ html, post, imageMeta, designBrief, apiKey
     console.log(`[IMAGE] Style "${meta.style}" from design brief tone "${designBrief.tone}"`);
   }
 
-  // Try AI background + composite overlay (real image with modern text)
-  try {
-    const bgBuffer = await generateAiBackground(post, meta.headline);
-    const composited = await compositeTextOverImage(bgBuffer, meta);
-    console.log(`[IMAGE] AI bg + overlay: ${composited.length} bytes`);
-    return composited;
-  } catch (err) {
-    console.log(`[IMAGE] AI bg failed: ${err.message}, using template...`);
+  // Try Hugging Face FLUX background + composite overlay
+  if (hfToken) {
+    try {
+      const bgBuffer = await generateHfBackground(post, meta.headline, hfToken);
+      const composited = await compositeTextOverImage(bgBuffer, meta);
+      console.log(`[IMAGE] HF FLUX bg + overlay: ${composited.length} bytes`);
+      return composited;
+    } catch (err) {
+      console.log(`[IMAGE] HF FLUX failed: ${err.message}, using template...`);
+    }
   }
 
   // Fallback: render a code-based modern template
