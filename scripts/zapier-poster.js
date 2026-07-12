@@ -4,33 +4,28 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  const paramSets = [
-    { company_id: pid, comment: content, content__submitted_image_url: imageUrl },
-    { company_id: pid, comment: content, image_url: imageUrl },
-    { company_id: pid, comment: content, submitted_image_url: imageUrl },
-    { company_id: pid, comment: content, media_url: imageUrl },
-    { company_id: pid, comment: content, content_url: imageUrl },
-  ];
+  // Append image URL to post content so LinkedIn auto-generates a preview card
+  const postContent = imageUrl ? `${content}\n\n${imageUrl}` : content;
+
+  const params = { company_id: pid, comment: postContent };
 
   let lastErr;
-  for (const params of paramSets) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const r = await callZapier(zapierToken, {
-          selected_api: 'LinkedInCLIAPI',
-          action: 'create_company_update',
-          instructions: 'Post to devcraft-internships company page',
-          output: 'post_url',
-          params,
-        });
-        const postUrl = r?.results?.post_url || r?.results;
-        console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
-        return postUrl;
-      } catch (err) {
-        lastErr = err;
-        console.log(`[POST] Attempt failed: ${err.message.slice(0, 100)}`);
-        await new Promise(r => setTimeout(r, 2000));
-      }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await callZapier(zapierToken, {
+        selected_api: 'LinkedInCLIAPI',
+        action: 'create_company_update',
+        instructions: `Post to devcraft-internships company page. Image URL included in text for preview: ${imageUrl || 'none'}`,
+        output: 'post_url',
+        params,
+      });
+      const postUrl = r?.results?.post_url || r?.results;
+      console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
+      return postUrl;
+    } catch (err) {
+      lastErr = err;
+      console.log(`[POST] Attempt ${attempt + 1} failed: ${err.message.slice(0, 100)}`);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
     }
   }
   throw new Error(`Post failed after retries: ${lastErr?.message}`);
