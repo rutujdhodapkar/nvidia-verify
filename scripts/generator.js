@@ -108,8 +108,7 @@ Generate the post now. Return ONLY the JSON.`;
   const ctaLine = parsed.cta_line || 'Apply at devcraft.fennark.xyz';
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join('\n') : '';
 
-  const divider = '\n━━━━━━━━━━━━━━━━━━\n';
-  const postParts = [headline, '', hook, divider, '🔹 Skills You\'ll Build:', skills, divider, body, '', proof, divider, engagement, '', ctaLine, '', hashtags];
+  const postParts = [headline, '', hook, '', '🔹 Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
   const postText = postParts.filter(Boolean).join('\n');
 
   const designBrief = parsed.design_brief || null;

@@ -4,54 +4,35 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  const companyParams = { company_id: pid, comment: content };
-  if (imageUrl) companyParams.content__submitted_image_url = imageUrl;
+  const paramSets = [
+    { company_id: pid, comment: content, content__submitted_image_url: imageUrl },
+    { company_id: pid, comment: content, image_url: imageUrl },
+    { company_id: pid, comment: content, media_url: imageUrl },
+    { company_id: pid, comment: content },
+  ];
 
-  const r = await callZapier(zapierToken, {
-    selected_api: 'LinkedInCLIAPI',
-    action: 'create_company_update',
-    instructions: 'Post to devcraft-internships company page',
-    output: 'post_url',
-    params: companyParams,
-  });
-  const postUrl = r?.results?.post_url || r?.results;
-  console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
-  return postUrl;
-}
-
-export async function createCanvaDesign(zapierToken, designBrief, templateId) {
-  if (!designBrief || !templateId) {
-    console.log('[CANVA] No design brief or template ID, skipping');
-    return null;
+  let lastErr;
+  for (const params of paramSets) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await callZapier(zapierToken, {
+          selected_api: 'LinkedInCLIAPI',
+          action: 'create_company_update',
+          instructions: 'Post to devcraft-internships company page',
+          output: 'post_url',
+          params,
+        });
+        const postUrl = r?.results?.post_url || r?.results;
+        console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
+        return postUrl;
+      } catch (err) {
+        lastErr = err;
+        console.log(`[POST] Attempt failed: ${err.message.slice(0, 100)}`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
   }
-
-  const slideText = {};
-  if (Array.isArray(designBrief.slides)) {
-    designBrief.slides.forEach((s, i) => {
-      slideText[`slide_${s.slide_number || i + 1}_headline`] = s.headline || '';
-      slideText[`slide_${s.slide_number || i + 1}_subtext`] = s.subtext || '';
-    });
-  }
-
-  try {
-    const r = await callZapier(zapierToken, {
-      selected_api: 'Canva',
-      action: 'create_design',
-      instructions: `Create a ${designBrief.tone || 'clean'} design for LinkedIn post. Primary color: ${designBrief.primary_color || '#6366f1'}.`,
-      output: 'design_url',
-      params: {
-        template_id: templateId,
-        title: designBrief.slides?.[0]?.headline || 'DevCraft LinkedIn Post',
-        ...slideText,
-      },
-    });
-    const designUrl = r?.results?.url || r?.results?.design_url || r?.results;
-    console.log(`[CANVA] ✓ Design created: ${designUrl || 'success'}`);
-    return designUrl || null;
-  } catch (e) {
-    console.log(`[CANVA] Design creation failed: ${e.message}`);
-    return null;
-  }
+  throw new Error(`Post failed after retries: ${lastErr?.message}`);
 }
 
 async function callZapier(token, args) {

@@ -7,7 +7,7 @@ import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
 import { postToLinkedinPage } from './zapier-poster.js';
-import { getFigmaImageUrl, getFigmaFileData } from './figma.js';
+import { getFigmaImageUrl } from './figma.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -79,8 +79,10 @@ async function main() {
       process.exit(1);
     }
 
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const filename = `post-${date}.png`;
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const time = now.toTimeString().slice(0, 2).padStart(2, '0');
+    const filename = `post-${date}-${time}.png`;
     mkdirSync(IMAGES_DIR, { recursive: true });
     writeFileSync(join(IMAGES_DIR, filename), imageBuffer);
 
@@ -89,6 +91,8 @@ async function main() {
       execSync('git -c user.name="devcraft-agent" -c user.email="agent@devcraft.fennark.xyz" commit -m "chore: add post image [skip ci]"', { stdio: 'pipe' });
       execSync('git pull --rebase origin master', { stdio: 'pipe', timeout: 15000 });
       execSync('git push', { stdio: 'pipe', timeout: 30000 });
+      console.log('      Git push done. Waiting 5s for GitHub raw CDN...');
+      await new Promise(r => setTimeout(r, 5000));
     } catch (e) { console.log(`      Git push note: ${e.message}`); }
     imageUrl = getImageUrl(filename);
   }
