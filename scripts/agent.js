@@ -95,6 +95,18 @@ async function main() {
       await new Promise(r => setTimeout(r, 5000));
     } catch (e) { console.log(`      Git push note: ${e.message}`); }
     imageUrl = getImageUrl(filename);
+
+    // Verify image URL is accessible before posting
+    if (imageUrl) {
+      for (let i = 0; i < 5; i++) {
+        try {
+          const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+          if (check.ok) { console.log(`      ✓ Image URL accessible (${check.status})`); break; }
+        } catch {}
+        console.log(`      Waiting for image URL... (${i + 1}/5)`);
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
   }
 
   // Step 3: Validate
