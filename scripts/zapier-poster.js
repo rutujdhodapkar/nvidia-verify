@@ -4,41 +4,90 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  // Always post text to COMPANY page (with image if available)
   const companyParams = { company_id: pid, comment: content };
   if (imageUrl) companyParams.content__submitted_image_url = imageUrl;
 
   const r1 = await callZapier(zapierToken, {
     selected_api: 'LinkedInCLIAPI',
     action: 'create_company_update',
-    instructions: 'Post to devcraft-internships',
+    instructions: 'Post to devcraft-internships company page',
     output: 'post_url',
     params: companyParams,
   });
-  const url1 = r1?.results || r1?.results?.post_url;
-  console.log(`[POST] ✓ Company page: ${url1 || 'success'}`);
+  const companyPostUrl = r1?.results?.post_url || r1?.results;
+  console.log(`[POST] ✓ Company page: ${companyPostUrl || 'success'}`);
 
-  // If image available, also post to personal profile with image (no link preview)
   if (imageUrl) {
     try {
       const r2 = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
         action: 'share',
-        instructions: 'Post to personal profile with this image as post media. No link needed.',
+        instructions: 'Post to personal profile with image',
         output: 'post_url',
         params: {
           comment: content,
           content__submitted_image_url: imageUrl,
         },
       });
-      const url2 = r2?.results?.post_url || r2?.results;
-      console.log(`[POST] ✓ Personal profile with image: ${url2 || 'success'}`);
+      console.log(`[POST] ✓ Personal profile with image: ${r2?.results?.post_url || r2?.results || 'success'}`);
     } catch (e) {
       console.log(`[POST] Personal image post skipped: ${e.message}`);
     }
   }
 
-  return url1;
+  return companyPostUrl;
+}
+
+export async function postLinkedinComment(zapierToken, postUrl, comment) {
+  try {
+    const r = await callZapier(zapierToken, {
+      selected_api: 'LinkedInCLIAPI',
+      action: 'create_comment',
+      instructions: 'Post first comment on the company update',
+      output: 'comment_url',
+      params: { post_url: postUrl, comment },
+    });
+    console.log(`[POST] ✓ Comment posted: ${r?.results || 'success'}`);
+    return true;
+  } catch (e) {
+    console.log(`[POST] Comment skipped (action may not exist): ${e.message}`);
+    return false;
+  }
+}
+
+export async function createCanvaDesign(zapierToken, designBrief, templateId) {
+  if (!designBrief || !templateId) {
+    console.log('[CANVA] No design brief or template ID, skipping');
+    return null;
+  }
+
+  const slideText = {};
+  if (Array.isArray(designBrief.slides)) {
+    designBrief.slides.forEach((s, i) => {
+      slideText[`slide_${s.slide_number || i + 1}_headline`] = s.headline || '';
+      slideText[`slide_${s.slide_number || i + 1}_subtext`] = s.subtext || '';
+    });
+  }
+
+  try {
+    const r = await callZapier(zapierToken, {
+      selected_api: 'Canva',
+      action: 'create_design',
+      instructions: `Create a ${designBrief.tone || 'clean'} design for LinkedIn post. Primary color: ${designBrief.primary_color || '#6366f1'}.`,
+      output: 'design_url',
+      params: {
+        template_id: templateId,
+        title: designBrief.slides?.[0]?.headline || 'DevCraft LinkedIn Post',
+        ...slideText,
+      },
+    });
+    const designUrl = r?.results?.url || r?.results?.design_url || r?.results;
+    console.log(`[CANVA] ✓ Design created: ${designUrl || 'success'}`);
+    return designUrl || null;
+  } catch (e) {
+    console.log(`[CANVA] Design creation failed: ${e.message}`);
+    return null;
+  }
 }
 
 async function callZapier(token, args) {
