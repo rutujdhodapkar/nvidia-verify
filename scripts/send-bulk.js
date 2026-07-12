@@ -188,6 +188,23 @@ async function sendBatch() {
       sent++;
     } catch (err) {
       console.error(`  ✗ ${item.email}: ${err.message}`);
+      const retryCount = (item.retryCount || 0) + 1;
+      if (retryCount >= 3) {
+        await fetch(`${FIREBASE_URL}/failed/${key}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...item, retryCount, lastError: err.message, failedAt: new Date().toISOString() }),
+        });
+        await fetch(`${FIREBASE_URL}/queue/${key}.json`, { method: 'DELETE' });
+        console.log(`  → Moved to /failed/ after ${retryCount} attempts`);
+      } else {
+        await fetch(`${FIREBASE_URL}/queue/${key}.json`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ retryCount }),
+        });
+        console.log(`  → Will retry (attempt ${retryCount}/3)`);
+      }
       failed++;
     }
   }
