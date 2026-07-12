@@ -1,0 +1,9 @@
+name = "devcraft-agent-trigger"
+main = "github-trigger.js"
+compatibility_date = "2026-07-12"
+
+[triggers]
+crons = ["30 2 * * 1-5", "30 6 * * 1-5", "30 13 * * 1-5"]
+
+[env.production]
+vars = { GITHUB_OWNER = "rutujdhodapkar", GITHUB_REPO = "nvidia-verify", WORKFLOW_ID = "linkedin-agent.yml" }

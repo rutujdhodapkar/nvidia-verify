@@ -1,44 +1,27 @@
 import 'dotenv/config';
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { scrapeSite } from './scraper.js';
 import { generatePost } from './generator.js';
 import { generateImage } from './image-gen.js';
 import { postToLinkedinPage } from './zapier-poster.js';
+import { loadState, saveState, hash, isDup } from './state.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const STATE_FILE = join(__dirname, '..', 'data', 'state.json');
+const IMAGES_DIR = join(__dirname, '..', 'images');
 
-function loadState() {
-  const def = { previousPosts: [], postHashes: [], lastRun: null };
-  if (!existsSync(STATE_FILE)) return def;
-  try { return { ...def, ...JSON.parse(readFileSync(STATE_FILE, 'utf-8')) }; } catch { return def; }
-}
-
-function saveState(s) {
-  mkdirSync(dirname(STATE_FILE), { recursive: true });
-  writeFileSync(STATE_FILE, JSON.stringify(s, null, 2));
-}
-
-function hash(t) { let h = 0; for (let i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h |= 0; } return h.toString(16); }
-
-function isDup(post, state) {
-  const h = hash(post.slice(0, 100));
-  if (state.postHashes.includes(h)) return true;
-  for (const prev of state.previousPosts) {
-    const words = [...new Set(post.toLowerCase().match(/\b\w{4,}\b/g) || [])];
-    const prevWords = [...new Set(prev.toLowerCase().match(/\b\w{4,}\b/g) || [])];
-    const common = words.filter(w => prevWords.includes(w)).length;
-    if (common / Math.max(1, Math.min(words.length, prevWords.length)) > 0.75) return true;
-  }
-  return false;
+function getImageUrl(filename) {
+  const repo = 'rutujdhodapkar/nvidia-verify';
+  const branch = 'master';
+  return `https://raw.githubusercontent.com/${repo}/${branch}/images/${filename}`;
 }
 
 async function main() {
   console.log(`\n═══ DEV/CRAFT LinkedIn Agent ═══\n${new Date().toISOString()}\n`);
-  const state = loadState();
-  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, LINKEDIN_PAGE_ID = '134233993' } = process.env;
+  const state = await loadState();
+  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993' } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
   if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
@@ -58,17 +41,39 @@ async function main() {
   console.log(`      "${post.slice(0, 100)}..."\n`);
 
   console.log('[3/4] Generating image card...');
-  let imageBuffer = null;
-  try { imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY }); } catch (err) { console.log(`      Skip: ${err.message}`); }
+  let imageUrl = null;
+  try {
+    const imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY, hfToken: HF_API_TOKEN });
+    if (imageBuffer) {
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const filename = `post-${date}.png`;
+      mkdirSync(IMAGES_DIR, { recursive: true });
+      writeFileSync(join(IMAGES_DIR, filename), imageBuffer);
+      console.log(`      Saved to images/${filename} (${imageBuffer.length} bytes)`);
+
+      try {
+        execSync('git add images/', { stdio: 'pipe' });
+        execSync('git -c user.name="devcraft-agent" -c user.email="agent@devcraft.fennark.xyz" commit -m "chore: add post image [skip ci]"', { stdio: 'pipe' });
+        execSync('git pull --rebase origin master', { stdio: 'pipe', timeout: 15000 });
+        execSync('git push', { stdio: 'pipe', timeout: 30000 });
+      } catch (e) {
+        console.log(`      Git commit/push note: ${e.message}`);
+      }
+      imageUrl = getImageUrl(filename);
+      console.log(`      Image URL: ${imageUrl}`);
+    }
+  } catch (err) {
+    console.log(`      Image generation skipped: ${err.message}`);
+  }
 
   console.log('\n[4/4] Posting to LinkedIn Page via Zapier...');
-  await postToLinkedinPage({ content: post, imageBuffer, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
+  await postToLinkedinPage({ content: post, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
 
   state.previousPosts.push(post);
   state.postHashes.push(hash(post.slice(0, 100)));
   if (state.previousPosts.length > 50) { state.previousPosts.shift(); state.postHashes.shift(); }
   state.lastRun = new Date().toISOString();
-  saveState(state);
+  await saveState(state);
   console.log(`\n═══ ✓ Done ═══`);
 }
 

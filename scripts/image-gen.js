@@ -1,7 +1,126 @@
 import { chromium } from 'playwright';
 
-export async function generateImage({ html, post, imageMeta, apiKey }) {
+const HF_FLUX_URL = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev';
+const FLUX_PROMPTS = [
+  'Professional modern tech workspace with purple neon lighting, laptop with code on screen, dark aesthetic, cinematic lighting, depth of field',
+  'Abstract purple and blue technology background with geometric shapes, glowing grid lines, futuristic data visualization, dark mode',
+  'Modern open office space with young diverse professionals collaborating, warm lighting, tech startup vibe, large windows with city view',
+  'Close-up of hands typing on mechanical keyboard with RGB backlight, coding screen in background, bokeh effect, night atmosphere',
+  'Futuristic digital classroom with holographic displays showing code, purple and blue ambient lighting, sleek modern furniture',
+  'Award certificate on wooden desk with laptop, purple branding elements, professional office background, soft natural lighting',
+  'Abstract technology network visualization with connected nodes, glowing purple data streams, dark background, matrix-like aesthetic',
+  'Modern campus building entrance with glass facade, students walking, sunny day, clean architecture, aspirational atmosphere',
+  'Stylized 3D abstract shapes in purple and indigo, floating geometric forms, soft gradients, modern design aesthetic, clean composition',
+  'Night city skyline viewed from modern office window, neon purple accents, laptop silhouette on desk, ambient glow',
+  'Diverse group of students working on laptops at modern co-working space, warm lighting, plants, collaborative atmosphere',
+  'Digital brain or neural network visualization with purple glowing synapses, dark background, technological aesthetic, abstract intelligence',
+];
+
+async function generateFluxBackground(post, headline, hfToken) {
+  const seed = [...headline].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const prompt = FLUX_PROMPTS[seed % FLUX_PROMPTS.length];
+  const fullPrompt = `${prompt}, high quality, 1200x630 banner, professional, no text or letters in the image`;
+
+  const res = await fetch(HF_FLUX_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inputs: fullPrompt }),
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'unknown');
+    throw new Error(`FLUX ${res.status}: ${err.slice(0, 100)}`);
+  }
+
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 500) throw new Error('FLUX returned too small image');
+  return buf;
+}
+
+function buildCompositedHtml(fluxBase64, meta) {
+  const b64 = fluxBase64.replace(/^data:image\/\w+;base64,/, '');
+  const bgDataUri = `data:image/png;base64,${b64}`;
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
+.overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0.65) 0%,rgba(0,0,0,0.35) 50%,rgba(0,0,0,0.7) 100%)}
+.content{position:absolute;inset:0;padding:60px;display:flex;flex-direction:column;justify-content:flex-end}
+.tag{display:inline-block;background:rgba(99,102,241,0.9);color:#fff;padding:6px 18px;font-size:12px;font-weight:600;border-radius:4px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:15px;width:fit-content}
+.headline{font-size:52px;font-weight:900;color:#fff;line-height:1.1;max-width:85%;margin-bottom:10px;text-shadow:0 2px 20px rgba(0,0,0,0.3)}
+.subtext{font-size:20px;color:rgba(255,255,255,0.8);line-height:1.5;max-width:65%;margin-bottom:25px;font-weight:400}
+.bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px}
+.brand{font-size:14px;color:rgba(255,255,255,0.5);font-weight:500}
+.cta{background:#6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;transition:all 0.2s}
+.badge-row{display:flex;gap:8px;margin-bottom:20px}
+.badge{padding:5px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;font-size:11px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.2)}
+</style></head><body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="content">
+  <div class="tag">DEV/CRAFT</div>
+  <div class="badge-row">
+    <span class="badge">100% FREE</span>
+    <span class="badge">SELF-PACED</span>
+    <span class="badge">CERTIFIED</span>
+  </div>
+  <div class="headline">${meta.headline}</div>
+  <div class="subtext">${meta.subtext}</div>
+  <div class="bottom">
+    <span class="brand">devcraft.fennark.xyz</span>
+    <span class="cta">Register Now →</span>
+  </div>
+</div>
+</body></html>`;
+}
+
+async function compositeTextOverImage(fluxBuffer, meta) {
+  const b64 = fluxBuffer.toString('base64');
+  const html = buildCompositedHtml(b64, meta);
+
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
+  await page.setContent(html, { waitUntil: 'networkidle', timeout: 20000 });
+  await page.waitForTimeout(500);
+  const buf = await page.screenshot({ type: 'png' });
+  await browser.close();
+  return buf;
+}
+
+async function renderHtml(html) {
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
+  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;}</style></head><body>${html}</body></html>`;
+  await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
+  await page.waitForTimeout(500);
+  const buf = await page.screenshot({ type: 'png' });
+  await browser.close();
+  return buf;
+}
+
+function pickTemplate(meta) {
+  const templates = { brutalist, 'modern-minimal': modernMinimal, glassmorphism, 'gradient-bold': gradientBold, 'dark-tech': darkTech, 'pixel-art': pixelArt, 'corporate-clean': corporateClean };
+  return (templates[meta.style] || brutalist)(meta);
+}
+
+export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) {
   const meta = { headline: '100% Free Virtual Internship', subtext: 'Build real projects. Get certified.', cta: 'Apply at devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
+
+  if (hfToken) {
+    try {
+      const fluxBuffer = await generateFluxBackground(post, meta.headline, hfToken);
+      const composited = await compositeTextOverImage(fluxBuffer, meta);
+      console.log(`[IMAGE] ✓ FLUX + overlay: ${composited.length} bytes`);
+      return composited;
+    } catch (err) {
+      console.log(`[IMAGE] FLUX failed: ${err.message}`);
+    }
+  }
 
   if (html && html.length > 200) {
     try {
@@ -16,23 +135,6 @@ export async function generateImage({ html, post, imageMeta, apiKey }) {
   const templateHtml = pickTemplate(meta);
   const buf = await renderHtml(templateHtml);
   console.log(`[IMAGE] ✓ Template card (${meta.style}): ${buf.length} bytes`);
-  return buf;
-}
-
-function pickTemplate(meta) {
-  const templates = { brutalist, 'modern-minimal': modernMinimal, glassmorphism, 'gradient-bold': gradientBold, 'dark-tech': darkTech, 'pixel-art': pixelArt, 'corporate-clean': corporateClean };
-  return (templates[meta.style] || brutalist)(meta);
-}
-
-async function renderHtml(html) {
-  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
-  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;}</style></head><body>${html}</body></html>`;
-  await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(500);
-  const buf = await page.screenshot({ type: 'png' });
-  await browser.close();
   return buf;
 }
 
@@ -56,8 +158,6 @@ async function tryNvidiaImage(post, meta, apiKey) {
 function buildImgPrompt(post, meta) {
   return `LinkedIn banner for DEV/CRAFT virtual internship. Professional tech design. "${meta.headline}". Dark bg with purple accents. 1200x630.`;
 }
-
-/* ===== DESIGN TEMPLATES ===== */
 
 function brutalist(m) {
   return `<div style="width:1200px;height:630px;background:#1a1a1a;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:50px;border:8px solid #6366f1;">

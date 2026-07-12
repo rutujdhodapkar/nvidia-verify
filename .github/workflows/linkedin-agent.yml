@@ -1,8 +1,6 @@
 name: DEV/CRAFT LinkedIn Agent
 
 on:
-  schedule:
-    - cron: '0 10 * * 1-5'
   workflow_dispatch:
   push:
     branches: [master]
@@ -39,13 +37,3 @@ jobs:
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
 
-      - name: Commit state
-        run: |
-          git config user.name "devcraft-agent"
-          git config user.email "agent@devcraft.fennark.xyz"
-          git add data/state.json
-          git diff --cached --quiet || {
-            git commit -m "chore: agent run [skip ci]"
-            git fetch origin master && git rebase FETCH_HEAD 2>/dev/null || true
-            git push
-          }
