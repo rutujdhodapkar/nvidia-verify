@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import { createInterface } from 'readline';
 
 const CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
 const CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
@@ -11,62 +10,69 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   process.exit(1);
 }
 
-const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&state=devcraft123`;
+const code = process.argv[2];
+if (!code) {
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&state=devcraft123`;
+  console.log(`
+  Open this URL in your browser:
+  ${authUrl}
+  
+  Log in and when LinkedIn asks "What do you want to manage?"
+  you MUST select "DevCraft Internships" (your company page).
+  
+  After authorizing, you'll be redirected to:
+  http://localhost:3456/callback?code=XXXX&state=devcraft123
+  
+  Copy the 'code' parameter from the URL and run:
+  node scripts/get-token.js <CODE>
+  `);
+  process.exit(0);
+}
 
-console.log(`
+console.log('Exchanging code for tokens...');
 
-╔══════════════════════════════════════════════════════════════╗
-║  Get LinkedIn Token with w_organization_social scope        ║
-╚══════════════════════════════════════════════════════════════╝
-
-STEP 1: Visit this URL in your browser:
-${authUrl}
-
-STEP 2: Log in and authorize the app (select your company page if asked)
-
-STEP 3: After authorizing, you'll be redirected to a URL like:
-  ${REDIRECT_URI}?code=XXXXX&state=devcraft123
-
-STEP 4: Copy that FULL redirect URL and paste it below
-
-`);
-
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-rl.question('Paste the full redirect URL: ', async (url) => {
-  rl.close();
-  try {
-    const code = new URL(url).searchParams.get('code');
-    if (!code) { console.error('No authorization code found in URL'); process.exit(1); }
-
-    console.log('\nExchanging code for tokens...');
-    const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error(`Token exchange failed: ${err}`);
-      process.exit(1);
-    }
-
-    const data = await res.json();
-    console.log(`\n✅ Access token: ${data.access_token?.slice(0, 50)}...`);
-    console.log(`✅ Refresh token: ${data.refresh_token?.slice(0, 50)}...`);
-    console.log(`✅ Expires in: ${data.expires_in}s`);
-
-    if (data.refresh_token) {
-      console.log(`\n📝 Add this to your .env:\nLINKEDIN_REFRESH_TOKEN=${data.refresh_token}`);
-    }
-  } catch (err) {
-    console.error('Error:', err.message);
-    process.exit(1);
-  }
+const res = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI,
+  }),
 });
+
+if (!res.ok) {
+  const err = await res.text();
+  console.error(`Token exchange failed ${res.status}: ${err}`);
+  process.exit(1);
+}
+
+const data = await res.json();
+const refreshToken = data.refresh_token;
+const accessToken = data.access_token;
+
+console.log(`✅ Access token: ${accessToken?.slice(0, 50)}...`);
+
+// Look up org
+const vanityRes = await fetch('https://api.linkedin.com/v2/organizations?q=vanityName&vanityName=devcraft-internships', {
+  headers: { Authorization: `Bearer ${accessToken}` }
+});
+if (vanityRes.ok) {
+  const orgData = await vanityRes.json();
+  const orgId = orgData?.elements?.[0]?.id || 'N/A';
+  console.log(`✅ Org URN: ${orgId !== 'N/A' ? `urn:li:organization:${orgId}` : 'N/A'}`);
+} else {
+  const err = await vanityRes.text();
+  console.log(`⚠️ Org lookup failed: ${err.slice(0, 150)}`);
+}
+
+if (refreshToken) {
+  console.log(`\n${'='.repeat(50)}`);
+  console.log(`📝 UPDATE YOUR .env AND GitHub Secret:`);
+  console.log(`\nLINKEDIN_REFRESH_TOKEN=${refreshToken}`);
+  console.log(`\n${'='.repeat(50)}`);
+} else {
+  console.log('No refresh token in response');
+}
