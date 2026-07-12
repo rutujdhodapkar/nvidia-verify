@@ -39,10 +39,10 @@ Respond with ONLY the post text, nothing else.`;
 
 SAAS: DEV/CRAFT free virtual internship platform, devcraft.fennark.xyz
 
-DESIGN STYLES (pick ONE): brutalist | modern-minimal | glassmorphism | gradient-bold | dark-tech | pixel-art | corporate-clean
+DESIGN STYLES (pick ONE): brutalist | modern-minimal | glassmorphism | split-panel | terminal | magazine | dark-tech | pixel-art | corporate-clean | bento | outline | lateral-band
 
 RULES:
-- NO pure gradient backgrounds. Use solid colors, grids, patterns, panels
+- NO gradient backgrounds. Use solid colors, grids, patterns, panels, borders
 - Brand purple #6366f1 as accent (not whole bg)
 - Card shows: short headline, supporting subtext, CTA "devcraft.fennark.xyz"
 - Make it look like a real marketing asset
@@ -55,7 +55,7 @@ Respond with ONLY the HTML, nothing else.`;
   try { html = await callWithRetry(htmlPrompt, apiKey, model, 2500); } catch {}
   if (html && !html.includes('<html')) html = null;
 
-  const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'gradient-bold', 'dark-tech', 'pixel-art', 'corporate-clean'];
+  const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
   const imageMeta = { headline: (post.split('\n')[0] || 'DEV/CRAFT').slice(0, 60), subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
 
   console.log(`[GENERATE] ✓ ${post.length} chars${html ? ` + ${html.length} HTML` : ' (template card)'}`);

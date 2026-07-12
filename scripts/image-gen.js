@@ -36,10 +36,10 @@ function buildCompositedHtml(fluxBase64, meta) {
   const bgDataUri = `data:image/png;base64,${b64}`;
 
   const styles = [
-    'large-text',    // big bold headline, minimal UI
-    'full-bleed',    // minimal overlay, let bg shine
-    'bottom-heavy',  // text at bottom, large
-    'centered',      // centered layout
+    'large-text',
+    'full-bleed',
+    'bottom-heavy',
+    'centered',
   ];
   const styleIdx = [...meta.headline].reduce((a, c) => a + c.charCodeAt(0), 0) % styles.length;
   const style = styles[styleIdx];
@@ -67,15 +67,15 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">PYTHON · DSA · WEB</span>
-    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">PYTHON &bull; DSA &bull; WEB</span>
+    <span class="badge">AI/ML &bull; CLOUD</span>
     <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
   <div class="bottom">
     <span class="brand">devcraft.fennark.xyz</span>
-    <span class="cta">Register Now →</span>
+    <span class="cta">Register Now &rarr;</span>
   </div>
 </div>
 </body></html>`;
@@ -104,15 +104,15 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">PYTHON · DSA · WEB</span>
-    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">PYTHON &bull; DSA &bull; WEB</span>
+    <span class="badge">AI/ML &bull; CLOUD</span>
     <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
   <div class="bottom">
     <span class="brand">devcraft.fennark.xyz</span>
-    <span class="cta">Register Now →</span>
+    <span class="cta">Register Now &rarr;</span>
   </div>
 </div>
 </body></html>`;
@@ -142,13 +142,12 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
   <div class="subtext">${meta.subtext}</div>
   <div class="bottom">
     <span class="brand">devcraft.fennark.xyz</span>
-    <span class="cta">Register Now →</span>
+    <span class="cta">Register Now &rarr;</span>
   </div>
 </div>
 </body></html>`;
   }
 
-  // centered style
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap');
@@ -171,15 +170,15 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">PYTHON · DSA · WEB</span>
-    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">PYTHON &bull; DSA &bull; WEB</span>
+    <span class="badge">AI/ML &bull; CLOUD</span>
     <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
   <div class="bottom">
     <span class="brand">devcraft.fennark.xyz</span>
-    <span class="cta">Register Now →</span>
+    <span class="cta">Register Now &rarr;</span>
   </div>
 </div>
 </body></html>`;
@@ -201,7 +200,7 @@ async function compositeTextOverImage(fluxBuffer, meta) {
 async function renderHtml(html) {
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
-  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&display=swap');
+  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&family=DM+Sans:wght@500;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;}</style></head><body>${html}</body></html>`;
   await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
   await page.waitForTimeout(500);
@@ -211,7 +210,20 @@ async function renderHtml(html) {
 }
 
 function pickTemplate(meta) {
-  const templates = { brutalist, 'modern-minimal': modernMinimal, glassmorphism, 'gradient-bold': gradientBold, 'dark-tech': darkTech, 'pixel-art': pixelArt, 'corporate-clean': corporateClean };
+  const templates = {
+    brutalist,
+    'modern-minimal': modernMinimal,
+    glassmorphism,
+    'split-panel': splitPanel,
+    terminal,
+    magazine,
+    'dark-tech': darkTech,
+    'pixel-art': pixelArt,
+    'corporate-clean': corporateClean,
+    bento,
+    outline,
+    'lateral-band': lateralBand,
+  };
   return (templates[meta.style] || brutalist)(meta);
 }
 
@@ -221,7 +233,7 @@ export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) 
   try {
     const bgBuffer = await generateAiBackground(post, meta.headline);
     const composited = await compositeTextOverImage(bgBuffer, meta);
-    console.log(`[IMAGE] ✓ AI bg + overlay: ${composited.length} bytes`);
+    console.log(`[IMAGE] AI bg + overlay: ${composited.length} bytes`);
     return composited;
   } catch (err) {
     console.log(`[IMAGE] AI bg failed: ${err.message}, falling back...`);
@@ -230,7 +242,7 @@ export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) 
   if (html && html.length > 200) {
     try {
       const buf = await renderHtml(html);
-      if (buf && buf.length > 1000) { console.log(`[IMAGE] ✓ AI card: ${buf.length} bytes`); return buf; }
+      if (buf && buf.length > 1000) { console.log(`[IMAGE] AI card: ${buf.length} bytes`); return buf; }
     } catch (err) { console.log(`[IMAGE] AI HTML failed: ${err.message}`); }
   }
 
@@ -239,7 +251,7 @@ export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) 
 
   const templateHtml = pickTemplate(meta);
   const buf = await renderHtml(templateHtml);
-  console.log(`[IMAGE] ✓ Template card (${meta.style}): ${buf.length} bytes`);
+  console.log(`[IMAGE] Template card (${meta.style}): ${buf.length} bytes`);
   return buf;
 }
 
@@ -275,7 +287,7 @@ function brutalist(m) {
       </div>
       <div style="border-top:4px solid #333;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:13px;color:#666;">DEV/CRAFT</span>
-        <span style="background:#6366f1;color:#fff;padding:10px 30px;font-size:15px;font-weight:700;">APPLY →</span>
+        <span style="background:#6366f1;color:#fff;padding:10px 30px;font-size:15px;font-weight:700;">APPLY &rarr;</span>
       </div>
     </div>
   </div>`;
@@ -296,7 +308,7 @@ function modernMinimal(m) {
       </div>
       <div style="border-top:1px solid #1a1a2a;padding-top:25px;display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;gap:30px;"><span style="font-size:13px;color:#444;">devcraft.fennark.xyz</span></div>
-        <div style="background:#6366f1;color:#fff;padding:12px 32px;font-size:14px;font-weight:600;border-radius:6px;">Register Now →</div>
+        <div style="background:#6366f1;color:#fff;padding:12px 32px;font-size:14px;font-weight:600;border-radius:6px;">Register Now &rarr;</div>
       </div>
     </div>
   </div>`;
@@ -304,53 +316,101 @@ function modernMinimal(m) {
 
 function glassmorphism(m) {
   return `<div style="width:1200px;height:630px;background:#0d0d1a;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;position:relative;overflow:hidden;">
-    <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:rgba(99,102,241,0.08);"></div>
-    <div style="position:absolute;bottom:-50px;left:-50px;width:250px;height:250px;border-radius:50%;background:rgba(139,92,246,0.06);"></div>
-    <div style="background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.06);border-radius:32px;padding:50px;width:92%;height:85%;display:flex;flex-direction:column;position:relative;">
+    <div style="position:absolute;top:-120px;right:-120px;width:350px;height:350px;border-radius:50%;background:rgba(99,102,241,0.06);"></div>
+    <div style="position:absolute;bottom:-80px;left:-80px;width:220px;height:220px;border-radius:50%;background:rgba(139,92,246,0.05);"></div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:32px;padding:50px;width:92%;height:85%;display:flex;flex-direction:column;position:relative;">
       <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
         <span style="font-size:20px;font-weight:800;color:#fff;">DEV<span style="color:#6366f1;">/</span>CRAFT</span>
         <span style="padding:8px 20px;border:1px solid rgba(99,102,241,0.3);border-radius:20px;font-size:12px;color:#6366f1;">Real Projects. Real Skills.</span>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:48px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:15px;">${m.headline}</div>
-        <div style="width:60px;height:4px;background:linear-gradient(90deg,#6366f1,transparent);margin-bottom:20px;"></div>
+        <div style="width:60px;height:4px;background:#6366f1;margin-bottom:20px;"></div>
         <div style="font-size:20px;color:rgba(255,255,255,0.6);line-height:1.6;max-width:75%;">${m.subtext}</div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid rgba(255,255,255,0.05);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);">
         <span style="font-size:13px;color:rgba(255,255,255,0.3);">For Indian CS engineers</span>
-        <span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#fff;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:500;">devcraft.fennark.xyz →</span>
+        <span style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:#fff;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:500;">devcraft.fennark.xyz &rarr;</span>
       </div>
     </div>
   </div>`;
 }
 
-function gradientBold(m) {
-  return `<div style="width:1200px;height:630px;background:linear-gradient(135deg,#0f0f1a 0%,#1a1a3e 50%,#0f0f1a 100%);display:flex;font-family:'Inter',sans-serif;padding:50px;position:relative;">
-    <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#6366f1,#a855f7,#6366f1);"></div>
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:40px;">
-      <div style="display:flex;gap:10px;margin-bottom:25px;">
-        <span style="padding:6px 18px;background:rgba(99,102,241,0.15);border-radius:4px;font-size:12px;color:#6366f1;font-weight:600;">AI/ML</span>
-        <span style="padding:6px 18px;background:rgba(255,255,255,0.05);border-radius:4px;font-size:12px;color:#888;">CLOUD</span>
+function splitPanel(m) {
+  return `<div style="width:1200px;height:630px;display:flex;font-family:'Inter',sans-serif;">
+    <div style="width:55%;background:#0a0a0f;padding:60px 50px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:12px;color:#6366f1;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:15px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
+      <div style="font-size:52px;font-weight:800;color:#fff;line-height:1.1;margin-bottom:15px;">${m.headline}</div>
+      <div style="width:50px;height:5px;background:#6366f1;margin-bottom:20px;"></div>
+      <div style="font-size:19px;color:#555;line-height:1.6;max-width:90%;">${m.subtext}</div>
+      <div style="margin-top:30px;display:flex;gap:12px;">
+        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">PYTHON</span>
+        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">DSA</span>
+        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">AI/ML</span>
       </div>
-      <div style="font-size:52px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:15px;">${m.headline}</div>
-      <div style="font-size:24px;font-weight:300;color:#888;line-height:1.5;max-width:80%;">${m.subtext}</div>
     </div>
-    <div style="width:1px;background:rgba(99,102,241,0.2);margin:20px 0;"></div>
-    <div style="width:280px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-left:40px;gap:20px;">
-      <div style="font-size:40px;font-weight:900;color:#6366f1;">SKILLS</div>
-      <div style="font-size:13px;color:#666;text-align:center;">Build In-Demand Expertise</div>
-      <div style="background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;width:100%;text-align:center;">Apply Now →</div>
+    <div style="width:45%;background:#6366f1;padding:60px 50px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.12);">DEV/</div>
+      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.12);">CRAFT</div>
+      <div style="margin-top:25px;color:#fff;font-size:16px;font-weight:600;padding:14px 32px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;">devcraft.fennark.xyz</div>
+    </div>
+  </div>`;
+}
+
+function terminal(m) {
+  return `<div style="width:1200px;height:630px;background:#0d1117;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:45px;position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:36px;background:#1a1f2b;display:flex;align-items:center;padding:0 16px;gap:8px;">
+      <span style="width:12px;height:12px;border-radius:50%;background:#ff5555;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#f1fa8c;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#50fa7b;"></span>
+      <span style="color:#555;font-size:11px;margin-left:12px;">devcraft@terminal:~$</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:20px;">
+      <div style="font-size:14px;color:#50fa7b;margin-bottom:10px;font-weight:700;">$ ./internship --launch</div>
+      <div style="font-size:44px;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px;">${m.headline}</div>
+      <div style="font-size:15px;color:#50fa7b;margin-bottom:15px;">&gt;&gt; Status: <span style="color:#f1fa8c;">ACTIVE</span> | Slots: <span style="color:#f1fa8c;">LIMITED</span></div>
+      <div style="font-size:18px;color:#888;line-height:1.5;font-family:'Inter',sans-serif;max-width:80%;">${m.subtext}</div>
+      <div style="margin-top:25px;">
+        <pre style="font-size:13px;color:#444;margin:0;">$ <span style="color:#50fa7b;">cat</span> apply.txt | <span style="color:#50fa7b;">grep</span> "link"</pre>
+        <div style="font-size:13px;color:#6366f1;margin-top:5px;">devcraft.fennark.xyz</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function magazine(m) {
+  return `<div style="width:1200px;height:630px;background:#f8f7f4;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;padding:0;position:relative;">
+    <div style="height:8px;background:#6366f1;width:100%;"></div>
+    <div style="flex:1;display:flex;padding:50px 60px;">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:60px;">
+        <div style="font-size:11px;color:#6366f1;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">Cover Story &mdash; Skills</div>
+        <div style="font-size:48px;font-weight:800;color:#111;line-height:1.08;margin-bottom:12px;">${m.headline}</div>
+        <div style="width:60px;height:3px;background:#6366f1;margin-bottom:18px;"></div>
+        <div style="font-size:17px;color:#555;line-height:1.6;max-width:85%;">${m.subtext}</div>
+      </div>
+      <div style="width:280px;height:100%;display:flex;align-items:flex-end;">
+        <div style="background:#111;padding:30px 25px;width:100%;">
+          <div style="font-size:48px;font-weight:900;color:#6366f1;line-height:1;margin-bottom:5px;">'26</div>
+          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;">Industry Projects</div>
+          <div style="margin-top:20px;padding:12px 0;border-bottom:1px solid #2a2a2a;font-size:13px;color:#888;">devcraft.fennark.xyz</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:1px;background:#ddd;margin:0 60px;"></div>
+    <div style="padding:15px 60px;display:flex;justify-content:space-between;font-size:11px;color:#999;text-transform:uppercase;">
+      <span>DEV/CRAFT &mdash; Edition #1</span>
+      <span>Virtual Internship 2026</span>
     </div>
   </div>`;
 }
 
 function darkTech(m) {
-  return `<div style="width:1200px;height:630px;background:radial-gradient(ellipse at 30% 50%,#1a1a3e 0%,#0a0a12 70%);display:flex;font-family:'Inter',sans-serif;padding:50px;position:relative;overflow:hidden;">
-    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.03;" viewBox="0 0 1200 630">
+  return `<div style="width:1200px;height:630px;background:#0a0a12;display:flex;font-family:'Inter',sans-serif;padding:50px;position:relative;overflow:hidden;">
+    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.04;" viewBox="0 0 1200 630">
       <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#6366f1" stroke-width="0.5"/></pattern>
       <rect width="1200" height="630" fill="url(#grid)"/>
     </svg>
-    <div style="position:absolute;top:50%;right:-80px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.06),transparent);transform:translateY(-50%);"></div>
+    <div style="position:absolute;top:50%;right:-80px;width:400px;height:400px;border-radius:50%;background:rgba(99,102,241,0.04);"></div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:1;">
       <div style="display:flex;align-items:center;gap:15px;margin-bottom:30px;">
         <span style="width:8px;height:8px;border-radius:50%;background:#6366f1;box-shadow:0 0 12px #6366f1;"></span>
@@ -368,20 +428,20 @@ function darkTech(m) {
 
 function pixelArt(m) {
   return `<div style="width:1200px;height:630px;background:#2d1b69;display:flex;flex-direction:column;font-family:'Press Start 2P',monospace;padding:40px;position:relative;overflow:hidden;image-rendering:pixelated;">
-    <div style="position:absolute;top:0;left:0;right:0;height:8px;background:repeating-linear-gradient(90deg,#6366f1 0px,#6366f1 16px,#7c3aed 16px,#7c3aed 32px);"></div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:8px;background:repeating-linear-gradient(90deg,#7c3aed 0px,#7c3aed 16px,#6366f1 16px,#6366f1 32px);"></div>
-    <div style="border:4px solid #6366f1;flex:1;display:flex;flex-direction:column;padding:30px;background:linear-gradient(180deg,#1a0a3e,#2d1b69);">
+    <div style="position:absolute;top:0;left:0;right:0;height:8px;background:#6366f1;"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:8px;background:#7c3aed;"></div>
+    <div style="border:4px solid #6366f1;flex:1;display:flex;flex-direction:column;padding:30px;background:#1a0a3e;">
       <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
         <div style="background:#6366f1;color:#fff;padding:8px 16px;font-size:10px;">SKILLS</div>
         <div style="color:#fff;font-size:18px;">DEV/CRAFT</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:15px;">
         <div style="font-size:28px;color:#fff;line-height:1.3;text-transform:uppercase;">${m.headline}</div>
-        <div style="width:100%;height:4px;background:repeating-linear-gradient(90deg,#6366f1 0px,#6366f1 20px,transparent 20px,transparent 30px);"></div>
+        <div style="width:100%;height:4px;background:#6366f1;"></div>
         <div style="font-size:12px;color:#aaa;line-height:1.8;">${m.subtext}</div>
       </div>
       <div style="display:flex;gap:10px;">
-        <div style="background:#6366f1;color:#fff;padding:12px 20px;font-size:10px;border:2px solid #7c3aed;">→ REGISTER</div>
+        <div style="background:#6366f1;color:#fff;padding:12px 20px;font-size:10px;border:2px solid #7c3aed;">&rarr; REGISTER</div>
         <div style="color:#6366f1;padding:12px 20px;font-size:8px;border:2px solid #6366f1;">devcraft.fennark.xyz</div>
       </div>
     </div>
@@ -398,15 +458,88 @@ function corporateClean(m) {
       <div style="width:50px;height:4px;background:#6366f1;margin-bottom:20px;"></div>
       <div style="font-size:18px;color:#555;line-height:1.7;margin-bottom:30px;">${m.subtext}</div>
       <div style="display:flex;gap:15px;">
-        <span style="background:#111;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;">Apply at devcraft.fennark.xyz →</span>
+        <span style="background:#111;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;">Apply at devcraft.fennark.xyz &rarr;</span>
       </div>
     </div>
-    <div style="width:40%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;">
+    <div style="width:40%;background:#6366f1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;">
       <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">DEV/</div>
       <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">CRAFT</div>
       <div style="margin-top:30px;text-align:center;">
         <div style="font-size:36px;font-weight:700;color:#fff;">REAL</div>
         <div style="font-size:16px;color:rgba(255,255,255,0.7);">Industry Projects</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function bento(m) {
+  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;padding:6px;font-family:'Inter',sans-serif;">
+    <div style="grid-column:1/2;grid-row:1/3;background:#111122;border-radius:16px;padding:40px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:11px;color:#6366f1;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">DEV/CRAFT</div>
+      <div style="font-size:36px;font-weight:800;color:#fff;line-height:1.1;margin-bottom:8px;">${m.headline}</div>
+      <div style="font-size:14px;color:#555;line-height:1.5;">${m.subtext}</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:32px;font-weight:800;color:#6366f1;">PY</div>
+      <div style="font-size:12px;color:#666;margin-top:5px;">Python</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:32px;font-weight:800;color:#6366f1;">DSA</div>
+      <div style="font-size:12px;color:#666;margin-top:5px;">Data Structures</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:32px;font-weight:800;color:#6366f1;">AI</div>
+      <div style="font-size:12px;color:#666;margin-top:5px;">Machine Learning</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;">
+      <div style="font-size:12px;color:#888;">devcraft.fennark.xyz</div>
+      <div style="margin-top:8px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:600;">Apply &rarr;</div>
+    </div>
+  </div>`;
+}
+
+function outline(m) {
+  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:50px;position:relative;">
+    <div style="position:absolute;top:20px;left:20px;right:20px;bottom:20px;border:1px solid #1a1a2a;border-radius:20px;pointer-events:none;"></div>
+    <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);background:#0a0a0f;padding:0 20px;font-size:11px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;">
+      <div style="font-size:60px;font-weight:900;color:#fff;line-height:1.05;max-width:85%;margin-bottom:15px;text-shadow:-1px -1px 0 #6366f1,1px -1px 0 #6366f1,-1px 1px 0 #6366f1,1px 1px 0 #6366f1;">${m.headline}</div>
+      <div style="font-size:20px;color:#555;line-height:1.5;max-width:60%;">${m.subtext}</div>
+      <div style="margin-top:30px;display:flex;gap:20px;align-items:center;">
+        <span style="border:2px solid #6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;background:transparent;">devcraft.fennark.xyz</span>
+        <span style="background:#6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;">Register</span>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-size:10px;color:#2a2a3a;letter-spacing:2px;text-transform:uppercase;">Build skills that matter</div>
+  </div>`;
+}
+
+function lateralBand(m) {
+  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;position:relative;">
+    <div style="background:#6366f1;padding:20px 50px;">
+      <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;">DEV/CRAFT &mdash; Virtual Internship 2026</span>
+    </div>
+    <div style="flex:1;display:flex;padding:50px;">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:50px;">
+        <div style="font-size:10px;color:#6366f1;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Industry Projects &bull; Mentorship</div>
+        <div style="font-size:52px;font-weight:900;color:#fff;line-height:1.05;margin-bottom:12px;">${m.headline}</div>
+        <div style="font-size:18px;color:#555;line-height:1.6;max-width:85%;">${m.subtext}</div>
+        <div style="margin-top:25px;background:#6366f1;color:#fff;padding:14px 30px;border-radius:8px;font-size:14px;font-weight:600;width:fit-content;">devcraft.fennark.xyz &rarr;</div>
+      </div>
+      <div style="width:4px;background:#6366f1;margin:20px 0;border-radius:2px;"></div>
+      <div style="width:250px;display:flex;flex-direction:column;justify-content:center;padding-left:50px;gap:20px;">
+        <div style="padding:15px;border-left:3px solid #6366f1;">
+          <div style="font-size:14px;color:#fff;font-weight:600;">Python</div>
+          <div style="font-size:11px;color:#555;">Core &amp; Advanced</div>
+        </div>
+        <div style="padding:15px;border-left:3px solid #6366f1;">
+          <div style="font-size:14px;color:#fff;font-weight:600;">DSA</div>
+          <div style="font-size:11px;color:#555;">Problem Solving</div>
+        </div>
+        <div style="padding:15px;border-left:3px solid #6366f1;">
+          <div style="font-size:14px;color:#fff;font-weight:600;">AI/ML</div>
+          <div style="font-size:11px;color:#555;">Hands-on Projects</div>
+        </div>
       </div>
     </div>
   </div>`;
