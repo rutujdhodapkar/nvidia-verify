@@ -4,13 +4,16 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  // Always post text to COMPANY page
+  // Always post text to COMPANY page (with image if available)
+  const companyParams = { company_id: pid, comment: content };
+  if (imageUrl) companyParams.content__submitted_image_url = imageUrl;
+
   const r1 = await callZapier(zapierToken, {
     selected_api: 'LinkedInCLIAPI',
     action: 'create_company_update',
     instructions: 'Post to devcraft-internships',
     output: 'post_url',
-    params: { company_id: pid, comment: content },
+    params: companyParams,
   });
   const url1 = r1?.results || r1?.results?.post_url;
   console.log(`[POST] ✓ Company page: ${url1 || 'success'}`);
