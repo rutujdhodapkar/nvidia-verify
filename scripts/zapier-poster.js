@@ -7,52 +7,16 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   const companyParams = { company_id: pid, comment: content };
   if (imageUrl) companyParams.content__submitted_image_url = imageUrl;
 
-  const r1 = await callZapier(zapierToken, {
+  const r = await callZapier(zapierToken, {
     selected_api: 'LinkedInCLIAPI',
     action: 'create_company_update',
     instructions: 'Post to devcraft-internships company page',
     output: 'post_url',
     params: companyParams,
   });
-  const companyPostUrl = r1?.results?.post_url || r1?.results;
-  console.log(`[POST] ✓ Company page: ${companyPostUrl || 'success'}`);
-
-  if (imageUrl) {
-    try {
-      const r2 = await callZapier(zapierToken, {
-        selected_api: 'LinkedInCLIAPI',
-        action: 'share',
-        instructions: 'Post to personal profile with image',
-        output: 'post_url',
-        params: {
-          comment: content,
-          content__submitted_image_url: imageUrl,
-        },
-      });
-      console.log(`[POST] ✓ Personal profile with image: ${r2?.results?.post_url || r2?.results || 'success'}`);
-    } catch (e) {
-      console.log(`[POST] Personal image post skipped: ${e.message}`);
-    }
-  }
-
-  return companyPostUrl;
-}
-
-export async function postLinkedinComment(zapierToken, postUrl, comment) {
-  try {
-    const r = await callZapier(zapierToken, {
-      selected_api: 'LinkedInCLIAPI',
-      action: 'create_comment',
-      instructions: 'Post first comment on the company update',
-      output: 'comment_url',
-      params: { post_url: postUrl, comment },
-    });
-    console.log(`[POST] ✓ Comment posted: ${r?.results || 'success'}`);
-    return true;
-  } catch (e) {
-    console.log(`[POST] Comment skipped (action may not exist): ${e.message}`);
-    return false;
-  }
+  const postUrl = r?.results?.post_url || r?.results;
+  console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
+  return postUrl;
 }
 
 export async function createCanvaDesign(zapierToken, designBrief, templateId) {

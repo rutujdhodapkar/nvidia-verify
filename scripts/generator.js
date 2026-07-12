@@ -29,14 +29,13 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
 1. Problem — name the specific anxiety in their words
 2. Mechanism — what DevCraft actually does: real client work, offer letter, timeline
 3. Proof — a number, a name, a completion stat (never fabricate)
-4. CTA — one line, imperative, no paragraph
+4. CTA — one line with link, imperative: "Apply now at devcraft.fennark.xyz"
 
 ## FORMATTING RULES
 - Line breaks every 1-2 sentences. No paragraphs longer than 3 lines on mobile.
 - Max 1 emoji per section, used as visual break (🔹 ✅), never decorative (no 🚀🔥✨ stacking)
 - Numbers over adjectives always
 - 3-5 hashtags max at the end. Mix broad + niche/branded.
-- NEVER put application link in post body (LinkedIn suppresses reach). Put it in first_comment field.
 
 ## OUTPUT FORMAT
 Return ONLY valid JSON (no markdown, no code fences):
@@ -44,8 +43,7 @@ Return ONLY valid JSON (no markdown, no code fences):
   "hook": "...",
   "body": "...",
   "hashtags": ["#...", "#..."],
-  "cta_line": "...",
-  "first_comment": "Apply here: devcraft.fennark.xyz",
+  "cta_line": "Apply now at devcraft.fennark.xyz",
   "design_brief": {
     "tone": "clean | editorial | bold",
     "primary_color": "#6366f1",
@@ -75,17 +73,16 @@ Generate the post now. Return ONLY the JSON.`;
 
   const hook = parsed.hook || '';
   const body = parsed.body || '';
-  const ctaLine = parsed.cta_line || '';
+  const ctaLine = parsed.cta_line || 'Apply now at devcraft.fennark.xyz';
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join(' ') : '';
   const postText = [hook, '', body, '', ctaLine, '', hashtags].filter(Boolean).join('\n');
-  const firstComment = parsed.first_comment || 'Apply at devcraft.fennark.xyz';
   const designBrief = parsed.design_brief || null;
 
   const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
   const imageMeta = { headline: hook.slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
 
   console.log(`[GENERATE] ✓ ${postText.length} chars, variant: ${parsed.variant_label || 'A'}`);
-  return { post: postText, html: null, imageMeta, theme: siteData.theme, firstComment, designBrief };
+  return { post: postText, html: null, imageMeta, theme: siteData.theme, designBrief };
 }
 
 export async function reviewPost(post, apiKey, model) {
