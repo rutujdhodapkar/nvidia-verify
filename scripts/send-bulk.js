@@ -3,75 +3,63 @@ import 'dotenv/config';
 const FIREBASE_URL = 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const FROM_EMAIL = 'Support@fennark.xyz';
-const FROM_NAME = 'DEV/CRAFT Internships';
+const FROM_NAME = 'Team at DEV/CRAFT';
 const DAILY_LIMIT = 300;
 const BATCH_SIZE = 10;
 const SITE = 'https://devcraft.fennark.xyz';
 
 const templates = [
   {
-    subject: 'Your virtual internship is waiting',
+    subject: 'Quick question',
     bodyHTML: (name) => `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#333">
-<p style="font-size:15px;line-height:1.5">Hi ${name || 'there'},</p>
-<p style="font-size:15px;line-height:1.5">DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
-<p style="font-size:15px;line-height:1.5">When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.</p>
-<p style="font-size:15px;line-height:1.5">It takes 2 minutes to apply. No interviews. No waiting.</p>
-<p style="font-size:15px;line-height:1.5"><a href="${SITE}" style="color:#1a73e8">Apply now at devcraft.fennark.xyz</a></p>
-<p style="font-size:15px;line-height:1.5">Best,<br>The DEV/CRAFT Team</p>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-<p style="font-size:12px;color:#888"><a href="#" style="color:#888">Unsubscribe</a></p>
+<body style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5">
+<p>Hi ${name || 'there'},</p>
+<p>I was checking our records and noticed you haven't started your virtual internship yet.</p>
+<p>DEV/CRAFT has 20+ domains open right now — Web, Data Science, Cyber Security, Full Stack, UI/UX. You apply, get your offer letter instantly, and start building real projects right away.</p>
+<p>Takes 2 minutes.</p>
+<p><a href="${SITE}" style="color:#1a73e8">devcraft.fennark.xyz</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p>
 </body>
 </html>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
-DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.
+I was checking our records and noticed you haven't started your virtual internship yet.
 
-When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.
+DEV/CRAFT has 20+ domains open right now — Web, Data Science, Cyber Security, Full Stack, UI/UX. You apply, get your offer letter instantly, and start building real projects right away.
 
-It takes 2 minutes to apply. No interviews. No waiting.
+Takes 2 minutes.
 
-Apply now: ${SITE}
+${SITE}
 
 Best,
-The DEV/CRAFT Team
-
----
-To unsubscribe, reply with "unsubscribe".`,
+The DEV/CRAFT Team`,
   },
   {
-    subject: 'Your offer letter is ready — just apply',
+    subject: 'Just a follow up',
     bodyHTML: (name) => `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#333">
-<p style="font-size:15px;line-height:1.5">Hi ${name || 'there'},</p>
-<p style="font-size:15px;line-height:1.5">At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.</p>
-<p style="font-size:15px;line-height:1.5">Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.</p>
-<p style="font-size:15px;line-height:1.5">Your certificate comes with a live verification link employers can check in seconds.</p>
-<p style="font-size:15px;line-height:1.5"><a href="${SITE}" style="color:#1a73e8">Claim your offer letter at devcraft.fennark.xyz</a></p>
-<p style="font-size:15px;line-height:1.5">Best,<br>The DEV/CRAFT Team</p>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-<p style="font-size:12px;color:#888"><a href="#" style="color:#888">Unsubscribe</a></p>
+<body style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5">
+<p>Hi ${name || 'there'},</p>
+<p>Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.</p>
+<p>When you sign up, the offer letter lands in your inbox immediately. Then you pick a domain and start building actual projects you can put on your resume.</p>
+<p>All self-paced, fully virtual.</p>
+<p><a href="${SITE}" style="color:#1a73e8">devcraft.fennark.xyz</a></p>
+<p>Best,<br>The Team</p>
 </body>
 </html>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
-At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.
+Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.
 
-Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.
+When you sign up, the offer letter lands in your inbox immediately. Then you pick a domain and start building actual projects you can put on your resume.
 
-Your certificate comes with a live verification link employers can check in seconds.
+All self-paced, fully virtual.
 
-Claim your offer letter: ${SITE}
+${SITE}
 
 Best,
-The DEV/CRAFT Team
-
----
-To unsubscribe, reply with "unsubscribe".`,
+The Team`,
   },
 ];
 
