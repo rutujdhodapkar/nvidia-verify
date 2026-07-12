@@ -67,9 +67,9 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">100% FREE</span>
-    <span class="badge">SELF-PACED</span>
-    <span class="badge">CERTIFIED</span>
+    <span class="badge">PYTHON · DSA · WEB</span>
+    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
@@ -104,9 +104,9 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">100% FREE</span>
-    <span class="badge">SELF-PACED</span>
-    <span class="badge">CERTIFIED</span>
+    <span class="badge">PYTHON · DSA · WEB</span>
+    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
@@ -171,9 +171,9 @@ body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 <div class="content">
   <div class="tag">DEV/CRAFT</div>
   <div class="badge-row">
-    <span class="badge">100% FREE</span>
-    <span class="badge">SELF-PACED</span>
-    <span class="badge">CERTIFIED</span>
+    <span class="badge">PYTHON · DSA · WEB</span>
+    <span class="badge">AI/ML · CLOUD</span>
+    <span class="badge">INDUSTRY PROJECTS</span>
   </div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
@@ -216,7 +216,7 @@ function pickTemplate(meta) {
 }
 
 export async function generateImage({ html, post, imageMeta, apiKey, hfToken }) {
-  const meta = { headline: '100% Free Virtual Internship', subtext: 'Build real projects. Get certified.', cta: 'Apply at devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
+  const meta = { headline: 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
 
   try {
     const bgBuffer = await generateAiBackground(post, meta.headline);
@@ -267,7 +267,7 @@ function buildImgPrompt(post, meta) {
 function brutalist(m) {
   return `<div style="width:1200px;height:630px;background:#1a1a1a;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:50px;border:8px solid #6366f1;">
     <div style="border:4px solid #fff;flex:1;display:flex;flex-direction:column;padding:40px;position:relative;">
-      <div style="position:absolute;top:-20px;left:30px;background:#6366f1;color:#fff;padding:8px 24px;font-size:16px;font-weight:700;text-transform:uppercase;">FREE</div>
+      <div style="position:absolute;top:-20px;left:30px;background:#6366f1;color:#fff;padding:8px 24px;font-size:16px;font-weight:700;text-transform:uppercase;">SKILLS</div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:56px;font-weight:900;color:#fff;line-height:1.1;text-transform:uppercase;margin-bottom:20px;">${m.headline}</div>
         <div style="width:80px;height:8px;background:#6366f1;margin-bottom:25px;"></div>
@@ -285,9 +285,9 @@ function modernMinimal(m) {
   return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:60px;">
     <div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;gap:12px;margin-bottom:20px;">
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">100% FREE</span>
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">SELF-PACED</span>
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">CERTIFICATION</span>
+        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">PYTHON</span>
+        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">DSA</span>
+        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">WEB DEV</span>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:14px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
@@ -309,7 +309,7 @@ function glassmorphism(m) {
     <div style="background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.06);border-radius:32px;padding:50px;width:92%;height:85%;display:flex;flex-direction:column;position:relative;">
       <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
         <span style="font-size:20px;font-weight:800;color:#fff;">DEV<span style="color:#6366f1;">/</span>CRAFT</span>
-        <span style="padding:8px 20px;border:1px solid rgba(99,102,241,0.3);border-radius:20px;font-size:12px;color:#6366f1;">#1 Virtual Internship</span>
+        <span style="padding:8px 20px;border:1px solid rgba(99,102,241,0.3);border-radius:20px;font-size:12px;color:#6366f1;">Real Projects. Real Skills.</span>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:48px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:15px;">${m.headline}</div>
@@ -317,7 +317,7 @@ function glassmorphism(m) {
         <div style="font-size:20px;color:rgba(255,255,255,0.6);line-height:1.6;max-width:75%;">${m.subtext}</div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid rgba(255,255,255,0.05);">
-        <span style="font-size:13px;color:rgba(255,255,255,0.3);">Join thousands of students</span>
+        <span style="font-size:13px;color:rgba(255,255,255,0.3);">For Indian CS engineers</span>
         <span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#fff;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:500;">devcraft.fennark.xyz →</span>
       </div>
     </div>
@@ -329,16 +329,16 @@ function gradientBold(m) {
     <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#6366f1,#a855f7,#6366f1);"></div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:40px;">
       <div style="display:flex;gap:10px;margin-bottom:25px;">
-        <span style="padding:6px 18px;background:rgba(99,102,241,0.15);border-radius:4px;font-size:12px;color:#6366f1;font-weight:600;">FREE</span>
-        <span style="padding:6px 18px;background:rgba(255,255,255,0.05);border-radius:4px;font-size:12px;color:#888;">REMOTE</span>
+        <span style="padding:6px 18px;background:rgba(99,102,241,0.15);border-radius:4px;font-size:12px;color:#6366f1;font-weight:600;">AI/ML</span>
+        <span style="padding:6px 18px;background:rgba(255,255,255,0.05);border-radius:4px;font-size:12px;color:#888;">CLOUD</span>
       </div>
       <div style="font-size:52px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:15px;">${m.headline}</div>
       <div style="font-size:24px;font-weight:300;color:#888;line-height:1.5;max-width:80%;">${m.subtext}</div>
     </div>
     <div style="width:1px;background:rgba(99,102,241,0.2);margin:20px 0;"></div>
     <div style="width:280px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-left:40px;gap:20px;">
-      <div style="font-size:60px;font-weight:900;color:#6366f1;">100K+</div>
-      <div style="font-size:13px;color:#666;text-align:center;">Students & Alumni</div>
+      <div style="font-size:40px;font-weight:900;color:#6366f1;">SKILLS</div>
+      <div style="font-size:13px;color:#666;text-align:center;">Build In-Demand Expertise</div>
       <div style="background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff;padding:14px 28px;border-radius:8px;font-size:14px;font-weight:600;width:100%;text-align:center;">Apply Now →</div>
     </div>
   </div>`;
@@ -360,7 +360,7 @@ function darkTech(m) {
       <div style="margin-top:20px;font-size:20px;color:#555;line-height:1.6;max-width:65%;">${m.subtext}</div>
       <div style="margin-top:30px;display:flex;gap:15px;align-items:center;">
         <span style="background:#6366f1;color:#fff;padding:14px 35px;border-radius:6px;font-size:15px;font-weight:600;">Get Started</span>
-        <span style="color:#555;font-size:13px;">2,847 students this month</span>
+        <span style="color:#555;font-size:13px;">Hands-on engineering projects</span>
       </div>
     </div>
   </div>`;
@@ -372,7 +372,7 @@ function pixelArt(m) {
     <div style="position:absolute;bottom:0;left:0;right:0;height:8px;background:repeating-linear-gradient(90deg,#7c3aed 0px,#7c3aed 16px,#6366f1 16px,#6366f1 32px);"></div>
     <div style="border:4px solid #6366f1;flex:1;display:flex;flex-direction:column;padding:30px;background:linear-gradient(180deg,#1a0a3e,#2d1b69);">
       <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-        <div style="background:#6366f1;color:#fff;padding:8px 16px;font-size:10px;">FREE</div>
+        <div style="background:#6366f1;color:#fff;padding:8px 16px;font-size:10px;">SKILLS</div>
         <div style="color:#fff;font-size:18px;">DEV/CRAFT</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:15px;">
@@ -405,8 +405,8 @@ function corporateClean(m) {
       <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">DEV/</div>
       <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">CRAFT</div>
       <div style="margin-top:30px;text-align:center;">
-        <div style="font-size:36px;font-weight:700;color:#fff;">100%</div>
-        <div style="font-size:16px;color:rgba(255,255,255,0.7);">Free Program</div>
+        <div style="font-size:36px;font-weight:700;color:#fff;">REAL</div>
+        <div style="font-size:16px;color:rgba(255,255,255,0.7);">Industry Projects</div>
       </div>
     </div>
   </div>`;

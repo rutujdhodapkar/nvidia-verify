@@ -9,18 +9,22 @@ export async function generatePost(siteData, previousPosts = [], apiKey, model) 
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
 
   // Call 1: post text only
-  const postPrompt = `You are DEV/CRAFT's marketing director (SaaS: free virtual internship platform for college students at devcraft.fennark.xyz).
+  const postPrompt = `You are DEV/CRAFT's content strategist targeting Indian engineering students (site: devcraft.fennark.xyz — a virtual internship platform that builds real-world tech skills).
 
 SITE DATA:
 ${siteCtx}${dupGuard}
 
 Write a LinkedIn post (max 2600 characters). Rules:
-- Hook in first line (curiosity/gain/pain)
-- Mention devcraft.fennark.xyz link prominently
-- Mention @devcraft-internships once naturally in the body
-- 3-5 hashtags at end (#DEVCRAFT #VirtualInternship #FreeLearning etc)
+- Hook with an emotion: curiosity, aspiration, regret, or surprise — make them think "I need this"
+- Focus on SKILLS: DSA, Python, Web Dev, AI/ML, Cloud, DevOps, System Design, Open Source — whatever fits
+- Mention devcraft.fennark.xyz link naturally
+- Mention @devcraft-internships once
+- 3-5 relevant hashtags at end (e.g. #DEVCRAFT #Internship #Engineering #Skills #Tech)
 - No emojis
-- Persuasive, specific, student-focused
+- No mention of "free", "no cost", "zero fee", or similar
+- No false claims or exaggerated outcomes
+- Target Indian computer science / IT engineering students specifically
+- Make them curious — hint at the transformation, don't just describe the program
 - Vary angle from previous posts
 
 Respond with ONLY the post text, nothing else.`;
@@ -52,7 +56,7 @@ Respond with ONLY the HTML, nothing else.`;
   if (html && !html.includes('<html')) html = null;
 
   const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'gradient-bold', 'dark-tech', 'pixel-art', 'corporate-clean'];
-  const imageMeta = { headline: (post.split('\n')[0] || 'DEV/CRAFT').slice(0, 60), subtext: '100% Free Virtual Internship', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
+  const imageMeta = { headline: (post.split('\n')[0] || 'DEV/CRAFT').slice(0, 60), subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
 
   console.log(`[GENERATE] ✓ ${post.length} chars${html ? ` + ${html.length} HTML` : ' (template card)'}`);
   return { post: post.trim(), html, imageMeta, theme: siteData.theme };
