@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
-import { postToLinkedinPage } from './zapier-poster.js';
+import { postToLinkedinPage } from './linkedin-poster.js';
 import { getFigmaImageUrl } from './figma.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
@@ -53,9 +53,8 @@ async function uploadToGithub(filename, buffer) {
 async function main() {
   console.log(`\n═══ DEV/CRAFT LinkedIn Agent ═══\n${new Date().toISOString()}\n`);
   const state = await loadState();
-  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993', FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
+  const { NVIDIA_API_KEY, NVIDIA_MODEL, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993', FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
-  if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
   console.log('[1/4] Scraping devcraft.fennark.xyz...');
   const siteData = await scrapeSite();
@@ -147,7 +146,7 @@ async function main() {
 
   // Step 4: Post to LinkedIn company page
   console.log('[4/4] Posting to LinkedIn company page...');
-  await postToLinkedinPage({ content: post, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
+  await postToLinkedinPage({ content: post, imageUrl, pageId: LINKEDIN_PAGE_ID });
 
   // Track state
   state.previousPosts.push(post);

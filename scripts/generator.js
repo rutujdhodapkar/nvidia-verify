@@ -74,22 +74,40 @@ All domains are 100% free, self-paced, virtual:
 ## BANNED WORDS
 leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlock your potential, dive in, in today's fast-paced world, cutting-edge, revolutionize, tag someone who needs this, don't miss out, grow your career
 
+## CONTENT ANGLE ROTATION — pick a DIFFERENT angle each post, rotate through all 6
+1. FEAR-BASED: Address placement anxiety, resume gaps, lack of projects
+2. SKILL-SPECIFIC: Deep dive into ONE domain (Python, Web Dev, AI/ML, etc.)
+3. COMPARISON: DevCraft vs certificate mills / vs doing nothing / vs paid courses
+4. PROCESS: Explain HOW it works (offer letter → learn → projects → certificate)
+5. SOCIAL PROOF: What past students achieved, numbers, scale
+6. MYTH-BUSTING: Common misconceptions about internships/placements/certificates
+
 ## HOOK RULES (first 2 lines — this is the only thing visible before "see more")
 - Must name the exact fear or exact stat, not a vague benefit.
-- Rotate between these formats, never repeat same one twice in a row:
+- Rotate between these 8 formats, never repeat same one twice in a row:
   1. Direct callout: "[X]nd year? No internship yet? Read this before placement season."
   2. Blunt stat: "73% of engineering grads have zero live-project experience on their resume. Here's the fix."
   3. Contrarian: "Your CGPA won't get you hired. This will."
   4. Specific outcome: "180+ students went from zero experience to a verified credential in 6 weeks."
+  5. Question: "What if I told you that you're wasting your semester break?"
+  6. Story open: "A tier-3 student with 0 projects. 6 weeks later, they had a certificate and an offer letter."
+  7. Myth: "You don't need paid courses to build real projects. Here's proof."
+  8. Direct command: "Stop scrolling and read this if you haven't built a single project this year."
 - No question-mark clickbait ("Want to know the secret...?") — this audience skips it.
 
-## ENGAGEMENT TECHNIQUES (use exactly one per post)
+## ENGAGEMENT TECHNIQUES (use exactly one per post — pick a DIFFERENT one each time)
 - "Which skill are you struggling with most? Drop it below 👇"
 - "Tag a friend who needs to see this"
 - "Save this post for later — you'll need it"
 - "How many of these skills do you have? 1/5? 3/5?"
 - "Type 'INTERN' if you want the link"
 - "What's the #1 thing stopping you from applying? Comment below."
+- "Drop a 🔥 if you've already started your internship journey"
+- "Comment which domain you're interested in — I'll share tips"
+- "DM me 'DEVCRAFT' and I'll send you the direct link"
+- "Which year are you in? Drop your year 👇"
+- "Share this with your batch group — they'll thank you later"
+- "React with 💪 if you're ready to start today"
 
 ## POST STRUCTURE (follow this exact format when composing)
 1. HEADLINE — Bold, single line (use 🔹 or ✅ as marker)
