@@ -35,22 +35,136 @@ function buildCompositedHtml(fluxBase64, meta) {
   const b64 = fluxBase64.replace(/^data:image\/\w+;base64,/, '');
   const bgDataUri = `data:image/png;base64,${b64}`;
 
-  return `<!DOCTYPE html>
+  const styles = [
+    'large-text',    // big bold headline, minimal UI
+    'full-bleed',    // minimal overlay, let bg shine
+    'bottom-heavy',  // text at bottom, large
+    'centered',      // centered layout
+  ];
+  const styleIdx = [...meta.headline].reduce((a, c) => a + c.charCodeAt(0), 0) % styles.length;
+  const style = styles[styleIdx];
+
+  if (style === 'large-text') {
+    return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
 .bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
-.overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0.65) 0%,rgba(0,0,0,0.35) 50%,rgba(0,0,0,0.7) 100%)}
-.content{position:absolute;inset:0;padding:60px;display:flex;flex-direction:column;justify-content:flex-end}
-.tag{display:inline-block;background:rgba(99,102,241,0.9);color:#fff;padding:6px 18px;font-size:12px;font-weight:600;border-radius:4px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:15px;width:fit-content}
-.headline{font-size:52px;font-weight:900;color:#fff;line-height:1.1;max-width:85%;margin-bottom:10px;text-shadow:0 2px 20px rgba(0,0,0,0.3)}
-.subtext{font-size:20px;color:rgba(255,255,255,0.8);line-height:1.5;max-width:65%;margin-bottom:25px;font-weight:400}
-.bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:20px}
-.brand{font-size:14px;color:rgba(255,255,255,0.5);font-weight:500}
-.cta{background:#6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;transition:all 0.2s}
-.badge-row{display:flex;gap:8px;margin-bottom:20px}
-.badge{padding:5px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;font-size:11px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.2)}
+.overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.15) 50%,rgba(0,0,0,0.1) 100%)}
+.content{position:absolute;inset:0;padding:50px;display:flex;flex-direction:column;justify-content:flex-end}
+.tag{display:inline-block;background:#6366f1;color:#fff;padding:8px 20px;font-size:13px;font-weight:700;border-radius:4px;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;width:fit-content}
+.headline{font-size:58px;font-weight:900;color:#fff;line-height:1.05;max-width:95%;margin-bottom:12px;text-shadow:0 4px 30px rgba(0,0,0,0.4)}
+.subtext{font-size:22px;color:rgba(255,255,255,0.85);line-height:1.4;max-width:80%;margin-bottom:20px;font-weight:400;text-shadow:0 2px 10px rgba(0,0,0,0.3)}
+.bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.15);padding-top:20px}
+.brand{font-size:15px;color:rgba(255,255,255,0.5);font-weight:600}
+.cta{background:#6366f1;color:#fff;padding:14px 36px;border-radius:8px;font-size:16px;font-weight:700;text-decoration:none}
+.badge-row{display:flex;gap:10px;margin-bottom:25px}
+.badge{padding:6px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;font-size:12px;color:rgba(255,255,255,0.8);background:rgba(0,0,0,0.3);font-weight:500}
+</style></head><body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="content">
+  <div class="tag">DEV/CRAFT</div>
+  <div class="badge-row">
+    <span class="badge">100% FREE</span>
+    <span class="badge">SELF-PACED</span>
+    <span class="badge">CERTIFIED</span>
+  </div>
+  <div class="headline">${meta.headline}</div>
+  <div class="subtext">${meta.subtext}</div>
+  <div class="bottom">
+    <span class="brand">devcraft.fennark.xyz</span>
+    <span class="cta">Register Now →</span>
+  </div>
+</div>
+</body></html>`;
+  }
+
+  if (style === 'full-bleed') {
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
+.overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0.05) 60%,rgba(0,0,0,0) 100%)}
+.content{position:absolute;inset:0;padding:45px;display:flex;flex-direction:column;justify-content:flex-end}
+.tag{display:inline-block;background:rgba(99,102,241,0.95);color:#fff;padding:7px 18px;font-size:12px;font-weight:700;border-radius:4px;letter-spacing:2px;text-transform:uppercase;margin-bottom:18px;width:fit-content}
+.headline{font-size:54px;font-weight:900;color:#fff;line-height:1.08;max-width:90%;margin-bottom:10px;text-shadow:0 4px 30px rgba(0,0,0,0.4)}
+.subtext{font-size:21px;color:rgba(255,255,255,0.9);line-height:1.45;max-width:75%;margin-bottom:18px;font-weight:400}
+.bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.12);padding-top:18px}
+.brand{font-size:14px;color:rgba(255,255,255,0.45);font-weight:500}
+.cta{background:#6366f1;color:#fff;padding:13px 34px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 4px 15px rgba(99,102,241,0.3)}
+.badge-row{display:flex;gap:10px;margin-bottom:22px}
+.badge{padding:5px 15px;border:1px solid rgba(255,255,255,0.18);border-radius:4px;font-size:11px;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.25);font-weight:500}
+</style></head><body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="content">
+  <div class="tag">DEV/CRAFT</div>
+  <div class="badge-row">
+    <span class="badge">100% FREE</span>
+    <span class="badge">SELF-PACED</span>
+    <span class="badge">CERTIFIED</span>
+  </div>
+  <div class="headline">${meta.headline}</div>
+  <div class="subtext">${meta.subtext}</div>
+  <div class="bottom">
+    <span class="brand">devcraft.fennark.xyz</span>
+    <span class="cta">Register Now →</span>
+  </div>
+</div>
+</body></html>`;
+  }
+
+  if (style === 'bottom-heavy') {
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
+.overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.3) 45%,rgba(0,0,0,0.05) 100%)}
+.content{position:absolute;inset:0;padding:45px 50px;display:flex;flex-direction:column;justify-content:flex-end}
+.tag{display:inline-block;background:#6366f1;color:#fff;padding:8px 22px;font-size:13px;font-weight:700;border-radius:4px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:18px;width:fit-content}
+.headline{font-size:60px;font-weight:900;color:#fff;line-height:1.05;max-width:95%;margin-bottom:10px;text-shadow:0 4px 30px rgba(0,0,0,0.5)}
+.subtext{font-size:23px;color:rgba(255,255,255,0.85);line-height:1.4;max-width:85%;margin-bottom:22px;font-weight:500}
+.bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.15);padding-top:20px}
+.brand{font-size:15px;color:rgba(255,255,255,0.5);font-weight:500}
+.cta{background:#6366f1;color:#fff;padding:14px 38px;border-radius:8px;font-size:16px;font-weight:700;text-decoration:none;box-shadow:0 4px 15px rgba(99,102,241,0.3)}
+</style></head><body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="content">
+  <div class="tag">DEV/CRAFT</div>
+  <div class="headline">${meta.headline}</div>
+  <div class="subtext">${meta.subtext}</div>
+  <div class="bottom">
+    <span class="brand">devcraft.fennark.xyz</span>
+    <span class="cta">Register Now →</span>
+  </div>
+</div>
+</body></html>`;
+  }
+
+  // centered style
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;font-family:'Inter',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
+.overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0.25) 50%,rgba(0,0,0,0.6) 100%)}
+.content{position:absolute;inset:0;padding:50px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.tag{display:inline-block;background:#6366f1;color:#fff;padding:8px 20px;font-size:12px;font-weight:700;border-radius:4px;letter-spacing:2px;text-transform:uppercase;margin-bottom:25px;width:fit-content}
+.headline{font-size:56px;font-weight:900;color:#fff;line-height:1.08;max-width:90%;margin-bottom:15px;text-shadow:0 4px 30px rgba(0,0,0,0.4)}
+.subtext{font-size:20px;color:rgba(255,255,255,0.85);line-height:1.5;max-width:65%;margin-bottom:30px;font-weight:400}
+.bottom{display:flex;flex-direction:column;align-items:center;gap:15px}
+.brand{font-size:14px;color:rgba(255,255,255,0.4);font-weight:500}
+.cta{background:#6366f1;color:#fff;padding:14px 40px;border-radius:8px;font-size:16px;font-weight:700;text-decoration:none;box-shadow:0 4px 20px rgba(99,102,241,0.3)}
+.badge-row{display:flex;gap:10px;margin-bottom:30px}
+.badge{padding:6px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;font-size:11px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.2);font-weight:500}
 </style></head><body>
 <div class="bg"></div>
 <div class="overlay"></div>

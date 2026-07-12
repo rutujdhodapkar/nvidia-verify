@@ -2,35 +2,40 @@ const MCP_URL = 'https://mcp.zapier.com/api/v1/connect';
 
 export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageId }) {
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
-
-  const siteUrl = 'https://devcraft.fennark.xyz';
   const pid = pageId || '134233993';
 
-  const params = { company_id: pid };
+  // Always post text to COMPANY page
+  const r1 = await callZapier(zapierToken, {
+    selected_api: 'LinkedInCLIAPI',
+    action: 'create_company_update',
+    instructions: 'Post to devcraft-internships',
+    output: 'post_url',
+    params: { company_id: pid, comment: content },
+  });
+  const url1 = r1?.results || r1?.results?.post_url;
+  console.log(`[POST] ✓ Company page: ${url1 || 'success'}`);
 
+  // If image available, also post to personal profile with image (no link preview)
   if (imageUrl) {
-    params.comment = content.slice(0, 2600);
-    params.content__submitted_image_url = imageUrl;
-    params.content__submitted_url = siteUrl;
-    params.content__title = 'DEV/CRAFT Virtual Internship';
-    params.content__description = '100% Free Virtual Internship for College Students. Build real projects. Get certified.';
+    try {
+      const r2 = await callZapier(zapierToken, {
+        selected_api: 'LinkedInCLIAPI',
+        action: 'share',
+        instructions: 'Post to personal profile with this image as post media. No link needed.',
+        output: 'post_url',
+        params: {
+          comment: content,
+          content__submitted_image_url: imageUrl,
+        },
+      });
+      const url2 = r2?.results?.post_url || r2?.results;
+      console.log(`[POST] ✓ Personal profile with image: ${url2 || 'success'}`);
+    } catch (e) {
+      console.log(`[POST] Personal image post skipped: ${e.message}`);
+    }
   }
 
-  const instructions = imageUrl
-    ? `Create a share update on devcraft-internships with the provided params. Visibility: anyone.`
-    : `Create a share update on devcraft-internships. Text: "${content.slice(0, 2000)}". Visibility: anyone.`;
-
-  const result = await callZapier(zapierToken, {
-    selected_api: 'LinkedInCLIAPI',
-    action: 'share',
-    instructions,
-    output: 'post_url',
-    params,
-  });
-
-  const postUrl = result?.results?.post_url || result?.results;
-  console.log(`[POST] ✓ Posted to LinkedIn Page${postUrl ? ': ' + postUrl : ''}`);
-  return postUrl;
+  return url1;
 }
 
 async function callZapier(token, args) {
