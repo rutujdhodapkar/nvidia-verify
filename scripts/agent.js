@@ -6,7 +6,7 @@ import { execSync } from 'child_process';
 import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
-import { postToLinkedinPage, createCanvaDesign } from './zapier-poster.js';
+import { postToLinkedinPage } from './zapier-poster.js';
 import { getFigmaImageUrl, getFigmaFileData } from './figma.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
@@ -22,7 +22,7 @@ function getImageUrl(filename) {
 async function main() {
   console.log(`\n═══ DEV/CRAFT LinkedIn Agent ═══\n${new Date().toISOString()}\n`);
   const state = await loadState();
-  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993', CANVA_TEMPLATE_ID, FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
+  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993', FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
   if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
@@ -50,25 +50,18 @@ async function main() {
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
   console.log(`      "${post.slice(0, 120)}..."\n`);
 
-  // Step 2: Generate image — code-based primary, Canva/Figma as optional overrides
+  // Step 2: Generate image — code-based primary, Figma optional override
   console.log('[3/4] Generating image...');
   let imageUrl = null;
 
-  // Try Canva if configured (optional override)
-  if (!imageUrl && ZAPIER_TOKEN && CANVA_TEMPLATE_ID && designBrief) {
-    console.log('      Trying Canva design (optional)...');
-    imageUrl = await createCanvaDesign(ZAPIER_TOKEN, designBrief, CANVA_TEMPLATE_ID);
-    if (imageUrl) console.log(`      ✓ Canva: ${imageUrl}`);
-  }
-
-  // Try Figma if configured (optional override)
-  if (!imageUrl && FIGMA_TOKEN && FIGMA_FILE_KEY && FIGMA_FRAME_ID) {
+  // Try Figma if configured (optional export from pre-made designs)
+  if (FIGMA_TOKEN && FIGMA_FILE_KEY && FIGMA_FRAME_ID) {
     console.log('      Trying Figma export (optional)...');
     imageUrl = await getFigmaImageUrl(FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID);
     if (imageUrl) console.log(`      ✓ Figma: ${imageUrl}`);
   }
 
-  // Primary: code-based generation (AI bg + modern templates)
+  // Primary: code-based generation (AI background + modern template cards)
   if (!imageUrl) {
     console.log('      Generating code-based design...');
     let imageBuffer = null;

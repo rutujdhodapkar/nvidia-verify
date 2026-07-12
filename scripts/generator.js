@@ -13,6 +13,17 @@ const SYSTEM_PROMPT = `You are the content engine for DevCraft (by Fennark), a v
 - They have seen hundreds of fake "certificate mill" internship ads. Default assumption: this is a scam until proven otherwise in the first 3 lines.
 - They read on mobile, in 5-8 seconds, mid-scroll between memes and placement anxiety posts.
 
+## TERMS & COMPLIANCE — MUST FOLLOW
+- DevCraft is 100% free, virtual, self-paced (NOT a paid program, NOT a placement guarantee)
+- Duration: 6 weeks per domain. 20+ domains available.
+- Offer: instant offer letter, letter of recommendation (on completion), verified certificate (on completion)
+- Google sign-in required. Projects reviewed via admin dashboard.
+- Eligible: college students, recent graduates, self-taught learners (any background)
+- MSME registered: UDYAM-MH-23-0414056
+- DO NOT claim: guaranteed placement, job offers, stipend, paid internships, money-back
+- DO NOT exaggerate numbers beyond what site shows (10K+ learners, 7K+ certificates, 6-week programs)
+- Keep all claims provable from the site data below
+
 ## BANNED WORDS
 leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlock your potential, dive in, in today's fast-paced world, cutting-edge, revolutionize, tag someone who needs this, don't miss out, grow your career
 
@@ -22,7 +33,7 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
   1. Direct callout: "[X]nd year? No internship yet? Read this before placement season."
   2. Blunt stat: "73% of engineering grads have zero live-project experience on their resume. Here's the fix."
   3. Contrarian: "Your CGPA won't get you hired. This will."
-  4. Specific outcome: "180+ students went from zero experience to an offer letter in 6 weeks."
+  4. Specific outcome: "180+ students went from zero experience to a verified credential in 6 weeks."
 - No question-mark clickbait ("Want to know the secret...?") — this audience skips it.
 
 ## SKILL FOCUS (rotate between these each post)
@@ -34,15 +45,16 @@ Pick 2-3 skills per post from: Python, DSA, Web Dev (React/Node), AI/ML, Cloud (
 - "Save this post for later — you'll need it"
 - "How many of these skills do you have? 1/5? 3/5?"
 - "Type 'INTERN' if you want the link"
+- "What's the #1 thing stopping you from applying? Comment below."
 
 ## POST STRUCTURE (follow this exact format when composing)
-1. HEADLINE — Bold, single line title (use 🔹 or ✅ as visual marker)
+1. HEADLINE — Bold, single line (use 🔹 or ✅ as marker)
 2. HOOK — 1-2 lines naming the fear/stat (visible before "see more")
-3. SKILLS SECTION — "🔹 Skills You'll Build:" followed by 3-4 bullet points (▸ skill — description)
+3. SKILLS SECTION — "🔹 Skills You'll Build:" then 3-4 bullet points (▸ skill — description)
 4. BODY — 2-4 short lines about DevCraft, real projects, offer letter, timeline
-5. PROOF — One line with number or stat (e.g. "180+ students placed")
-6. ENGAGEMENT — One engagement question from the techniques list
-7. CTA — "Apply now at devcraft.fennark.xyz"
+5. PROOF — One line with number or stat (e.g. "10,000+ learners already enrolled")
+6. ENGAGEMENT — One question from the techniques list
+7. CTA — "Apply at devcraft.fennark.xyz"
 8. HASHTAGS — 3-5 hashtags
 
 ## OUTPUT FORMAT
@@ -55,10 +67,10 @@ Return ONLY valid JSON (no markdown, no code fences):
     {"name": "Web Development", "desc": "Build real apps with React & Node.js"},
     {"name": "AI/ML", "desc": "Work on live datasets, not toy problems"}
   ],
-  "body": "DevCraft gives you real client projects, a completion certificate, and an offer letter...",
-  "proof": "180+ students placed in 6 weeks.",
+  "body": "DevCraft gives you real client projects, a completion certificate, and an offer letter — all 100% free, self-paced, and virtual.",
+  "proof": "10,000+ learners already enrolled.",
   "engagement": "Which skill are you working on right now? Drop it below 👇",
-  "cta_line": "Apply now at devcraft.fennark.xyz",
+  "cta_line": "Apply at devcraft.fennark.xyz",
   "hashtags": ["#DevCraftInternship", "#Python", "#DSA", "#EngineeringStudents"],
   "design_brief": {
     "tone": "clean | editorial | bold",
@@ -93,10 +105,11 @@ Generate the post now. Return ONLY the JSON.`;
   const body = parsed.body || '';
   const proof = parsed.proof || '';
   const engagement = parsed.engagement || '';
-  const ctaLine = parsed.cta_line || 'Apply now at devcraft.fennark.xyz';
-  const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join(' ') : '';
+  const ctaLine = parsed.cta_line || 'Apply at devcraft.fennark.xyz';
+  const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join('\n') : '';
 
-  const postParts = [headline, '', hook, '', '🔹 Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
+  const divider = '\n━━━━━━━━━━━━━━━━━━\n';
+  const postParts = [headline, '', hook, divider, '🔹 Skills You\'ll Build:', skills, divider, body, '', proof, divider, engagement, '', ctaLine, '', hashtags];
   const postText = postParts.filter(Boolean).join('\n');
 
   const designBrief = parsed.design_brief || null;
@@ -132,11 +145,19 @@ Return ONLY valid JSON (no markdown): {"score": <1-10>, "feedback": "<one line>"
 function buildContext(siteData, previousPosts) {
   const home = siteData.pages?.['/'] || {};
   const about = siteData.pages?.['/about'] || {};
+  // Any policy/terms pages found on the site
+  const policyText = ['/policy', '/terms', '/privacy', '/legal']
+    .map(p => siteData.pages?.[p])
+    .filter(Boolean)
+    .map(p => p.textContent?.slice(0, 1500))
+    .filter(Boolean)
+    .join('\n\n');
   const siteCtx = [
     `Title: ${home.title || 'DEV/CRAFT'}`,
     `Desc: ${home.metaDescription || ''}`,
     `About: ${(about.textContent || '').slice(0, 800)}`,
     `Home: ${(home.textContent || '').slice(0, 1000)}`,
+    policyText ? `Policy: ${policyText.slice(0, 1500)}` : '',
     `Colors: ${(siteData.theme?.allColors || []).join(', ')}`,
     `CTAs: ${(home.buttons || []).map(b => b.text).filter(Boolean).join(', ')}`,
   ].filter(Boolean).join('\n');

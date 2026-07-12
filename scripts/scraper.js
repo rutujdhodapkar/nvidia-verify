@@ -12,7 +12,8 @@ export async function scrapeSite() {
 
   const data = { pages: {}, screenshots: [], theme: null, timestamp: new Date().toISOString() };
 
-  for (const path of ['/', '/about', '/programs', '/contact']) {
+  const policyPaths = ['/', '/about', '/programs', '/contact', '/policy', '/terms', '/privacy'];
+  for (const path of policyPaths) {
     try {
       const url = `${SITE_URL}${path}`;
       await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
