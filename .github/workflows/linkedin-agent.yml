@@ -43,5 +43,8 @@ jobs:
           git config user.name "devcraft-agent"
           git config user.email "agent@devcraft.fennark.xyz"
           git add data/state.json
-          git diff --cached --quiet || git commit -m "chore: agent run [skip ci]"
-          git push
+          git diff --cached --quiet || {
+            git commit -m "chore: agent run [skip ci]"
+            git fetch origin master && git rebase FETCH_HEAD 2>/dev/null || true
+            git push
+          }
