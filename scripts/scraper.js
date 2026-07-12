@@ -12,15 +12,25 @@ export async function scrapeSite() {
 
   const data = { pages: {}, screenshots: [], theme: null, timestamp: new Date().toISOString() };
 
-  const policyPaths = ['/', '/about', '/programs', '/contact', '/policy', '/terms', '/privacy'];
-  for (const path of policyPaths) {
+  // First: scrape homepage to discover all valid routes from navigation
+  await page.goto(SITE_URL, { waitUntil: 'networkidle', timeout: 30000 });
+  await waitForContent(page);
+
+  const homeRouteLinks = await page.evaluate(() =>
+    [...document.querySelectorAll('a[href]')]
+      .map(a => a.getAttribute('href'))
+      .filter(h => h && h.startsWith('/') && !h.startsWith('//') && h.length > 1)
+  );
+  const uniqueRoutes = [...new Set(homeRouteLinks)];
+  const allPaths = ['/', ...uniqueRoutes, '/policy', '/terms', '/privacy'];
+
+  for (const path of allPaths.slice(0, 10)) {
     try {
       const url = `${SITE_URL}${path}`;
       await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-      await page.waitForTimeout(1000);
+      await waitForContent(page);
 
       const pageData = await page.evaluate(() => {
-        const styles = getComputedStyle(document.body);
         const allEls = document.querySelectorAll('*');
 
         const colors = [...new Set(
@@ -63,7 +73,7 @@ export async function scrapeSite() {
 
       data.pages[path] = pageData;
 
-      const ssPath = `data/screenshots${path === '/' ? '/home' : path}.png`;
+      const ssPath = `data/screenshots${path === '/' ? '/home' : path.replace(/\//g, '-')}.png`;
       await page.screenshot({ path: ssPath, fullPage: true });
       data.screenshots.push(ssPath);
 
@@ -78,6 +88,21 @@ export async function scrapeSite() {
 
   await browser.close();
   return data;
+}
+
+async function waitForContent(page) {
+  // Wait for JS to hydrate and render dynamic content
+  await page.waitForTimeout(3000);
+  // Wait until body has visible text (not just "LOADING" template)
+  try {
+    await page.waitForFunction(() => {
+      const text = document.body?.innerText?.trim() || '';
+      return text.length > 50 && !text.startsWith('LOADING');
+    }, { timeout: 10000 });
+  } catch {
+    // Continue even if timeout — page might genuinely have little content
+  }
+  await page.waitForTimeout(500);
 }
 
 function extractTheme(data) {
