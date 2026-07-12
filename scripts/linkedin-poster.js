@@ -1,13 +1,30 @@
 const TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
 const API = 'https://api.linkedin.com/v2';
 
+async function discoverOrgUrn(accessToken, pageId) {
+  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  // Try looking up by vanity name
+  const vanityRes = await fetch(`${API}/organizations?q=vanityName&vanityName=devcraft-internships`, { headers });
+  if (vanityRes.ok) {
+    const data = await vanityRes.json();
+    if (data?.elements?.[0]?.id) return `urn:li:organization:${data.elements[0].id}`;
+  }
+  // Try user's org admin endpoints
+  const aclRes = await fetch(`${API}/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, { headers });
+  if (aclRes.ok) {
+    const data = await aclRes.json();
+    const entity = data?.elements?.[0]?.organizationalTarget;
+    if (entity) return entity;
+  }
+  // Fallback: use pageId directly
+  return `urn:li:organization:${pageId || '134233993'}`;
+}
+
 export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageId }) {
   const { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REFRESH_TOKEN } = process.env;
   if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET || !LINKEDIN_REFRESH_TOKEN) {
     throw new Error('Missing LinkedIn OAuth credentials');
   }
-  const pid = pageId || '134233993';
-  const owner = `urn:li:company:${pid}`;
 
   // Step 1: Get access token
   console.log('      Refreshing LinkedIn token...');
@@ -32,6 +49,11 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   console.log('      ✓ Token refreshed');
 
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+
+  // Discover correct org URN
+  console.log('      Looking up organization...');
+  const owner = await discoverOrgUrn(accessToken, pageId);
+  console.log(`      ✓ Owner: ${owner}`);
 
   // Step 2: If image URL provided, register upload and upload image
   let mediaAsset = null;
