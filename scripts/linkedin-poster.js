@@ -7,7 +7,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
     throw new Error('Missing LinkedIn OAuth credentials');
   }
   const pid = pageId || '134233993';
-  const owner = `urn:li:organization:${pid}`;
+  const owner = `urn:li:company:${pid}`;
 
   // Step 1: Get access token
   console.log('      Refreshing LinkedIn token...');

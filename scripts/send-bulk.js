@@ -82,7 +82,8 @@ function todayStr() {
 async function getMeta() {
   const res = await fetch(`${FIREBASE_URL}/meta.json`);
   if (res.status === 404) return {};
-  return res.json() || {};
+  const data = await res.json();
+  return data || {};
 }
 
 async function saveMeta(meta) {
@@ -96,7 +97,8 @@ async function saveMeta(meta) {
 async function getQueueBatch(limit) {
   const res = await fetch(`${FIREBASE_URL}/queue.json?orderBy="$key"&limitToFirst=${limit}`);
   if (res.status === 404) return {};
-  return res.json() || {};
+  const data = await res.json();
+  return data || {};
 }
 
 async function sendViaBrevo({ email, name, templateIdx }) {
