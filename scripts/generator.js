@@ -25,25 +25,41 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
   4. Specific outcome: "180+ students went from zero experience to an offer letter in 6 weeks."
 - No question-mark clickbait ("Want to know the secret...?") — this audience skips it.
 
-## BODY STRUCTURE (mandatory 4-part stack)
-1. Problem — name the specific anxiety in their words
-2. Mechanism — what DevCraft actually does: real client work, offer letter, timeline
-3. Proof — a number, a name, a completion stat (never fabricate)
-4. CTA — one line with link, imperative: "Apply now at devcraft.fennark.xyz"
+## SKILL FOCUS (rotate between these each post)
+Pick 2-3 skills per post from: Python, DSA, Web Dev (React/Node), AI/ML, Cloud (AWS/Azure), DevOps, System Design, Open Source, Databases, APIs
 
-## FORMATTING RULES
-- Line breaks every 1-2 sentences. No paragraphs longer than 3 lines on mobile.
-- Max 1 emoji per section, used as visual break (🔹 ✅), never decorative (no 🚀🔥✨ stacking)
-- Numbers over adjectives always
-- 3-5 hashtags max at the end. Mix broad + niche/branded.
+## ENGAGEMENT TECHNIQUES (use exactly one per post)
+- "Which skill are you struggling with most? Drop it below 👇"
+- "Tag a friend who needs to see this"
+- "Save this post for later — you'll need it"
+- "How many of these skills do you have? 1/5? 3/5?"
+- "Type 'INTERN' if you want the link"
+
+## POST STRUCTURE (follow this exact format when composing)
+1. HEADLINE — Bold, single line title (use 🔹 or ✅ as visual marker)
+2. HOOK — 1-2 lines naming the fear/stat (visible before "see more")
+3. SKILLS SECTION — "🔹 Skills You'll Build:" followed by 3-4 bullet points (▸ skill — description)
+4. BODY — 2-4 short lines about DevCraft, real projects, offer letter, timeline
+5. PROOF — One line with number or stat (e.g. "180+ students placed")
+6. ENGAGEMENT — One engagement question from the techniques list
+7. CTA — "Apply now at devcraft.fennark.xyz"
+8. HASHTAGS — 3-5 hashtags
 
 ## OUTPUT FORMAT
 Return ONLY valid JSON (no markdown, no code fences):
 {
-  "hook": "...",
-  "body": "...",
-  "hashtags": ["#...", "#..."],
+  "headline": "🔹 2nd Year? No Internship? Read This.",
+  "hook": "73% of engineering students graduate without a single live project...",
+  "skills": [
+    {"name": "Python & DSA", "desc": "Crack coding interviews with confidence"},
+    {"name": "Web Development", "desc": "Build real apps with React & Node.js"},
+    {"name": "AI/ML", "desc": "Work on live datasets, not toy problems"}
+  ],
+  "body": "DevCraft gives you real client projects, a completion certificate, and an offer letter...",
+  "proof": "180+ students placed in 6 weeks.",
+  "engagement": "Which skill are you working on right now? Drop it below 👇",
   "cta_line": "Apply now at devcraft.fennark.xyz",
+  "hashtags": ["#DevCraftInternship", "#Python", "#DSA", "#EngineeringStudents"],
   "design_brief": {
     "tone": "clean | editorial | bold",
     "primary_color": "#6366f1",
@@ -65,32 +81,44 @@ ${siteCtx}${dupGuard}${feedbackHint}
 
 Generate the post now. Return ONLY the JSON.`;
 
-  const raw = await callWithRetry(postPrompt, apiKey, model, 2000);
+  const raw = await callWithRetry(postPrompt, apiKey, model, 2500);
   if (!raw) throw new Error('Post generation failed');
 
   const cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
   const parsed = JSON.parse(cleaned);
 
+  const headline = parsed.headline || '';
   const hook = parsed.hook || '';
+  const skills = Array.isArray(parsed.skills) ? parsed.skills.map(s => `▸ ${s.name} — ${s.desc}`).join('\n') : '';
   const body = parsed.body || '';
+  const proof = parsed.proof || '';
+  const engagement = parsed.engagement || '';
   const ctaLine = parsed.cta_line || 'Apply now at devcraft.fennark.xyz';
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join(' ') : '';
-  const postText = [hook, '', body, '', ctaLine, '', hashtags].filter(Boolean).join('\n');
+
+  const postParts = [headline, '', hook, '', '🔹 Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
+  const postText = postParts.filter(Boolean).join('\n');
+
   const designBrief = parsed.design_brief || null;
 
   const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
-  const imageMeta = { headline: hook.slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
+  const imageMeta = { headline: (headline || hook).slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
 
-  console.log(`[GENERATE] ✓ ${postText.length} chars, variant: ${parsed.variant_label || 'A'}`);
+  console.log(`[GENERATE] ✓ ${postText.length} chars, skills: ${Array.isArray(parsed.skills) ? parsed.skills.length : 0}, variant: ${parsed.variant_label || 'A'}`);
   return { post: postText, html: null, imageMeta, theme: siteData.theme, designBrief };
 }
 
 export async function reviewPost(post, apiKey, model) {
   try {
-    const review = await callWithRetry(`Rate this LinkedIn post 1-10 on impact, clarity, CTA strength, authenticity, conciseness.
+    const review = await callWithRetry(`Rate this LinkedIn post 1-10. Criteria (each 0-2):
+- Hook grabs attention in first 2 lines
+- Skills are clearly listed with bullet points
+- Body is short and punchy
+- Has engagement question or CTA
+- Has proper structure (headline → hook → skills → body → proof → engagement → CTA → hashtags)
 
 Post:
----${post.slice(0, 300)}---
+---${post.slice(0, 400)}---
 
 Return ONLY valid JSON (no markdown): {"score": <1-10>, "feedback": "<one line>"}`, apiKey, model, 500);
     const cleaned = review.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
