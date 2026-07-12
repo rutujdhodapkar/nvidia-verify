@@ -237,7 +237,7 @@ function pickTemplate(meta) {
 export async function generateImage({ html, post, imageMeta, designBrief, apiKey, hfToken }) {
   const meta = { headline: 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
 
-  // If design brief exists, use its tone to pick a matching template style
+  // Pick template style from design brief
   if (designBrief?.tone) {
     const toneMap = {
       'clean': 'modern-minimal',
@@ -252,23 +252,13 @@ export async function generateImage({ html, post, imageMeta, designBrief, apiKey
     console.log(`[IMAGE] Style "${meta.style}" from design brief tone "${designBrief.tone}"`);
   }
 
-  // Try Hugging Face FLUX background + composite overlay
-  if (hfToken) {
-    try {
-      const bgBuffer = await generateHfBackground(post, meta.headline, hfToken);
-      const composited = await compositeTextOverImage(bgBuffer, meta);
-      console.log(`[IMAGE] HF FLUX bg + overlay: ${composited.length} bytes`);
-      return composited;
-    } catch (err) {
-      console.log(`[IMAGE] HF FLUX failed: ${err.message}, using template...`);
-    }
-  }
-
-  // Fallback: render a code-based modern template
+  // Primary: render a code-based modern template (fast, reliable, no API dependency)
   const templateHtml = pickTemplate(meta);
   const buf = await renderHtml(templateHtml);
   console.log(`[IMAGE] Template card (${meta.style}): ${buf.length} bytes`);
-  return buf;
+  if (buf && buf.length > 500) return buf;
+
+  throw new Error('Template rendering produced no output');
 }
 
 async function tryNvidiaImage(post, meta, apiKey) {
