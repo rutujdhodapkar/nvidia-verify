@@ -4,22 +4,31 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
 
   const siteUrl = 'https://devcraft.fennark.xyz';
+  const pid = pageId || '134233993';
+
+  const params = { company_id: pid };
+
+  if (imageUrl) {
+    params.comment = content.slice(0, 2600);
+    params.content__submitted_image_url = imageUrl;
+    params.content__submitted_url = siteUrl;
+    params.content__title = 'DEV/CRAFT Virtual Internship';
+    params.content__description = '100% Free Virtual Internship for College Students. Build real projects. Get certified.';
+  }
 
   const instructions = imageUrl
-    ? `Create a share update on company page devcraft-internships (company ID: ${pageId || '134233993'}). Text: "${content.slice(0, 2000)}". Image URL: ${imageUrl}. Preview link URL: ${siteUrl}. Title: "DEV/CRAFT Virtual Internship". Description: "100% Free Virtual Internship Program for College Students". Visibility: anyone.`
-    : `Create a share update on company page devcraft-internships (company ID: ${pageId || '134233993'}). Text: "${content.slice(0, 2000)}". Visibility: anyone.`;
+    ? `Create a share update on devcraft-internships with the provided params. Visibility: anyone.`
+    : `Create a share update on devcraft-internships. Text: "${content.slice(0, 2000)}". Visibility: anyone.`;
 
   const result = await callZapier(zapierToken, {
     selected_api: 'LinkedInCLIAPI',
     action: 'share',
     instructions,
     output: 'post_url',
-    params: {
-      company_id: pageId || '134233993',
-    },
+    params,
   });
 
-  const postUrl = result?.results;
+  const postUrl = result?.results?.post_url || result?.results;
   console.log(`[POST] ✓ Posted to LinkedIn Page${postUrl ? ': ' + postUrl : ''}`);
   return postUrl;
 }
