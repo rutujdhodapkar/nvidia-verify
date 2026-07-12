@@ -17,6 +17,7 @@ ${siteCtx}${dupGuard}
 Write a LinkedIn post (max 2600 characters). Rules:
 - Hook in first line (curiosity/gain/pain)
 - Mention devcraft.fennark.xyz link prominently
+- Mention @devcraft-internships once naturally in the body
 - 3-5 hashtags at end (#DEVCRAFT #VirtualInternship #FreeLearning etc)
 - No emojis
 - Persuasive, specific, student-focused

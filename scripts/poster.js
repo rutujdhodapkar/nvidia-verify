@@ -1,4 +1,3 @@
-const COMPANY_URL = 'https://www.linkedin.com/company/devcraft-internships/';
 const SITE_URL = 'devcraft.fennark.xyz';
 
 export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret, pageId }) {
@@ -9,29 +8,19 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
   const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 
   const p = await (await fetch('https://api.linkedin.com/v2/userinfo', { headers })).json();
-  const personUrn = `urn:li:person:${p.sub}`;
+  const authorUrn = `urn:li:person:${p.sub}`;
+  console.log(`[POST] Posted as user: ${p.sub}`);
 
-  let authorUrn = personUrn;
-  let isOrg = false;
+  const COMPANY_LINK = `https://www.linkedin.com/company/devcraft-internships/`;
+  const safe = content.length > 2800 ? content.slice(0, 2780).trim().replace(/[\s,]+$/, '') + '…' : content;
+  const finalContent = safe.includes(SITE_URL) ? `${safe}\n\n${COMPANY_LINK}` : `${safe}\n\nApply at ${SITE_URL}\n${COMPANY_LINK}`;
 
-  if (pageId) {
-    const orgUrn = `urn:li:organization:${pageId}`;
-    console.log(`[POST] Attempting page post as ${orgUrn}...`);
-    const ok = await tryPost(orgUrn, content, imageBuffer, headers);
-    if (ok) { console.log(`[POST] ✓ Posted to page`); return; }
-    console.log(`[POST] Page post failed, falling back to user + company link...`);
-    authorUrn = personUrn;
-    isOrg = false;
-  }
-
-  const safe = content.length > 2900 ? content.slice(0, 2890).trim().replace(/[\s,]+$/,'') + '…' : content;
-  const finalContent = isOrg ? safe : (safe.includes(SITE_URL) ? `${safe}\n\n${COMPANY_URL}` : `${safe}\n\nRegister free: ${SITE_URL}\n${COMPANY_URL}`);
-  const ok = await tryPost(authorUrn, finalContent, imageBuffer, headers);
-  if (!ok) throw new Error('Post failed as user too');
-  console.log(`[POST] ✓ Posted as user: ${p.sub}`);
+  const ok = await tryPost(authorUrn, { text: finalContent }, imageBuffer, headers);
+  if (!ok) throw new Error('Post failed');
+  console.log(`[POST] ✓ Posted`);
 }
 
-async function tryPost(authorUrn, content, imageBuffer, headers) {
+async function tryPost(authorUrn, shareCommentary, imageBuffer, headers) {
   let mediaUrn = null;
   if (imageBuffer) {
     try {
@@ -48,17 +37,18 @@ async function tryPost(authorUrn, content, imageBuffer, headers) {
     } catch (err) { console.log(`[POST] Image upload failed: ${err.message}`); }
   }
 
+  const body = mediaUrn ? {
+    author: authorUrn, lifecycleState: 'PUBLISHED',
+    specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary, shareMediaCategory: 'IMAGE', media: [{ status: 'READY', media: mediaUrn }] } },
+    visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+  } : {
+    author: authorUrn, lifecycleState: 'PUBLISHED',
+    specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary, shareMediaCategory: 'NONE' } },
+    visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
+  };
+
   const postRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-    method: 'POST', headers,
-    body: JSON.stringify(mediaUrn ? {
-      author: authorUrn, lifecycleState: 'PUBLISHED',
-      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'IMAGE', media: [{ status: 'READY', media: mediaUrn }] } },
-      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-    } : {
-      author: authorUrn, lifecycleState: 'PUBLISHED',
-      specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: content }, shareMediaCategory: 'NONE' } },
-      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
-    }),
+    method: 'POST', headers, body: JSON.stringify(body),
   });
 
   const result = await postRes.json();
