@@ -3,7 +3,7 @@ import 'dotenv/config';
 const FIREBASE_URL = 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const FROM_EMAIL = 'Support@fennark.xyz';
-const FROM_NAME = 'Team at DEV/CRAFT';
+const FROM_NAME = 'Fennark';
 const DAILY_LIMIT = 300;
 const BATCH_SIZE = 10;
 const SITE = 'https://devcraft.fennark.xyz';
@@ -11,17 +11,14 @@ const SITE = 'https://devcraft.fennark.xyz';
 const templates = [
   {
     subject: 'Quick question',
-    bodyHTML: (name) => `<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5">
+    bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
 <p>Hi ${name || 'there'},</p>
 <p>I was checking our records and noticed you haven't started your virtual internship yet.</p>
 <p>DEV/CRAFT has 20+ domains open right now — Web, Data Science, Cyber Security, Full Stack, UI/UX. You apply, get your offer letter instantly, and start building real projects right away.</p>
 <p>Takes 2 minutes.</p>
-<p><a href="${SITE}" style="color:#1a73e8">devcraft.fennark.xyz</a></p>
+<p><a href="${SITE}">devcraft.fennark.xyz</a></p>
 <p>Best,<br>The DEV/CRAFT Team</p>
-</body>
-</html>`,
+</div>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
 I was checking our records and noticed you haven't started your virtual internship yet.
@@ -37,17 +34,14 @@ The DEV/CRAFT Team`,
   },
   {
     subject: 'Just a follow up',
-    bodyHTML: (name) => `<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5">
+    bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
 <p>Hi ${name || 'there'},</p>
 <p>Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.</p>
 <p>When you sign up, the offer letter lands in your inbox immediately. Then you pick a domain and start building actual projects you can put on your resume.</p>
 <p>All self-paced, fully virtual.</p>
-<p><a href="${SITE}" style="color:#1a73e8">devcraft.fennark.xyz</a></p>
+<p><a href="${SITE}">devcraft.fennark.xyz</a></p>
 <p>Best,<br>The Team</p>
-</body>
-</html>`,
+</div>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
 Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.
@@ -98,10 +92,6 @@ async function sendViaBrevo({ email, name, templateIdx }) {
     htmlContent: tpl.bodyHTML(name),
     textContent: tpl.bodyText(name),
     replyTo: { email: FROM_EMAIL },
-    headers: {
-      'List-Unsubscribe': '<mailto:unsubscribe@fennark.xyz?subject=unsubscribe>',
-      'X-Priority': '3',
-    },
   };
 
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
