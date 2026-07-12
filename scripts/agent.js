@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
@@ -13,10 +12,37 @@ import { loadState, saveState, hash, isDup } from './state.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const IMAGES_DIR = join(__dirname, '..', 'images');
 
-function getImageUrl(filename) {
+async function uploadToGithub(filename, buffer) {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!token) throw new Error('No GITHUB_TOKEN available');
+
   const repo = 'rutujdhodapkar/nvidia-verify';
-  const branch = 'master';
-  return `https://raw.githubusercontent.com/${repo}/${branch}/images/${filename}`;
+  const path = `images/${filename}`;
+  const b64 = buffer.toString('base64');
+
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'devcraft-agent',
+    },
+    body: JSON.stringify({
+      message: `chore: add post image ${filename} [skip ci]`,
+      content: b64,
+      branch: 'master',
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`GitHub API ${res.status}: ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const url = data?.content?.download_url;
+  if (!url) throw new Error('No download_url in GitHub API response');
+  return url;
 }
 
 async function main() {
@@ -50,18 +76,18 @@ async function main() {
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
   console.log(`      "${post.slice(0, 120)}..."\n`);
 
-  // Step 2: Generate image — code-based primary, Figma optional override
+  // Step 2: Generate image
   console.log('[3/4] Generating image...');
   let imageUrl = null;
 
-  // Try Figma if configured (optional export from pre-made designs)
+  // Try Figma if configured (optional)
   if (FIGMA_TOKEN && FIGMA_FILE_KEY && FIGMA_FRAME_ID) {
     console.log('      Trying Figma export (optional)...');
     imageUrl = await getFigmaImageUrl(FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID);
     if (imageUrl) console.log(`      ✓ Figma: ${imageUrl}`);
   }
 
-  // Primary: code-based generation (AI background + modern template cards)
+  // Primary: code-based generation + GitHub API upload
   if (!imageUrl) {
     console.log('      Generating code-based design...');
     let imageBuffer = null;
@@ -83,29 +109,27 @@ async function main() {
     const date = now.toISOString().slice(0, 10).replace(/-/g, '');
     const time = now.toTimeString().slice(0, 2).padStart(2, '0');
     const filename = `post-${date}-${time}.png`;
+
+    // Save locally too
     mkdirSync(IMAGES_DIR, { recursive: true });
     writeFileSync(join(IMAGES_DIR, filename), imageBuffer);
 
-    try {
-      execSync('git add images/', { stdio: 'pipe' });
-      execSync('git -c user.name="devcraft-agent" -c user.email="agent@devcraft.fennark.xyz" commit -m "chore: add post image [skip ci]"', { stdio: 'pipe' });
-      execSync('git pull --rebase origin master', { stdio: 'pipe', timeout: 15000 });
-      execSync('git push', { stdio: 'pipe', timeout: 30000 });
-      console.log('      Git push done. Waiting 5s for GitHub raw CDN...');
-      await new Promise(r => setTimeout(r, 5000));
-    } catch (e) { console.log(`      Git push note: ${e.message}`); }
-    imageUrl = getImageUrl(filename);
-
-    // Verify image URL is accessible before posting
-    if (imageUrl) {
-      for (let i = 0; i < 5; i++) {
-        try {
-          const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
-          if (check.ok) { console.log(`      ✓ Image URL accessible (${check.status})`); break; }
-        } catch {}
-        console.log(`      Waiting for image URL... (${i + 1}/5)`);
-        await new Promise(r => setTimeout(r, 3000));
+    // Upload via GitHub API (no git commands, no merge conflicts, instant URL)
+    console.log('      Uploading to GitHub via API...');
+    for (let i = 0; i < 3; i++) {
+      try {
+        imageUrl = await uploadToGithub(filename, imageBuffer);
+        console.log(`      ✓ Uploaded: ${imageUrl}`);
+        break;
+      } catch (err) {
+        console.log(`      Upload attempt ${i + 1} failed: ${err.message}`);
+        if (i < 2) await new Promise(r => setTimeout(r, 3000));
       }
+    }
+
+    if (!imageUrl) {
+      console.error('[!] Failed to upload image after 3 attempts. Aborting.');
+      process.exit(1);
     }
   }
 
@@ -116,7 +140,7 @@ async function main() {
   console.log(`      ✓ Content (${post.length} chars)`);
   console.log(`      ✓ Image: ${imageUrl}\n`);
 
-  // Step 4: Post to LinkedIn company page only
+  // Step 4: Post to LinkedIn company page
   console.log('[4/4] Posting to LinkedIn company page...');
   await postToLinkedinPage({ content: post, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
 

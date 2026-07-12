@@ -36,4 +36,5 @@ jobs:
           LINKEDIN_PAGE_ID: ${{ secrets.LINKEDIN_PAGE_ID }}
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

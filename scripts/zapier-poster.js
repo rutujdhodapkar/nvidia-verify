@@ -7,8 +7,9 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   const paramSets = [
     { company_id: pid, comment: content, content__submitted_image_url: imageUrl },
     { company_id: pid, comment: content, image_url: imageUrl },
+    { company_id: pid, comment: content, submitted_image_url: imageUrl },
     { company_id: pid, comment: content, media_url: imageUrl },
-    { company_id: pid, comment: content },
+    { company_id: pid, comment: content, content_url: imageUrl },
   ];
 
   let lastErr;
