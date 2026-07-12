@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { scrapeSite } from './scraper.js';
 import { generatePost } from './generator.js';
 import { generateImage } from './image-gen.js';
-import { postToLinkedin } from './poster.js';
+import { postToLinkedinPage } from './zapier-poster.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = join(__dirname, '..', 'data', 'state.json');
@@ -38,30 +38,31 @@ function isDup(post, state) {
 async function main() {
   console.log(`\n═══ DEV/CRAFT LinkedIn Agent ═══\n${new Date().toISOString()}\n`);
   const state = loadState();
-  const { NVIDIA_API_KEY, NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b', LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REFRESH_TOKEN, LINKEDIN_PAGE_ID } = process.env;
-  if (!NVIDIA_API_KEY || !LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET || !LINKEDIN_REFRESH_TOKEN) { console.error('[!] Missing secrets'); process.exit(1); }
+  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, LINKEDIN_PAGE_ID = '134233993' } = process.env;
+  if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
+  if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
-  console.log('[1/4] Scraping...');
+  console.log('[1/4] Scraping devcraft.fennark.xyz...');
   const siteData = await scrapeSite();
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
   let post, html, imageMeta, theme;
   for (let i = 0; i < 5; i++) {
-    console.log(`[2/4] Generating (attempt ${i + 1})...`);
+    console.log(`[2/4] Generating post (attempt ${i + 1})...`);
     const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL);
     post = r.post; html = r.html; imageMeta = r.imageMeta; theme = r.theme;
     if (!isDup(post, state)) break;
     console.log('      Duplicate, retry...\n');
   }
   if (isDup(post, state)) { console.error('[!] No unique post after 5 attempts'); process.exit(1); }
-  console.log(`      "${post.slice(0, 90)}..."\n`);
+  console.log(`      "${post.slice(0, 100)}..."\n`);
 
-  console.log('[3/4] Generating image...');
+  console.log('[3/4] Generating image card...');
   let imageBuffer = null;
   try { imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY }); } catch (err) { console.log(`      Skip: ${err.message}`); }
 
-  console.log('\n[4/4] Posting to LinkedIn...');
-  await postToLinkedin({ content: post, imageBuffer, refreshToken: LINKEDIN_REFRESH_TOKEN, clientId: LINKEDIN_CLIENT_ID, clientSecret: LINKEDIN_CLIENT_SECRET, pageId: LINKEDIN_PAGE_ID || null });
+  console.log('\n[4/4] Posting to LinkedIn Page via Zapier...');
+  await postToLinkedinPage({ content: post, imageBuffer, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
 
   state.previousPosts.push(post);
   state.postHashes.push(hash(post.slice(0, 100)));
