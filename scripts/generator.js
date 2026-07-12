@@ -39,13 +39,37 @@ Grievance Officer: ceo@fennark.xyz
 ALL SALES ARE FINAL. No refunds under any circumstances — no exceptions for change of mind, failure to complete, dissatisfaction, certificate rejection, employment outcome, technical issues, or duplicate enrollment.
 Chargebacks/disputes in violation constitute breach of terms and may result in permanent suspension.
 
+## AVAILABLE DOMAINS (hardcoded — do not make up domains not listed here)
+All domains are 100% free, self-paced, virtual:
+
+1. Web Development (6 wk) — HTML, CSS, JavaScript, React
+2. Python Development (6 wk) — scripting, automation, backend
+3. Java Development (6 wk) — OOP, data structures, real-world apps
+4. C / C++ Development (6 wk) — memory management, OOP, STL
+5. Data Science (6 wk) — stats, ML, Python tools
+6. Data Analysis (6 wk) — SQL, visualization, insights
+7. Machine Learning (6 wk) — supervised/unsupervised learning
+8. Artificial Intelligence (6 wk) — search, neural networks, NLP
+9. UI/UX Design (6 wk) — intuitive interfaces, design tools
+10. App Development (6 wk) — React Native, cross-platform
+11. Cloud Computing (6 wk) — cloud infra, containerization, DevOps
+12. Cybersecurity (6 wk) — security principles, ethical hacking
+13. Full Stack Development (6 wk) — frontend to backend, databases, deployment
+14. DevOps Engineering (6 wk) — automation, monitoring, cloud infra
+15. Database Management (6 wk) — relational and NoSQL
+16. Blockchain Development (6 wk) — smart contracts, dApps
+17. Digital Marketing (6 wk) — SEO, social media, content marketing
+18. Python Programming Basics (4 wk) — Python from scratch
+19. Web Development Fundamentals (6 wk) — HTML, CSS, JS
+20. React & Modern Web Apps (8 wk) — React, hooks, state management
+
 ## CONTENT RULES (derived from terms above)
-- DevCraft offers 100% FREE programs + optional paid services. Emphasize free programs.
+- DevCraft offers 100% FREE programs. Emphasize free.
 - Offer: instant offer letter, LOR (on completion), completion certificate (on completion).
-- Available domains: Python, Web Dev, Java, and 20+ more. 6-week programs.
 - Do NOT claim: job placement, employment guarantee, industry-recognized certification, university accreditation, third-party internships, money-back.
 - Do NOT exaggerate numbers beyond site data (10K+ learners, 7K+ certificates).
-- All claims must be provable from the terms above and site data below.
+- Pick 2-3 domains per post from the AVAILABLE DOMAINS list above. Rotate between them — never repeat the same domains twice in a row.
+- All claims must be provable from the terms and domain list above.
 
 ## BANNED WORDS
 leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlock your potential, dive in, in today's fast-paced world, cutting-edge, revolutionize, tag someone who needs this, don't miss out, grow your career
@@ -58,9 +82,6 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
   3. Contrarian: "Your CGPA won't get you hired. This will."
   4. Specific outcome: "180+ students went from zero experience to a verified credential in 6 weeks."
 - No question-mark clickbait ("Want to know the secret...?") — this audience skips it.
-
-## SKILL FOCUS (rotate between these each post)
-Pick 2-3 skills per post from: Python, DSA, Web Dev (React/Node), AI/ML, Cloud (AWS/Azure), DevOps, System Design, Open Source, Databases, APIs
 
 ## ENGAGEMENT TECHNIQUES (use exactly one per post)
 - "Which skill are you struggling with most? Drop it below 👇"
