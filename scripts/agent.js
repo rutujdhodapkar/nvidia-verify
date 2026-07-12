@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
-import { postToLinkedinPage } from './zapier-poster.js';
+import { postToLinkedinPage } from './linkedin-poster.js';
 import { getFigmaImageUrl } from './figma.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 

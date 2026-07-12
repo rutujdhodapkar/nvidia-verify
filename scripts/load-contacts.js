@@ -2,18 +2,25 @@ import 'dotenv/config';
 import { readFileSync } from 'fs';
 
 const FIREBASE_URL = 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
+const BATCH_SIZE = 500;
 
-async function pushToQueue(name, email) {
+async function pushBatch(batch) {
+  const data = {};
+  for (const item of batch) {
+    const key = item.email.replace(/[.#$\/\[\]]/g, '_');
+    data[key] = { name: item.name, email: item.email, addedAt: new Date().toISOString() };
+  }
+
   const res = await fetch(`${FIREBASE_URL}/queue.json`, {
-    method: 'POST',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, addedAt: new Date().toISOString() }),
+    body: JSON.stringify(data),
   });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Firebase error ${res.status}: ${err}`);
   }
-  return res.json();
+  return Object.keys(data).length;
 }
 
 async function main() {
@@ -41,6 +48,7 @@ async function main() {
 
   let total = 0;
   let skipped = 0;
+  let batch = [];
 
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
@@ -49,14 +57,19 @@ async function main() {
 
     if (!email) { skipped++; continue; }
 
-    try {
-      await pushToQueue(name || 'Unknown', email);
-      total++;
-      if (total % 100 === 0) console.log(`  ${total} contacts loaded...`);
-    } catch (err) {
-      console.error(`Failed to push ${email}: ${err.message}`);
-      skipped++;
+    batch.push({ name: name || 'Unknown', email });
+
+    if (batch.length >= BATCH_SIZE) {
+      const count = await pushBatch(batch);
+      total += count;
+      console.log(`  ${total} contacts loaded...`);
+      batch = [];
     }
+  }
+
+  if (batch.length > 0) {
+    const count = await pushBatch(batch);
+    total += count;
   }
 
   console.log(`\nDone! Loaded ${total} contacts into Queue. Skipped ${skipped}.`);

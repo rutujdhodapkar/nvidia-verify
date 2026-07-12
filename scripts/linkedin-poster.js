@@ -19,6 +19,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
       refresh_token: LINKEDIN_REFRESH_TOKEN,
       client_id: LINKEDIN_CLIENT_ID,
       client_secret: LINKEDIN_CLIENT_SECRET,
+      scope: 'w_organization_social rw_organization_admin openid profile email',
     }),
   });
   if (!tokenRes.ok) {

@@ -1,8 +1,16 @@
 export default {
   async scheduled(event, env, ctx) {
-    const { GITHUB_PAT, GITHUB_OWNER = 'rutujdhodapkar', GITHUB_REPO = 'nvidia-verify', WORKFLOW_ID = 'linkedin-agent.yml' } = env;
+    const cron = event.cron;
+    const { GITHUB_PAT, GITHUB_OWNER = 'rutujdhodapkar', GITHUB_REPO = 'nvidia-verify' } = env;
 
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
+    let workflowId;
+    if (cron === '30 4 * * *') {
+      workflowId = 'email-campaign.yml';
+    } else {
+      workflowId = 'linkedin-agent.yml';
+    }
+
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${workflowId}/dispatches`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${GITHUB_PAT}`,
@@ -17,16 +25,16 @@ export default {
       throw new Error(`GitHub API ${res.status}: ${err.slice(0, 200)}`);
     }
 
-    console.log(`Triggered ${WORKFLOW_ID} at ${new Date().toISOString()}`);
+    console.log(`[${cron}] Triggered ${workflowId} at ${new Date().toISOString()}`);
   },
 
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/__health') {
-      return new Response(JSON.stringify({ ok: true, cron: '8AM/12PM/7PM IST Daily' }), {
+      return new Response(JSON.stringify({ ok: true, crons: '8AM/12PM/7PM IST (linkedin) | 10AM IST (email)' }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    return new Response('DEV/CRAFT Agent Trigger Worker. Cron runs at 8AM, 12PM, 7PM IST Daily.', { status: 200 });
+    return new Response('Cron trigger worker. LinkedIn agent: 8AM/12PM/7PM IST. Email campaign: 10AM IST.', { status: 200 });
   },
 };
