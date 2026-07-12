@@ -5,6 +5,15 @@ const FALLBACK_MODELS = [
   'mistralai/mixtral-8x22b-instruct-v1.0',
 ];
 
+const QUALITY_PROMPT = `Rate this LinkedIn post 1-10 on:
+- Impact: Does it stop scrolling and grab attention?
+- Clarity: Is the message instantly clear?
+- CTA: Does it make you want to click/visit the link?
+- Authenticity: Does it sound like a real person, not corporate fluff?
+- Conciseness: Is it short and punchy?
+
+Return ONLY a JSON object: {"score": <1-10>, "feedback": "<one line why>"}`;
+
 export async function generatePost(siteData, previousPosts = [], apiKey, model) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
 
@@ -29,8 +38,9 @@ Respond with ONLY the post text, nothing else.`;
   const post = await callWithRetry(postPrompt, apiKey, model, 1500);
   if (!post) throw new Error('Post generation failed');
 
-  // Call 2: HTML card only
-  const htmlPrompt = `Create a 1200x630 LinkedIn image card as a complete HTML document (with <!DOCTYPE html> and <style>) for this post:
+  let html = null;
+  try {
+    const htmlPrompt = `Create a 1200x630 LinkedIn image card as a complete HTML document (with <!DOCTYPE html> and <style>) for this post:
 
 "${post.slice(0, 300)}..."
 
@@ -47,9 +57,8 @@ RULES:
 - Use system fonts or Google Fonts via @import
 
 Respond with ONLY the HTML, nothing else.`;
-
-  let html = null;
-  try { html = await callWithRetry(htmlPrompt, apiKey, model, 2500); } catch {}
+    html = await callWithRetry(htmlPrompt, apiKey, model, 2500);
+  } catch {}
   if (html && !html.includes('<html')) html = null;
 
   const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
@@ -57,6 +66,19 @@ Respond with ONLY the HTML, nothing else.`;
 
   console.log(`[GENERATE] ✓ ${post.length} chars${html ? ` + ${html.length} HTML` : ' (template card)'}`);
   return { post: post.trim(), html, imageMeta, theme: siteData.theme };
+}
+
+export async function reviewPost(post, apiKey, model) {
+  const review = await callWithRetry(`Post to review:
+---${post}---
+
+${QUALITY_PROMPT}`, apiKey, model, 300);
+  try {
+    const parsed = JSON.parse(review);
+    return { score: parsed.score, feedback: parsed.feedback };
+  } catch {
+    return { score: 5, feedback: 'Could not parse review' };
+  }
 }
 
 function buildContext(siteData, previousPosts) {
