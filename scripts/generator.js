@@ -14,14 +14,15 @@ const QUALITY_PROMPT = `Rate this LinkedIn post 1-10 on:
 
 Return ONLY a JSON object: {"score": <1-10>, "feedback": "<one line why>"}`;
 
-export async function generatePost(siteData, previousPosts = [], apiKey, model) {
+export async function generatePost(siteData, previousPosts = [], apiKey, model, previousFeedback) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
+
+  const feedbackHint = previousFeedback ? `\nPrevious attempt feedback (improve on this): ${previousFeedback}\n` : '';
 
   const postPrompt = `You are a viral LinkedIn content creator for DEV/CRAFT (devcraft.fennark.xyz) — a virtual internship platform where Indian engineering students build real industry skills.
 
 SITE DATA:
-${siteCtx}${dupGuard}
-
+${siteCtx}${dupGuard}${feedbackHint}
 Write a LinkedIn post that makes people stop scrolling and click. Rules:
 - Create urgency, curiosity, or a "I need this" reaction
 - SHORT and punchy — aim for 150-400 characters (not a wall of text)

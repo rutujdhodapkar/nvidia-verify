@@ -32,9 +32,10 @@ async function main() {
   // Step 1: Generate post (with dedup + quality retries)
   let post, html, imageMeta, theme;
   let postOk = false;
+  let feedback = '';
   for (let i = 0; i < 5; i++) {
     console.log(`[2/4] Generating post (attempt ${i + 1})...`);
-    const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL);
+    const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
     post = r.post; html = r.html; imageMeta = r.imageMeta; theme = r.theme;
     if (isDup(post, state)) { console.log('      Duplicate, retry...\n'); continue; }
 
@@ -42,6 +43,7 @@ async function main() {
     const review = await reviewPost(post, NVIDIA_API_KEY, NVIDIA_MODEL);
     console.log(`      Quality score: ${review.score}/10 — ${review.feedback}`);
     if (review.score >= 7) { postOk = true; break; }
+    feedback = review.feedback;
     console.log('      Below threshold, retry...\n');
   }
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
