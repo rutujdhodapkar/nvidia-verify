@@ -10,22 +10,22 @@ const SITE = 'https://devcraft.fennark.xyz';
 
 const templates = [
   {
-    subject: 'Quick question',
+    subject: 'Your virtual internship is waiting',
     bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
 <p>Hi ${name || 'there'},</p>
-<p>I was checking our records and noticed you haven't started your virtual internship yet.</p>
-<p>DEV/CRAFT has 20+ domains open right now — Web, Data Science, Cyber Security, Full Stack, UI/UX. You apply, get your offer letter instantly, and start building real projects right away.</p>
-<p>Takes 2 minutes.</p>
+<p>DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
+<p>When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.</p>
+<p>It takes 2 minutes to apply. No interviews. No waiting.</p>
 <p><a href="${SITE}">devcraft.fennark.xyz</a></p>
 <p>Best,<br>The DEV/CRAFT Team</p>
 </div>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
-I was checking our records and noticed you haven't started your virtual internship yet.
+DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.
 
-DEV/CRAFT has 20+ domains open right now — Web, Data Science, Cyber Security, Full Stack, UI/UX. You apply, get your offer letter instantly, and start building real projects right away.
+When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.
 
-Takes 2 minutes.
+It takes 2 minutes to apply. No interviews. No waiting.
 
 ${SITE}
 
@@ -33,27 +33,27 @@ Best,
 The DEV/CRAFT Team`,
   },
   {
-    subject: 'Just a follow up',
+    subject: 'Your offer letter is ready — just apply',
     bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
 <p>Hi ${name || 'there'},</p>
-<p>Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.</p>
-<p>When you sign up, the offer letter lands in your inbox immediately. Then you pick a domain and start building actual projects you can put on your resume.</p>
-<p>All self-paced, fully virtual.</p>
+<p>At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.</p>
+<p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.</p>
+<p>Your certificate comes with a live verification link employers can check in seconds.</p>
 <p><a href="${SITE}">devcraft.fennark.xyz</a></p>
-<p>Best,<br>The Team</p>
+<p>Best,<br>The DEV/CRAFT Team</p>
 </div>`,
     bodyText: (name) => `Hi ${name || 'there'},
 
-Quick note — DEV/CRAFT is still accepting applications for virtual internships across 20+ domains.
+At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.
 
-When you sign up, the offer letter lands in your inbox immediately. Then you pick a domain and start building actual projects you can put on your resume.
+Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.
 
-All self-paced, fully virtual.
+Your certificate comes with a live verification link employers can check in seconds.
 
 ${SITE}
 
 Best,
-The Team`,
+The DEV/CRAFT Team`,
   },
 ];
 
