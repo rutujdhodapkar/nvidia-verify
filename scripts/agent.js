@@ -29,6 +29,7 @@ async function main() {
   const siteData = await scrapeSite();
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
+  // Step 1: Generate post (with dedup retries)
   let post, html, imageMeta, theme;
   for (let i = 0; i < 5; i++) {
     console.log(`[2/4] Generating post (attempt ${i + 1})...`);
@@ -38,35 +39,61 @@ async function main() {
     console.log('      Duplicate, retry...\n');
   }
   if (isDup(post, state)) { console.error('[!] No unique post after 5 attempts'); process.exit(1); }
-  console.log(`      "${post.slice(0, 100)}..."\n`);
+  console.log(`      "${post.slice(0, 120)}..."\n`);
 
+  // Step 2: Generate image (with retries - mandatory)
   console.log('[3/4] Generating image card...');
-  let imageUrl = null;
-  try {
-    const imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY, hfToken: HF_API_TOKEN });
-    if (imageBuffer) {
-      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const filename = `post-${date}.png`;
-      mkdirSync(IMAGES_DIR, { recursive: true });
-      writeFileSync(join(IMAGES_DIR, filename), imageBuffer);
-      console.log(`      Saved to images/${filename} (${imageBuffer.length} bytes)`);
-
-      try {
-        execSync('git add images/', { stdio: 'pipe' });
-        execSync('git -c user.name="devcraft-agent" -c user.email="agent@devcraft.fennark.xyz" commit -m "chore: add post image [skip ci]"', { stdio: 'pipe' });
-        execSync('git pull --rebase origin master', { stdio: 'pipe', timeout: 15000 });
-        execSync('git push', { stdio: 'pipe', timeout: 30000 });
-      } catch (e) {
-        console.log(`      Git commit/push note: ${e.message}`);
+  let imageBuffer = null;
+  for (let i = 0; i < 3; i++) {
+    console.log(`      Image attempt ${i + 1}...`);
+    try {
+      imageBuffer = await generateImage({ html, post, imageMeta, theme, apiKey: NVIDIA_API_KEY, hfToken: HF_API_TOKEN });
+      if (imageBuffer && imageBuffer.length > 500) {
+        console.log(`      ✓ Image generated (${imageBuffer.length} bytes)`);
+        break;
       }
-      imageUrl = getImageUrl(filename);
-      console.log(`      Image URL: ${imageUrl}`);
+    } catch (err) {
+      console.log(`      Image failed: ${err.message}`);
     }
-  } catch (err) {
-    console.log(`      Image generation skipped: ${err.message}`);
+    if (i < 2) console.log('      Retrying image generation...');
   }
 
-  console.log('\n[4/4] Posting to LinkedIn Page via Zapier...');
+  if (!imageBuffer || imageBuffer.length < 500) {
+    console.error('[!] Image generation failed after 3 attempts. Aborting.');
+    process.exit(1);
+  }
+
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const filename = `post-${date}.png`;
+  mkdirSync(IMAGES_DIR, { recursive: true });
+  writeFileSync(join(IMAGES_DIR, filename), imageBuffer);
+  console.log(`      Saved to images/${filename} (${imageBuffer.length} bytes)`);
+
+  try {
+    execSync('git add images/', { stdio: 'pipe' });
+    execSync('git -c user.name="devcraft-agent" -c user.email="agent@devcraft.fennark.xyz" commit -m "chore: add post image [skip ci]"', { stdio: 'pipe' });
+    execSync('git pull --rebase origin master', { stdio: 'pipe', timeout: 15000 });
+    execSync('git push', { stdio: 'pipe', timeout: 30000 });
+  } catch (e) {
+    console.log(`      Git commit/push note: ${e.message}`);
+  }
+  const imageUrl = getImageUrl(filename);
+
+  // Step 3: Validation loop - verify everything before posting
+  console.log('\n[VALIDATION] Checking content and image before post...');
+  if (!post || post.length < 10) {
+    console.error('[!] Invalid content. Aborting.');
+    process.exit(1);
+  }
+  if (!imageUrl) {
+    console.error('[!] No image URL. Aborting.');
+    process.exit(1);
+  }
+  console.log(`      ✓ Content (${post.length} chars)`);
+  console.log(`      ✓ Image: ${imageUrl}\n`);
+
+  // Step 4: Post
+  console.log('[4/4] Posting to LinkedIn Page via Zapier...');
   await postToLinkedinPage({ content: post, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
 
   state.previousPosts.push(post);

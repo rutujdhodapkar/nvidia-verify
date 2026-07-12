@@ -23,10 +23,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/__health') {
-      return new Response(JSON.stringify({ ok: true, cron: '8AM/12PM/7PM IST Mon-Fri' }), {
+      return new Response(JSON.stringify({ ok: true, cron: '8AM/12PM/7PM IST Daily' }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    return new Response('DEV/CRAFT Agent Trigger Worker. Cron runs at 8AM, 12PM, 7PM IST Mon-Fri.', { status: 200 });
+    return new Response('DEV/CRAFT Agent Trigger Worker. Cron runs at 8AM, 12PM, 7PM IST Daily.', { status: 200 });
   },
 };

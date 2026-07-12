@@ -8,24 +8,21 @@ const FALLBACK_MODELS = [
 export async function generatePost(siteData, previousPosts = [], apiKey, model) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
 
-  // Call 1: post text only
-  const postPrompt = `You are DEV/CRAFT's content strategist targeting Indian engineering students (site: devcraft.fennark.xyz — a virtual internship platform that builds real-world tech skills).
+  const postPrompt = `You are a viral LinkedIn content creator for DEV/CRAFT (devcraft.fennark.xyz) — a virtual internship platform where Indian engineering students build real industry skills.
 
 SITE DATA:
 ${siteCtx}${dupGuard}
 
-Write a LinkedIn post (max 2600 characters). Rules:
-- Hook with an emotion: curiosity, aspiration, regret, or surprise — make them think "I need this"
-- Focus on SKILLS: DSA, Python, Web Dev, AI/ML, Cloud, DevOps, System Design, Open Source — whatever fits
-- Mention devcraft.fennark.xyz link naturally
-- Mention @devcraft-internships once
-- 3-5 relevant hashtags at end (e.g. #DEVCRAFT #Internship #Engineering #Skills #Tech)
-- No emojis
-- No mention of "free", "no cost", "zero fee", or similar
-- No false claims or exaggerated outcomes
-- Target Indian computer science / IT engineering students specifically
-- Make them curious — hint at the transformation, don't just describe the program
-- Vary angle from previous posts
+Write a LinkedIn post that makes people stop scrolling and click. Rules:
+- Create urgency, curiosity, or a "I need this" reaction
+- SHORT and punchy — aim for 150-400 characters (not a wall of text)
+- Drive action: make them want to visit devcraft.fennark.xyz and sign up
+- Mention @devcraft-internships and the link naturally
+- Use emojis where they add impact
+- Include 3-5 relevant hashtags
+- Vary tone: sometimes direct, sometimes story-driven, sometimes provocative, sometimes aspirational
+- Talk about real outcomes: skills, projects, portfolio, confidence, job readiness
+- No generic corporate fluff — sound like a real person
 
 Respond with ONLY the post text, nothing else.`;
 
@@ -37,7 +34,7 @@ Respond with ONLY the post text, nothing else.`;
 
 "${post.slice(0, 300)}..."
 
-SAAS: DEV/CRAFT free virtual internship platform, devcraft.fennark.xyz
+SAAS: DEV/CRAFT virtual internship platform, devcraft.fennark.xyz
 
 DESIGN STYLES (pick ONE): brutalist | modern-minimal | glassmorphism | split-panel | terminal | magazine | dark-tech | pixel-art | corporate-clean | bento | outline | lateral-band
 
@@ -45,7 +42,7 @@ RULES:
 - NO gradient backgrounds. Use solid colors, grids, patterns, panels, borders
 - Brand purple #6366f1 as accent (not whole bg)
 - Card shows: short headline, supporting subtext, CTA "devcraft.fennark.xyz"
-- Make it look like a real marketing asset
+- Bold, scroll-stopping visual hierarchy
 - Body must be exactly width:1200px;height:630px;overflow:hidden
 - Use system fonts or Google Fonts via @import
 
@@ -89,7 +86,7 @@ async function callWithRetry(prompt, apiKey, model, maxTokens) {
         const res = await fetch(NVIDIA_CHAT_URL, {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: m, messages: [{ role: 'user', content: prompt }], temperature: 0.8, max_tokens: maxTokens }),
+          body: JSON.stringify({ model: m, messages: [{ role: 'user', content: prompt }], temperature: 1.0, max_tokens: maxTokens }),
         });
         if (res.status === 503) { await sleep((attempt + 1) * 4000); continue; }
         if (!res.ok) { const e = await res.text(); throw new Error(`${res.status}: ${e.slice(0, 150)}`); }
