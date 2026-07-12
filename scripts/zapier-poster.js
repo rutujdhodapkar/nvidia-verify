@@ -3,22 +3,23 @@ const MCP_URL = 'https://mcp.zapier.com/api/v1/connect';
 export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageId }) {
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
 
+  const siteUrl = 'https://devcraft.fennark.xyz';
+
   const instructions = imageUrl
-    ? `Post to LinkedIn company page devcraft-internships (ID: ${pageId || '134233993'}). Text: "${content}". Include this image URL as the main post media: ${imageUrl}. Upload this image to LinkedIn, then create the post with the image attached. The image is a 1200x630 PNG banner.`
-    : `Post to LinkedIn company page devcraft-internships`;
+    ? `Create a share update on company page devcraft-internships (company ID: ${pageId || '134233993'}). Text: "${content.slice(0, 2000)}". Image URL: ${imageUrl}. Preview link URL: ${siteUrl}. Title: "DEV/CRAFT Virtual Internship". Description: "100% Free Virtual Internship Program for College Students". Visibility: anyone.`
+    : `Create a share update on company page devcraft-internships (company ID: ${pageId || '134233993'}). Text: "${content.slice(0, 2000)}". Visibility: anyone.`;
 
   const result = await callZapier(zapierToken, {
     selected_api: 'LinkedInCLIAPI',
-    action: 'create_company_update',
+    action: 'share',
     instructions,
     output: 'post_url',
     params: {
       company_id: pageId || '134233993',
-      comment: content,
     },
   });
 
-  const postUrl = result?.results || result?.execution?.url;
+  const postUrl = result?.results;
   console.log(`[POST] ✓ Posted to LinkedIn Page${postUrl ? ': ' + postUrl : ''}`);
   return postUrl;
 }

@@ -76,7 +76,7 @@ async function compositeTextOverImage(fluxBuffer, meta) {
   const html = buildCompositedHtml(b64, meta);
 
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   await page.setContent(html, { waitUntil: 'networkidle', timeout: 20000 });
   await page.waitForTimeout(500);
   const buf = await page.screenshot({ type: 'png' });
@@ -86,7 +86,7 @@ async function compositeTextOverImage(fluxBuffer, meta) {
 
 async function renderHtml(html) {
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;}</style></head><body>${html}</body></html>`;
   await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
