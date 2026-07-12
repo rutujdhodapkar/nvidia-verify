@@ -7,7 +7,10 @@
     "agent": "node scripts/agent.js",
     "scrape": "node scripts/scraper.js",
     "generate": "node scripts/generator.js",
-    "post": "node scripts/poster.js"
+    "post": "node scripts/poster.js",
+    "send-promo": "node scripts/send-promo.js",
+    "load-contacts": "node scripts/load-contacts.js",
+    "send-bulk": "node scripts/send-bulk.js"
   },
   "dependencies": {
     "playwright": "^1.52.0",

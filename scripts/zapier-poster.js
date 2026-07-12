@@ -4,10 +4,16 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  // Append image URL to post content so LinkedIn auto-generates a preview card
-  const postContent = imageUrl ? `${content}\n\n${imageUrl}` : content;
-
-  const params = { company_id: pid, comment: postContent };
+  // Use the post text as-is, don't append raw URL
+  // Instead, pass image as content thumbnail for a link share
+  const params = {
+    company_id: pid,
+    comment: content,
+    content_url: 'https://devcraft.fennark.xyz',
+    content_title: 'DEV/CRAFT Virtual Internship',
+    content_description: '100% free, self-paced, virtual. Build real skills. Get certified.',
+    content__submitted_image_url: imageUrl,
+  };
 
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -15,7 +21,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
       const r = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
         action: 'create_company_update',
-        instructions: `Post to devcraft-internships company page. Image URL included in text for preview: ${imageUrl || 'none'}`,
+        instructions: 'Post to devcraft-internships company page with image thumbnail',
         output: 'post_url',
         params,
       });
