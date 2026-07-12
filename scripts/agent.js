@@ -20,18 +20,23 @@ async function uploadToGithub(filename, buffer) {
   const path = `images/${filename}`;
   const b64 = buffer.toString('base64');
 
+  // Check if file already exists (get SHA for update)
+  let sha = null;
+  const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'devcraft-agent' },
+  });
+  if (getRes.ok) {
+    const existing = await getRes.json();
+    sha = existing.sha;
+  }
+
+  const body = { message: `chore: add post image ${filename} [skip ci]`, content: b64, branch: 'master' };
+  if (sha) body.sha = sha;
+
   const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
     method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'devcraft-agent',
-    },
-    body: JSON.stringify({
-      message: `chore: add post image ${filename} [skip ci]`,
-      content: b64,
-      branch: 'master',
-    }),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'devcraft-agent' },
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -106,9 +111,9 @@ async function main() {
     }
 
     const now = new Date();
-    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const time = now.toTimeString().slice(0, 2).padStart(2, '0');
-    const filename = `post-${date}-${time}.png`;
+    const datestamp = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timestamp = now.toTimeString().slice(0, 5).replace(/:/g, '');
+    const filename = `post-${datestamp}-${timestamp}.png`;
 
     // Save locally too
     mkdirSync(IMAGES_DIR, { recursive: true });
