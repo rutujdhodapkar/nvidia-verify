@@ -6,7 +6,7 @@ const FROM_EMAIL = 'Support@fennark.xyz';
 const FROM_NAME = 'Fennark';
 const DAILY_LIMIT = 300;
 const BATCH_SIZE = 10;
-const SITE = 'https://devcraft.fennark.xyz';
+const SITE = 'devcraft.fennark.xyz';
 
 const templates = [
   {
@@ -16,7 +16,7 @@ const templates = [
 <p>DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
 <p>When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.</p>
 <p>It takes 2 minutes to apply. No interviews. No waiting.</p>
-<p><a href="${SITE}">devcraft.fennark.xyz</a></p>
+<p><a href="https://${SITE}">${SITE}</a></p>
 <p>Best,<br>The DEV/CRAFT Team</p>
 </div>`,
     bodyText: (name) => `Hi ${name || 'there'},
@@ -39,7 +39,7 @@ The DEV/CRAFT Team`,
 <p>At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.</p>
 <p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.</p>
 <p>Your certificate comes with a live verification link employers can check in seconds.</p>
-<p><a href="${SITE}">devcraft.fennark.xyz</a></p>
+<p><a href="https://${SITE}">${SITE}</a></p>
 <p>Best,<br>The DEV/CRAFT Team</p>
 </div>`,
     bodyText: (name) => `Hi ${name || 'there'},
@@ -143,16 +143,8 @@ async function sendBatch() {
 
   if (meta.lastRunDate !== today) {
     meta.dailyCount = 0;
+    meta.templateCounter = 0;
     meta.lastRunDate = today;
-  }
-
-  const ownerCheck = await fetch(`${FIREBASE_URL}/queue/0_rutujdhodapkar_gmail_com.json`);
-  if (ownerCheck.status === 404 || ownerCheck.status === 200 && (await ownerCheck.json()) === null) {
-    await fetch(`${FIREBASE_URL}/queue/0_rutujdhodapkar_gmail_com.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Rutuj Dhodapkar', email: 'rutujdhodapkar@gmail.com', addedAt: new Date().toISOString() }),
-    });
   }
 
   if (meta.dailyCount >= DAILY_LIMIT) {
@@ -221,8 +213,6 @@ async function main() {
 
     totalSent += result.sent;
     totalFailed += result.failed;
-
-    console.log(`  Round ${round}: sent ${result.sent}, failed ${result.failed} (daily ${result.meta.dailyCount}/${DAILY_LIMIT})`);
 
     if (result.done) break;
 
