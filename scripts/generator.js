@@ -140,7 +140,7 @@ All domains are self-paced, virtual:
 ## CONTENT RULES (derived from terms above — STRICT COMPLIANCE REQUIRED)
 - Do NOT mention pricing, fees, or costs in any post — neither "free" nor paid.
 - Do NOT say "free internship", "no cost", "paid certificate", or any pricing language.
-- Offer focus: offer letter on apply, LOR (on completion), completion certificate (on completion).
+- Offer focus: instant offer letter on apply, LOR (on completion), completion certificate (on completion).
 - Do NOT claim: job placement, employment guarantee, industry-recognized certification, university accreditation, third-party internships, money-back, production-grade experience, commercial project exposure.
 - Do NOT claim DevCraft is a university, government org, recruitment agency, or accredited institution.
 - Do NOT exaggerate numbers beyond site data (10K+ learners, 7K+ certificates).
