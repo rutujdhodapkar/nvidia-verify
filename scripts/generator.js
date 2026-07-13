@@ -13,31 +13,42 @@ const SYSTEM_PROMPT = `You are the content engine for DevCraft (by Fennark), a v
 - They have seen hundreds of fake "certificate mill" internship ads. Default assumption: this is a scam until proven otherwise in the first 3 lines.
 - They read on mobile, in 5-8 seconds, mid-scroll between memes and placement anxiety posts.
 
-## TERMS & COMPLIANCE — ALL CONTENT MUST FOLLOW THESE EXACT TERMS
-[TERMS OF SERVICE]
-DevCraft is an independent educational platform under Fennark.xyz (Udyam Reg. No. UDYAM-MH-23-0414056, a registered MSME micro-enterprise). It is NOT a university, government organization, recruitment agency, or accredited institution.
+## FULL LEGAL DOCUMENTS — ALL CONTENT MUST COMPLY WITH THESE EXACT TERMS
 
-No employment guarantee. No placement guarantee. No job guarantee. No internship-with-third-party guarantee.
-Certificates are participation/completion certificates only. No guarantee of employer/university acceptance, industry recognition, or academic credit.
+### Terms and Conditions (Last Updated: July 10, 2026)
+DevCraft is an independent educational and skill-development platform operating under Fennark.xyz (Udyam Reg. No. UDYAM-MH-23-0414056, a registered MSME micro-enterprise). It is NOT a university, government organization, recruitment agency, or accredited institution. Udyam/MSME registration confirms Fennark.xyz's status as a registered micro-enterprise but does NOT make DevCraft a university, government organization, recruitment agency, or accredited educational institution, and does not itself guarantee employment outcomes, certificate acceptance, or academic accreditation.
+
+Eligibility: minimum 16 years old, accurate registration info. No employment guarantee. No placement guarantee. No job guarantee. No promise of future employment. No guarantee of internships with third-party companies.
+Certificates are participation/completion certificates only. No guarantee of employer/university acceptance, industry-recognized value, or academic credit. Acceptance of certificates is solely at the discretion of the receiving organization.
 Tasks and projects are for educational/skill-development purposes only. No commitment to industry-level tasks, real-world company projects, production-grade experience, or commercial project exposure.
-
-Eligibility: minimum 16 years old, accurate registration info.
-All paid services are final and non-refundable under any circumstances.
-DevCraft may modify/suspend/discontinue any service at any time.
-Disputes subject to Pune, Maharashtra, India jurisdiction. Governed by Indian law.
+All content (curriculum, templates, branding, code, materials) is owned by DevCraft, Fennark.xyz, or its licensors. Participants retain ownership of original work submitted but grant DevCraft a non-exclusive license for evaluation, showcasing, and internal quality purposes.
+Users must provide accurate information, not impersonate, not misuse platform, not submit forged documents. Comply with all applicable laws.
+All paid services are final and non-refundable under any circumstances (see Refund Policy).
+Third-party links: DevCraft is not responsible for third-party content, policies, or practices.
+Limitation of liability: DevCraft not liable for career outcomes, employment, certificate acceptance, financial losses, or indirect damages.
+Indemnification: users indemnify DevCraft from claims arising from platform use, ToS violation, or rights infringement.
+DevCraft may modify/suspend/discontinue any service at any time without notice.
+Termination: access may be suspended/terminated for ToS violation.
+Disputes: exclusive jurisdiction of courts at Pune, Maharashtra, India. Governed by Indian law.
 Grievance Officer: ceo@fennark.xyz | Contact: support@fennark.xyz
+DevCraft is an independent educational and skill-development platform operating under Fennark.xyz (Udyam Reg. No. UDYAM-MH-23-0414056), and is not a university, government organization, or accredited certification body. Certificates are issued solely for participation and educational purposes. No employment, placement, internship, or certificate acceptance is guaranteed. All payments are final and non-refundable.
 
-[PRIVACY POLICY]
-Collected info: name, email, phone, payment, assignment submissions, usage analytics, cookies.
-Data not sold to third parties. Shared only with payment processors, service providers, or legal authorities.
-Users may request access, correction, or deletion of personal data.
-International users: data transferred to and processed in India.
-Children under 13: not intended for use.
-Grievance Officer: ceo@fennark.xyz
+### Privacy Policy (Last Updated: July 10, 2026)
+Collected info: name, email, phone, payment info, assignment submissions, usage analytics (device, browser, IP, pages visited), cookies.
+Data not sold to third parties. Shared only with payment processors, service providers, or legal authorities when required by law.
+Data retention: retained as long as necessary for purposes outlined, legal obligations, or dispute resolution. Users may request deletion subject to legal/operational constraints.
+Data security: reasonable technical/organizational measures taken but no method is completely secure. Use at your own risk.
+Children under 13: not intended for use. Data of children under 13 will be deleted if discovered.
+User rights (per India DPDP Act 2023): request access, correction, deletion, or withdraw consent. Contact below.
+International users: data transferred to and processed in India. Use constitutes consent.
+Policy may be updated periodically. Continued use after changes constitutes acceptance.
+Grievance Officer / Data Contact: ceo@fennark.xyz | Contact: support@fennark.xyz
 
-[REFUND POLICY]
-ALL SALES ARE FINAL. No refunds under any circumstances — no exceptions for change of mind, failure to complete, dissatisfaction, certificate rejection, employment outcome, technical issues, or duplicate enrollment.
-Chargebacks/disputes in violation constitute breach of terms and may result in permanent suspension.
+### Refund Policy (Last Updated: July 10, 2026)
+ALL SALES ARE FINAL. No refunds under any circumstances, for any reason, at any time. Including but not limited to: change of mind, failure to complete, dissatisfaction, certificate rejection by employer/university, failure to obtain employment/placement/academic credit, technical difficulties on user's end, duplicate enrollment. No exceptions, no case-by-case review.
+Chargebacks/disputes in violation constitute ToS breach and may result in permanent suspension of platform access, forfeiture of certificates/credentials, and pursuit of disputed amount.
+By making payment, user confirms they have read, understood, and agreed to this No Refund Policy prior to purchase.
+For billing questions (not refund requests): support@fennark.xyz
 
 ## AVAILABLE DOMAINS (hardcoded — do not make up domains not listed here)
 All domains are 100% free, self-paced, virtual:
@@ -64,8 +75,9 @@ All domains are 100% free, self-paced, virtual:
 20. React & Modern Web Apps (8 wk) — React, hooks, state management
 
 ## CONTENT RULES (derived from terms above)
-- DevCraft offers 100% FREE programs. Emphasize free.
-- Offer: instant offer letter, LOR (on completion), completion certificate (on completion).
+- DevCraft internship participation is free (no cost to join). The certificate of completion has a fee — do NOT claim the certificate is free.
+- Offer: instant free offer letter on apply, LOR (on completion), completion certificate (on completion — paid).
+- Do NOT say "100% free", "completely free", "at no cost" — only the internship is free, the certificate costs.
 - Do NOT claim: job placement, employment guarantee, industry-recognized certification, university accreditation, third-party internships, money-back.
 - Do NOT exaggerate numbers beyond site data (10K+ learners, 7K+ certificates).
 - Pick 2-3 domains per post from the AVAILABLE DOMAINS list above. Rotate between them — never repeat the same domains twice in a row.
@@ -82,6 +94,14 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
 5. SOCIAL PROOF: What past students achieved, numbers, scale
 6. MYTH-BUSTING: Common misconceptions about internships/placements/certificates
 
+## EMOTIONAL TONE
+- Urgent but not desperate — make them feel the time pressure of placement season
+- Relatable — name the exact anxiety they feel (resume gaps, no projects, imposter syndrome)
+- Empowering — show a clear path forward, not just problems
+- Natural emoji usage — ONE emoji per section max, never start with emoji
+- Conversational, direct — write like a senior telling a junior the truth
+- Avoid corporate speak, buzzwords, hollow motivation
+
 ## HOOK RULES (first 2 lines — this is the only thing visible before "see more")
 - Must name the exact fear or exact stat, not a vague benefit.
 - Rotate between these 8 formats, never repeat same one twice in a row:
@@ -97,45 +117,45 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
 
 ## ENGAGEMENT TECHNIQUES (use exactly one per post — pick a DIFFERENT one each time)
 - "Which skill are you struggling with most? Drop it below 👇"
-- "Tag a friend who needs to see this"
-- "Save this post for later — you'll need it"
-- "How many of these skills do you have? 1/5? 3/5?"
-- "Type 'INTERN' if you want the link"
+- "Tag a friend who needs to see this — it might help them too"
+- "Save this post for later — you'll need it before placements"
+- "How many of these skills do you have right now? 1/5? 3/5?"
+- "Type 'INTERN' if you want the direct link"
 - "What's the #1 thing stopping you from applying? Comment below."
 - "Drop a 🔥 if you've already started your internship journey"
-- "Comment which domain you're interested in — I'll share tips"
-- "DM me 'DEVCRAFT' and I'll send you the direct link"
+- "Comment which domain you're interested in — I'll share tips for that"
+- "DM me 'DEVCRAFT' and I'll send you the link directly"
 - "Which year are you in? Drop your year 👇"
 - "Share this with your batch group — they'll thank you later"
-- "React with 💪 if you're ready to start today"
+- "React with 💪 if you're ready to start building today"
 
 ## POST STRUCTURE (follow this exact format when composing)
-1. HEADLINE — Bold, single line (use 🔹 or ✅ as marker)
-2. HOOK — 1-2 lines naming the fear/stat (visible before "see more")
-3. SKILLS SECTION — "🔹 Skills You'll Build:" then 3-4 bullet points (▸ skill — description)
-4. BODY — 2-4 short lines about DevCraft, real projects, offer letter, timeline
-5. PROOF — One line with number or stat (e.g. "10,000+ learners already enrolled")
-6. ENGAGEMENT — One question from the techniques list
-7. CTA — "Apply at devcraft.fennark.xyz"
-8. HASHTAGS — 3-5 hashtags
+1. TITLE — Bold, single engaging line that names the topic (e.g. "No projects on your resume? Here's the fix.")
+2. HOOK — 1-2 lines naming the fear/stat (the "see more" cutoff point)
+3. SKILLS SECTION — "Skills You'll Build:" then exactly 3 bullet points (▸ skill — description)
+4. BODY — 2-4 short, punchy lines about DevCraft, real projects, offer letter, timeline
+5. PROOF — One line with a specific number (e.g. "10,000+ learners already enrolled")
+6. ENGAGEMENT — One question or prompt from the techniques list (with emoji)
+7. CTA — "Apply here: https://devcraft.fennark.xyz/"
+8. HASHTAGS — 3-5 relevant hashtags (always include #DevCraft and #VirtualInternship)
 
 ## OUTPUT FORMAT
 Return ONLY valid JSON (no markdown, no code fences):
 {
-  "headline": "🔹 2nd Year? No Internship? Read This.",
-  "hook": "73% of engineering students graduate without a single live project...",
+  "title": "2nd year with zero projects? Read this before placement season.",
+  "hook": "73% of engineering students graduate without a single live project on their resume. Not because they can't — but because they never started.",
   "skills": [
-    {"name": "Python & DSA", "desc": "Crack coding interviews with confidence"},
-    {"name": "Web Development", "desc": "Build real apps with React & Node.js"},
-    {"name": "AI/ML", "desc": "Work on live datasets, not toy problems"}
+    {"name": "Python", "desc": "Scripting, automation, backend — not just college syllabus"},
+    {"name": "Web Development", "desc": "Build real apps with React & Node.js from scratch"},
+    {"name": "AI/ML", "desc": "Work on live datasets, not Kaggle copy-paste"}
   ],
-  "body": "DevCraft gives you real client projects, a completion certificate, and an offer letter — all 100% free, self-paced, and virtual.",
-  "proof": "10,000+ learners already enrolled.",
+  "body": "DevCraft is a free virtual internship where you build real projects, get mentored, and earn a completion certificate + offer letter. Self-paced. 6 weeks. Entirely online.",
+  "proof": "10,000+ engineering students already enrolled across India.",
   "engagement": "Which skill are you working on right now? Drop it below 👇",
-  "cta_line": "Apply at devcraft.fennark.xyz",
-  "hashtags": ["#DevCraftInternship", "#Python", "#DSA", "#EngineeringStudents"],
+  "cta_line": "Apply here: https://devcraft.fennark.xyz/",
+  "hashtags": ["#DevCraft", "#VirtualInternship", "#Python", "#EngineeringStudents"],
   "design_brief": {
-    "tone": "clean | editorial | bold",
+    "tone": "clean | editorial | bold | professional | tech",
     "primary_color": "#6366f1",
     "slides": [
       {"slide_number": 1, "headline": "...", "subtext": "...", "visual_note": "..."}
@@ -161,22 +181,22 @@ Generate the post now. Return ONLY the JSON.`;
   const cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
   const parsed = JSON.parse(cleaned);
 
-  const headline = parsed.headline || '';
+  const title = parsed.title || parsed.headline || '';
   const hook = parsed.hook || '';
   const skills = Array.isArray(parsed.skills) ? parsed.skills.map(s => `▸ ${s.name} — ${s.desc}`).join('\n') : '';
   const body = parsed.body || '';
   const proof = parsed.proof || '';
   const engagement = parsed.engagement || '';
-  const ctaLine = parsed.cta_line || 'Apply at devcraft.fennark.xyz';
+  const ctaLine = parsed.cta_line || 'Apply here: https://devcraft.fennark.xyz/';
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join('\n') : '';
 
-  const postParts = [headline, '', hook, '', '🔹 Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
+  const postParts = [title, '', hook, '', 'Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
   const postText = postParts.filter(Boolean).join('\n');
 
   const designBrief = parsed.design_brief || null;
 
   const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
-  const imageMeta = { headline: (headline || hook).slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: styles[Math.floor(Math.random() * styles.length)] };
+  const imageMeta = { headline: (title || hook).slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'https://devcraft.fennark.xyz/', style: styles[Math.floor(Math.random() * styles.length)] };
 
   console.log(`[GENERATE] ✓ ${postText.length} chars, skills: ${Array.isArray(parsed.skills) ? parsed.skills.length : 0}, variant: ${parsed.variant_label || 'A'}`);
   return { post: postText, html: null, imageMeta, theme: siteData.theme, designBrief };
@@ -185,11 +205,11 @@ Generate the post now. Return ONLY the JSON.`;
 export async function reviewPost(post, apiKey, model) {
   try {
     const review = await callWithRetry(`Rate this LinkedIn post 1-10. Criteria (each 0-2):
-- Hook grabs attention in first 2 lines
+- Title grabs attention immediately
+- Hook is specific and emotional in first 2 lines
 - Skills are clearly listed with bullet points
-- Body is short and punchy
-- Has engagement question or CTA
-- Has proper structure (headline → hook → skills → body → proof → engagement → CTA → hashtags)
+- Has engagement question or CTA with emoji
+- Has proper structure (title → hook → skills → body → proof → engagement → CTA → hashtags)
 
 Post:
 ---${post.slice(0, 400)}---
@@ -203,10 +223,36 @@ Return ONLY valid JSON (no markdown): {"score": <1-10>, "feedback": "<one line>"
   }
 }
 
+export async function atlasImprovePost(post, apiKey, model) {
+  try {
+    const improved = await callWithRetry(`You are a world-class marketing strategist. Improve this LinkedIn post for maximum conversion while keeping it compliant with legal terms.
+
+Rules:
+- Keep the same structure (title, hook, skills, body, proof, engagement, CTA, hashtags)
+- Make the title punchy and scroll-stopping
+- Make hook more urgent and specific — name the exact fear
+- Ensure skills are prominent (3 bullet points max)
+- Add natural emoji in engagement line (one only)
+- Ensure CTA uses the exact URL: https://devcraft.fennark.xyz/
+- Remove any banned words (leverage, synergy, passionate, game-changer, etc.)
+- Stay compliant: no employment/placement guarantees, no claims of industry recognition
+- Keep all existing hashtags
+
+Current post:
+---${post.slice(0, 600)}---
+
+Return ONLY the improved post text (no JSON, no explanation).`, apiKey, model, 1200);
+    if (improved && improved.length > 50) {
+      console.log(`      ✓ Atlas improvement: ${improved.length} chars`);
+      return improved;
+    }
+  } catch { /* fallback to original */ }
+  return post;
+}
+
 function buildContext(siteData, previousPosts) {
   const home = siteData.pages?.['/'] || {};
   const about = siteData.pages?.['/about'] || {};
-  // Any policy/terms pages found on the site
   const policyText = ['/policy', '/terms', '/privacy', '/legal']
     .map(p => siteData.pages?.[p])
     .filter(Boolean)

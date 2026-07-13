@@ -1,11 +1,13 @@
-name = "devcraft-agent-trigger"
+name = "devcraft-github-trigger"
 main = "github-trigger.js"
-compatibility_date = "2026-07-12"
-account_id = "8f48a173bb73963b15a5231899f2e864"
+compatibility_date = "2025-01-01"
 
-[vars]
-GITHUB_OWNER = "rutujdhodapkar"
-GITHUB_REPO = "nvidia-verify"
-
+# Cron: 8AM, 12PM, 7PM IST (2:30, 6:30, 13:30 UTC)
 [triggers]
-crons = ["30 2 * * *", "30 6 * * *", "30 13 * * *", "30 4 * * *"]
+crons = ["30 2,6,13 * * *"]
+
+[env]
+GH_REPO = "rutujdhodapkar/nvidia-verify"
+
+[secrets]
+GH_PAT = ""
