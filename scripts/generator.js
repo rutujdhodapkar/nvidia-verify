@@ -114,7 +114,7 @@ By making payment, user confirms they have read, understood, and agreed to this 
 For billing questions (not refund requests): support@fennark.xyz
 
 ## AVAILABLE DOMAINS (hardcoded — do not make up domains not listed here)
-All domains are 100% free, self-paced, virtual:
+All domains are self-paced, virtual:
 
 1. Web Development (6 wk) — HTML, CSS, JavaScript, React
 2. Python Development (6 wk) — scripting, automation, backend
@@ -138,9 +138,9 @@ All domains are 100% free, self-paced, virtual:
 20. React & Modern Web Apps (8 wk) — React, hooks, state management
 
 ## CONTENT RULES (derived from terms above — STRICT COMPLIANCE REQUIRED)
-- DevCraft internship participation is free (no cost to join). The certificate of completion has a fee — do NOT claim the certificate is free.
-- Offer: instant free offer letter on apply, LOR (on completion), completion certificate (on completion — paid).
-- Do NOT say "100% free", "completely free", "at no cost" — only the internship is free, the certificate costs.
+- Do NOT mention pricing, fees, or costs in any post — neither "free" nor paid.
+- Do NOT say "free internship", "no cost", "paid certificate", or any pricing language.
+- Offer focus: offer letter on apply, LOR (on completion), completion certificate (on completion).
 - Do NOT claim: job placement, employment guarantee, industry-recognized certification, university accreditation, third-party internships, money-back, production-grade experience, commercial project exposure.
 - Do NOT claim DevCraft is a university, government org, recruitment agency, or accredited institution.
 - Do NOT exaggerate numbers beyond site data (10K+ learners, 7K+ certificates).
@@ -215,7 +215,7 @@ Return ONLY valid JSON (no markdown, no code fences):
     {"name": "Web Development", "desc": "Build real apps with React & Node.js from scratch"},
     {"name": "AI/ML", "desc": "Work on live datasets, not Kaggle copy-paste"}
   ],
-  "body": "DevCraft is a free virtual internship where you build real projects, get mentored, and earn a completion certificate + offer letter. Self-paced. 6 weeks. Entirely online.",
+  "body": "DevCraft is a virtual internship where you build real projects, get mentored, and earn a completion certificate + offer letter. Self-paced. 6 weeks. Entirely online.",
   "proof": "10,000+ engineering students already enrolled across India.",
   "engagement": "Which skill are you working on right now? Drop it below 👇",
   "cta_line": "Apply here: https://devcraft.fennark.xyz/",
@@ -300,6 +300,7 @@ Rules:
 - Ensure skills are prominent (3 bullet points max)
 - Add natural emoji in engagement line (one only)
 - Ensure CTA uses the exact URL: https://devcraft.fennark.xyz/
+- Remove any pricing language — no "free", no fees mentioned
 - Remove any banned words (leverage, synergy, passionate, game-changer, etc.)
 - Stay compliant: no employment/placement guarantees, no placed students, no job outcomes, no claims of industry recognition
 - Keep all existing hashtags
