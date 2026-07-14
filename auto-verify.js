@@ -1,7 +1,7 @@
 import { CosmosClient } from "@azure/cosmos";
 
 const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
-const NVIDIA_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
+const NVIDIA_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
 const COSMOS_DATABASE = "devcraft";
 const COSMOS_CONTAINER = "main";
 
@@ -232,6 +232,66 @@ async function callNvidiaApi(prompt) {
   return JSON.parse(match[0]);
 }
 
+function extractImageUrl(text, url) {
+  const imageExtRe = /https?:\/\/[^\s<>"']+\.(?:png|jpg|jpeg|gif|webp)(?:\?[^\s<>"']*)?/i;
+  if (url && imageExtRe.test(url)) return url;
+  if (text) {
+    const m = text.match(imageExtRe);
+    if (m) return m[0];
+  }
+  if (url && /https?:\/\/[^\s<>"']+/i.test(url)) {
+    const linkedinRe = /https?:\/\/(?:www\.)?linkedin\.com\/./i;
+    if (linkedinRe.test(url)) return null;
+    return url;
+  }
+  return null;
+}
+
+async function fetchImageAsBase64(imageUrl) {
+  const res = await fetchWithTimeout(imageUrl, {}, 20000);
+  if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
+  const contentType = res.headers.get("content-type") || "image/png";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const b64 = buffer.toString("base64");
+  return { base64: b64, mimeType: contentType };
+}
+
+async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) throw new Error("NVIDIA_API_KEY not set");
+
+  const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
+  const dataUri = `data:${mimeType};base64,${base64}`;
+
+  const promptText = `You are verifying an offer letter image for a virtual internship program.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nAnalyze the offer letter image and verify ALL of the following:\n1. The intern name "${internName}" appears on the document\n2. The intern ID appears on the document\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nIf the text in the image is hard to read, use OCR-like analysis. If an element is unclear but likely present based on context, note it in your reason.\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
+
+  const response = await fetch(NVIDIA_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: NVIDIA_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: promptText },
+            { type: "image_url", image_url: { url: dataUri } },
+          ],
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 700,
+    }),
+  });
+
+  const ai = await response.json();
+  if (!response.ok) throw new Error(`NVIDIA API error ${response.status}: ${JSON.stringify(ai)}`);
+  const content = ai.choices?.[0]?.message?.content || "{}";
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`No JSON found in AI response: ${content.slice(0, 200)}`);
+  return JSON.parse(match[0]);
+}
+
 async function main() {
   if (!process.env.NVIDIA_API_KEY) {
     console.error("NVIDIA_API_KEY not set.");
@@ -254,6 +314,8 @@ async function main() {
     const submissions = enrollment.submissions || {};
     const projects = enrollment.projects || [];
     const internName = enrollment.name || "Unknown";
+    const internId = enrollment.internId || enrollment.id || "N/A";
+    const domain = enrollment.domain || "";
 
     for (const [indexStr, sub] of Object.entries(submissions)) {
       const index = Number(indexStr);
@@ -275,19 +337,39 @@ async function main() {
 
       console.log(`\n--- ${enrollment.id}: Verifying task "${taskTitle}" ---`);
 
-      let codeFiles = [];
       try {
-        codeFiles = await fetchCodeFromSubmission(submissionText, submissionUrl);
-        console.log(`  Fetched ${codeFiles.length} code files.`);
-      } catch (err) {
-        console.warn(`  Failed to fetch code: ${err.message}`);
-      }
+        let result;
 
-      try {
-        const prompt = buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, submissionUrl, internName, codeFiles);
-        const result = await callNvidiaApi(prompt);
-        console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
-        console.log(`  Reason: ${result.reason}`);
+        if (index === 0 && taskTitle.toLowerCase().includes("offer letter")) {
+          console.log(`  Task 1: Offer letter image verification`);
+          const imageUrl = extractImageUrl(submissionText, submissionUrl);
+          if (!imageUrl) {
+            result = {
+              verified: false,
+              confidence: 0,
+              reason: "No image URL found in submission. Please provide a direct link to your offer letter image.",
+              message: "Submit a direct URL to your offer letter screenshot (PNG/JPG) posted on LinkedIn.",
+            };
+          } else {
+            console.log(`  Image URL: ${imageUrl.slice(0, 100)}...`);
+            result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
+            console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
+            console.log(`  Reason: ${result.reason}`);
+          }
+        } else {
+          let codeFiles = [];
+          try {
+            codeFiles = await fetchCodeFromSubmission(submissionText, submissionUrl);
+            console.log(`  Fetched ${codeFiles.length} code files.`);
+          } catch (err) {
+            console.warn(`  Failed to fetch code: ${err.message}`);
+          }
+
+          const prompt = buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, submissionUrl, internName, codeFiles);
+          result = await callNvidiaApi(prompt);
+          console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
+          console.log(`  Reason: ${result.reason}`);
+        }
 
         const nowStr = new Date().toISOString();
         const base = `submissions.${index}`;

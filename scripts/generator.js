@@ -141,6 +141,8 @@ All domains are self-paced, virtual:
 - Do NOT mention pricing, fees, or costs in any post — neither "free" nor paid.
 - Do NOT say "free internship", "no cost", "paid certificate", or any pricing language.
 - Offer focus: instant offer letter on apply, LOR (on completion), completion certificate (on completion).
+- Every domain's first task is "Upload offer letter on LinkedIn" — students post their offer letter on LinkedIn as Task 1.
+- The offer letter image must show the intern's name, intern ID, domain, and DevCraft/Fennark branding.
 - Do NOT claim: job placement, employment guarantee, industry-recognized certification, university accreditation, third-party internships, money-back, production-grade experience, commercial project exposure.
 - Do NOT claim DevCraft is a university, government org, recruitment agency, or accredited institution.
 - Do NOT exaggerate numbers beyond site data (10K+ learners, 7K+ certificates).

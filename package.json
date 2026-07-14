@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Autonomous LinkedIn marketing agent for DEV/CRAFT",
   "scripts": {
+    "seed-offer-letter": "node scripts/seed-offer-letter-task.js",
     "agent": "node scripts/agent.js",
     "scrape": "node scripts/scraper.js",
     "generate": "node scripts/generator.js",
