@@ -197,9 +197,9 @@ function buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, sub
       parts.push(`\n--- File: ${file.path || file.name || "unknown"} ---\n${file.content || ""}`);
     }
     parts.push("\n=== END OF CODE ===");
-    parts.push("\nCheck if the code implements the task. Missing dataset files are acceptable — focus on logic, structure, and whether it matches the task title. Minor TODOs or boilerplate comments are okay if the core functionality is present.");
+    parts.push("\nBe generous — minor errors, typos, incomplete edge cases, or missing comments are fine as long as the core logic works and the task was attempted in good faith. Missing dataset files are acceptable. Approve if it shows genuine effort.");
   } else {
-    parts.push("\nNote: No code repository could be accessed (link may be invalid, private, or not a repo). If the submission text clearly describes the work done, matches the task title, and explains the approach properly, you may still verify it. Missing dataset files are acceptable — focus on code logic and structure.");
+    parts.push("\nBe generous — if the text clearly shows the student attempted the task and understood the concept, approve it. Minor errors, missing files, or rough edges are fine. The key is genuine effort and matching the task title.");
   }
   parts.push("\nRespond with ONLY valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }");
   return parts.join("\n");
@@ -216,7 +216,7 @@ async function callNvidiaApi(prompt) {
       messages: [
         {
           role: "system",
-          content: "You are an internship task reviewer. Evaluate the student's submission against the task requirements. The code should be error-free, match the task title/description, and show genuine effort. Missing dataset files or external assets are acceptable — focus on the logic and implementation. If the code is well-structured, runs without errors, and implements the requested functionality, approve it. Be fair, not strict. Respond ONLY with valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }",
+          content: "You are a generous internship task reviewer. Approve submissions that show genuine effort even with minor errors, typos, or incomplete edge cases. The student is learning — perfect code is not expected. If the core idea is present and they clearly attempted the task, mark verified. Only reject if the submission is completely off-topic, empty, or clearly not an attempt. Be very lenient. Respond ONLY with valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }",
         },
         { role: "user", content: prompt },
       ],
@@ -263,7 +263,7 @@ async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
   const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
   const dataUri = `data:${mimeType};base64,${base64}`;
 
-  const promptText = `You are verifying an offer letter image for a virtual internship program.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nAnalyze the offer letter image and verify ALL of the following:\n1. The intern name "${internName}" appears on the document\n2. The intern ID appears on the document\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nIf the text in the image is hard to read, use OCR-like analysis. If an element is unclear but likely present based on context, note it in your reason.\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
+  const promptText = `You are verifying an offer letter image for a virtual internship program.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nAnalyze the offer letter image. Be generous — minor formatting differences, partial text visibility, or slightly different wording is fine. Approve if:\n1. The intern name "${internName}" appears on the document (or a close variant)\n2. Some ID or reference number appears\n3. The domain or a related field is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nIf text is hard to read but the image clearly looks like an offer letter with the right branding, lean toward approval. The student is learning — perfection is not expected.\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
 
   const response = await fetch(NVIDIA_API_URL, {
     method: "POST",
@@ -344,12 +344,21 @@ async function main() {
           console.log(`  Task 1: Offer letter image verification`);
           const imageUrl = extractImageUrl(submissionText, submissionUrl);
           if (!imageUrl) {
-            result = {
-              verified: false,
-              confidence: 0,
-              reason: "No image URL found in submission. Please provide a direct link to your offer letter image.",
-              message: "Submit a direct URL to your offer letter screenshot (PNG/JPG) posted on LinkedIn.",
-            };
+            if (submissionUrl && /linkedin\.com/i.test(submissionUrl)) {
+              result = {
+                verified: true,
+                confidence: 60,
+                reason: "LinkedIn post URL submitted — assuming offer letter was posted as instructed.",
+                message: "Verified based on LinkedIn post URL. Next time include a direct image link for faster verification.",
+              };
+            } else {
+              result = {
+                verified: false,
+                confidence: 0,
+                reason: "No image URL or LinkedIn post URL found in submission.",
+                message: "Submit a URL to your offer letter screenshot or LinkedIn post.",
+              };
+            }
           } else {
             console.log(`  Image URL: ${imageUrl.slice(0, 100)}...`);
             result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
