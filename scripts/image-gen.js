@@ -279,64 +279,66 @@ async function tryNvidiaImage(post, meta, apiKey) {
 }
 
 function buildImgPrompt(post, meta) {
-  return `LinkedIn banner for DEV/CRAFT virtual internship. Professional tech design. "${meta.headline}". Dark bg with purple accents. 1200x630.`;
+  return `LinkedIn banner for DEV/CRAFT virtual internship. Clean white background with bold black text. Purple accent elements. Rounded card design. 1200x630.`;
 }
 
 function brutalist(m) {
-  return `<div style="width:1200px;height:630px;background:#1a1a1a;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:50px;border:8px solid #6366f1;">
-    <div style="border:4px solid #fff;flex:1;display:flex;flex-direction:column;padding:40px;position:relative;">
-      <div style="position:absolute;top:-20px;left:30px;background:#6366f1;color:#fff;padding:8px 24px;font-size:16px;font-weight:700;text-transform:uppercase;">SKILLS</div>
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
-        <div style="font-size:56px;font-weight:900;color:#fff;line-height:1.1;text-transform:uppercase;margin-bottom:20px;">${m.headline}</div>
-        <div style="width:80px;height:8px;background:#6366f1;margin-bottom:25px;"></div>
-        <div style="font-size:22px;color:#bbb;line-height:1.5;">${m.subtext}</div>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:0;">
+    <div style="background:#111;padding:14px 40px;">
+      <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:50px;margin:0 20px;border-left:6px solid #6366f1;">
+      <div style="margin-bottom:15px;">
+        <span style="background:#6366f1;color:#fff;padding:6px 18px;font-size:12px;font-weight:700;text-transform:uppercase;border-radius:20px;">Skills</span>
       </div>
-      <div style="border-top:4px solid #333;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;color:#666;">DEV/CRAFT</span>
-        <span style="background:#6366f1;color:#fff;padding:10px 30px;font-size:15px;font-weight:700;">APPLY &rarr;</span>
-      </div>
+      <div style="font-size:52px;font-weight:900;color:#000;line-height:1.1;margin-bottom:10px;">${m.headline}</div>
+      <div style="font-size:20px;color:#555;font-weight:400;line-height:1.5;max-width:80%;">${m.subtext}</div>
+    </div>
+    <div style="border-top:2px solid #eee;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:#999;font-weight:400;">Virtual Internship Program</span>
+      <span style="background:#6366f1;color:#fff;padding:10px 28px;font-size:14px;font-weight:600;border-radius:12px;">Apply &rarr;</span>
     </div>
   </div>`;
 }
 
 function modernMinimal(m) {
-  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:60px;">
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:60px;border-radius:0;">
     <div style="display:flex;flex-direction:column;height:100%;">
-      <div style="display:flex;gap:12px;margin-bottom:20px;">
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">PYTHON</span>
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">DSA</span>
-        <span style="padding:6px 16px;border:1px solid #2a2a3a;border-radius:4px;font-size:12px;color:#888;">WEB DEV</span>
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <span style="padding:6px 18px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">Python</span>
+        <span style="padding:6px 18px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">DSA</span>
+        <span style="padding:6px 18px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">Web Dev</span>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
-        <div style="font-size:14px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
-        <div style="font-size:50px;font-weight:800;color:#fff;line-height:1.15;max-width:90%;">${m.headline}</div>
-        <div style="margin-top:15px;font-size:20px;color:#666;line-height:1.6;max-width:70%;">${m.subtext}</div>
+        <div style="font-size:12px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
+        <div style="font-size:54px;font-weight:900;color:#000;line-height:1.1;max-width:90%;">${m.headline}</div>
+        <div style="margin-top:15px;font-size:20px;color:#555;font-weight:400;line-height:1.6;max-width:70%;">${m.subtext}</div>
       </div>
-      <div style="border-top:1px solid #1a1a2a;padding-top:25px;display:flex;justify-content:space-between;align-items:center;">
-        <div style="display:flex;gap:30px;"><span style="font-size:13px;color:#444;">devcraft.fennark.xyz</span></div>
-        <div style="background:#6366f1;color:#fff;padding:12px 32px;font-size:14px;font-weight:600;border-radius:6px;">Register Now &rarr;</div>
+      <div style="border-top:1px solid #eee;padding-top:22px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:#999;font-weight:400;">devcraft.fennark.xyz</span>
+        <div style="background:#6366f1;color:#fff;padding:12px 32px;font-size:14px;font-weight:600;border-radius:14px;">Register Now &rarr;</div>
       </div>
     </div>
   </div>`;
 }
 
 function glassmorphism(m) {
-  return `<div style="width:1200px;height:630px;background:#0d0d1a;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;position:relative;overflow:hidden;">
-    <div style="position:absolute;top:-120px;right:-120px;width:350px;height:350px;border-radius:50%;background:rgba(99,102,241,0.06);"></div>
-    <div style="position:absolute;bottom:-80px;left:-80px;width:220px;height:220px;border-radius:50%;background:rgba(139,92,246,0.05);"></div>
-    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:32px;padding:50px;width:92%;height:85%;display:flex;flex-direction:column;position:relative;">
+  return `<div style="width:1200px;height:630px;background:#f5f5ff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-100px;right:-100px;width:300px;height:300px;border-radius:50%;background:rgba(99,102,241,0.08);"></div>
+    <div style="position:absolute;bottom:-60px;left:-60px;width:200px;height:200px;border-radius:50%;background:rgba(99,102,241,0.05);"></div>
+    <div style="background:rgba(255,255,255,0.7);border:1px solid rgba(99,102,241,0.15);border-radius:24px;padding:50px;width:92%;height:85%;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.04);">
       <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-        <span style="font-size:20px;font-weight:800;color:#fff;">DEV<span style="color:#6366f1;">/</span>CRAFT</span>
-        <span style="padding:8px 20px;border:1px solid rgba(99,102,241,0.3);border-radius:20px;font-size:12px;color:#6366f1;">Real Projects. Real Skills.</span>
+        <span style="font-size:20px;font-weight:800;color:#000;">DEV<span style="color:#6366f1;">/</span>CRAFT</span>
+        <span style="padding:8px 22px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">Real Projects. Real Skills.</span>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
-        <div style="font-size:48px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:15px;">${m.headline}</div>
-        <div style="width:60px;height:4px;background:#6366f1;margin-bottom:20px;"></div>
-        <div style="font-size:20px;color:rgba(255,255,255,0.6);line-height:1.6;max-width:75%;">${m.subtext}</div>
+        <div style="font-size:50px;font-weight:800;color:#000;line-height:1.15;margin-bottom:12px;">${m.headline}</div>
+        <div style="width:50px;height:4px;background:#6366f1;border-radius:2px;margin-bottom:18px;"></div>
+        <div style="font-size:20px;color:#555;font-weight:400;line-height:1.6;max-width:75%;">${m.subtext}</div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);">
-        <span style="font-size:13px;color:rgba(255,255,255,0.3);">For Indian CS engineers</span>
-        <span style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:#fff;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:500;">devcraft.fennark.xyz &rarr;</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:18px;border-top:1px solid #eee;">
+        <span style="font-size:13px;color:#999;font-weight:400;">For Indian engineering students</span>
+        <span style="background:#6366f1;color:#fff;padding:12px 32px;border-radius:14px;font-size:14px;font-weight:600;">devcraft.fennark.xyz &rarr;</span>
       </div>
     </div>
   </div>`;
@@ -344,67 +346,67 @@ function glassmorphism(m) {
 
 function splitPanel(m) {
   return `<div style="width:1200px;height:630px;display:flex;font-family:'Inter',sans-serif;">
-    <div style="width:55%;background:#0a0a0f;padding:60px 50px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="font-size:12px;color:#6366f1;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:15px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
-      <div style="font-size:52px;font-weight:800;color:#fff;line-height:1.1;margin-bottom:15px;">${m.headline}</div>
-      <div style="width:50px;height:5px;background:#6366f1;margin-bottom:20px;"></div>
-      <div style="font-size:19px;color:#555;line-height:1.6;max-width:90%;">${m.subtext}</div>
-      <div style="margin-top:30px;display:flex;gap:12px;">
-        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">PYTHON</span>
-        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">DSA</span>
-        <span style="padding:6px 14px;border:1px solid #2a2a3a;border-radius:4px;font-size:11px;color:#888;">AI/ML</span>
+    <div style="width:60%;background:#fff;padding:60px 50px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:11px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:15px;">DEV/CRAFT VIRTUAL INTERNSHIP</div>
+      <div style="font-size:50px;font-weight:900;color:#000;line-height:1.1;margin-bottom:12px;">${m.headline}</div>
+      <div style="width:50px;height:4px;background:#6366f1;border-radius:2px;margin-bottom:18px;"></div>
+      <div style="font-size:18px;color:#555;font-weight:400;line-height:1.6;max-width:90%;">${m.subtext}</div>
+      <div style="margin-top:28px;display:flex;gap:10px;">
+        <span style="padding:6px 16px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">Python</span>
+        <span style="padding:6px 16px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">DSA</span>
+        <span style="padding:6px 16px;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#666;font-weight:400;">AI/ML</span>
       </div>
     </div>
-    <div style="width:45%;background:#6366f1;padding:60px 50px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
-      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.12);">DEV/</div>
-      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.12);">CRAFT</div>
-      <div style="margin-top:25px;color:#fff;font-size:16px;font-weight:600;padding:14px 32px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;">devcraft.fennark.xyz</div>
+    <div style="width:40%;background:#6366f1;padding:60px 40px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+      <div style="font-size:60px;font-weight:900;color:rgba(255,255,255,0.15);line-height:1;">DEV/</div>
+      <div style="font-size:60px;font-weight:900;color:rgba(255,255,255,0.15);line-height:1;">CRAFT</div>
+      <div style="margin-top:25px;color:#fff;font-size:15px;font-weight:500;padding:14px 30px;border:1px solid rgba(255,255,255,0.3);border-radius:14px;">devcraft.fennark.xyz</div>
     </div>
   </div>`;
 }
 
 function terminal(m) {
-  return `<div style="width:1200px;height:630px;background:#0d1117;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:45px;position:relative;">
-    <div style="position:absolute;top:0;left:0;right:0;height:36px;background:#1a1f2b;display:flex;align-items:center;padding:0 16px;gap:8px;">
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Space Mono',monospace;padding:0;position:relative;">
+    <div style="background:#f0f0f0;padding:12px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e0e0e0;">
       <span style="width:12px;height:12px;border-radius:50%;background:#ff5555;"></span>
       <span style="width:12px;height:12px;border-radius:50%;background:#f1fa8c;"></span>
       <span style="width:12px;height:12px;border-radius:50%;background:#50fa7b;"></span>
-      <span style="color:#555;font-size:11px;margin-left:12px;">devcraft@terminal:~$</span>
+      <span style="color:#999;font-size:11px;margin-left:12px;font-family:'Inter',sans-serif;">devcraft — bash</span>
     </div>
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:20px;">
-      <div style="font-size:14px;color:#50fa7b;margin-bottom:10px;font-weight:700;">$ ./internship --launch</div>
-      <div style="font-size:44px;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px;">${m.headline}</div>
-      <div style="font-size:15px;color:#50fa7b;margin-bottom:15px;">&gt;&gt; Status: <span style="color:#f1fa8c;">ACTIVE</span> | Slots: <span style="color:#f1fa8c;">LIMITED</span></div>
-      <div style="font-size:18px;color:#888;line-height:1.5;font-family:'Inter',sans-serif;max-width:80%;">${m.subtext}</div>
-      <div style="margin-top:25px;">
-        <pre style="font-size:13px;color:#444;margin:0;">$ <span style="color:#50fa7b;">cat</span> apply.txt | <span style="color:#50fa7b;">grep</span> "link"</pre>
-        <div style="font-size:13px;color:#6366f1;margin-top:5px;">devcraft.fennark.xyz</div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 50px;">
+      <div style="font-size:13px;color:#6366f1;margin-bottom:8px;font-family:'Inter',sans-serif;font-weight:600;">$ ./internship --launch</div>
+      <div style="font-size:44px;font-weight:700;color:#000;line-height:1.15;margin-bottom:6px;font-family:'Inter',sans-serif;">${m.headline}</div>
+      <div style="font-size:14px;color:#6366f1;margin-bottom:12px;font-family:'Inter',sans-serif;">&gt;&gt; Status: <span style="color:#111;font-weight:600;">OPEN</span></div>
+      <div style="font-size:17px;color:#555;line-height:1.5;font-family:'Inter',sans-serif;max-width:80%;font-weight:400;">${m.subtext}</div>
+      <div style="margin-top:22px;display:flex;gap:12px;align-items:center;">
+        <span style="font-size:12px;color:#999;font-family:'Inter',sans-serif;">$ cat apply.txt | grep "link"</span>
+        <span style="font-size:12px;color:#6366f1;font-family:'Inter',sans-serif;font-weight:600;">devcraft.fennark.xyz</span>
       </div>
     </div>
   </div>`;
 }
 
 function magazine(m) {
-  return `<div style="width:1200px;height:630px;background:#f8f7f4;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;padding:0;position:relative;">
-    <div style="height:8px;background:#6366f1;width:100%;"></div>
-    <div style="flex:1;display:flex;padding:50px 60px;">
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:60px;">
-        <div style="font-size:11px;color:#6366f1;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">Cover Story &mdash; Skills</div>
-        <div style="font-size:48px;font-weight:800;color:#111;line-height:1.08;margin-bottom:12px;">${m.headline}</div>
-        <div style="width:60px;height:3px;background:#6366f1;margin-bottom:18px;"></div>
-        <div style="font-size:17px;color:#555;line-height:1.6;max-width:85%;">${m.subtext}</div>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:0;position:relative;">
+    <div style="height:6px;background:#6366f1;width:100%;border-radius:0 0 3px 3px;"></div>
+    <div style="flex:1;display:flex;padding:45px 55px;">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:50px;">
+        <div style="font-size:11px;color:#6366f1;font-weight:600;letter-spacing:4px;text-transform:uppercase;margin-bottom:18px;">Cover Story — Skills</div>
+        <div style="font-size:46px;font-weight:900;color:#000;line-height:1.1;margin-bottom:10px;">${m.headline}</div>
+        <div style="width:50px;height:3px;background:#6366f1;border-radius:2px;margin-bottom:16px;"></div>
+        <div style="font-size:17px;color:#555;font-weight:400;line-height:1.6;max-width:85%;">${m.subtext}</div>
       </div>
-      <div style="width:280px;height:100%;display:flex;align-items:flex-end;">
-        <div style="background:#111;padding:30px 25px;width:100%;">
-          <div style="font-size:48px;font-weight:900;color:#6366f1;line-height:1;margin-bottom:5px;">'26</div>
-          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;">Industry Projects</div>
-          <div style="margin-top:20px;padding:12px 0;border-bottom:1px solid #2a2a2a;font-size:13px;color:#888;">devcraft.fennark.xyz</div>
+      <div style="width:260px;display:flex;align-items:flex-end;">
+        <div style="background:#f5f5ff;border-radius:16px;padding:28px 22px;width:100%;">
+          <div style="font-size:40px;font-weight:900;color:#6366f1;line-height:1;margin-bottom:5px;">'26</div>
+          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;font-weight:400;">Industry Projects</div>
+          <div style="margin-top:18px;padding:10px 0;border-bottom:1px solid #e0e0e0;font-size:13px;color:#888;font-weight:400;">devcraft.fennark.xyz</div>
         </div>
       </div>
     </div>
-    <div style="height:1px;background:#ddd;margin:0 60px;"></div>
-    <div style="padding:15px 60px;display:flex;justify-content:space-between;font-size:11px;color:#999;text-transform:uppercase;">
-      <span>DEV/CRAFT &mdash; Edition #1</span>
+    <div style="height:1px;background:#eee;margin:0 55px;"></div>
+    <div style="padding:14px 55px;display:flex;justify-content:space-between;font-size:11px;color:#bbb;text-transform:uppercase;font-weight:400;">
+      <span>DEV/CRAFT — Edition #1</span>
       <span>Virtual Internship 2026</span>
     </div>
   </div>`;
@@ -412,139 +414,134 @@ function magazine(m) {
 
 function darkTech(m) {
   return `<div style="width:1200px;height:630px;background:#0a0a12;display:flex;font-family:'Inter',sans-serif;padding:50px;position:relative;overflow:hidden;">
-    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.04;" viewBox="0 0 1200 630">
+    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.03;" viewBox="0 0 1200 630">
       <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#6366f1" stroke-width="0.5"/></pattern>
       <rect width="1200" height="630" fill="url(#grid)"/>
     </svg>
     <div style="position:absolute;top:50%;right:-80px;width:400px;height:400px;border-radius:50%;background:rgba(99,102,241,0.04);"></div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:1;">
-      <div style="display:flex;align-items:center;gap:15px;margin-bottom:30px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#6366f1;box-shadow:0 0 12px #6366f1;"></span>
-        <span style="font-size:13px;color:#6366f1;font-weight:600;letter-spacing:4px;text-transform:uppercase;">DEV/CRAFT INTERNSHIP</span>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:25px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#6366f1;"></span>
+        <span style="font-size:12px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT INTERNSHIP</span>
       </div>
       <div style="font-size:54px;font-weight:800;color:#fff;line-height:1.1;">${m.headline}</div>
-      <div style="margin-top:20px;font-size:20px;color:#555;line-height:1.6;max-width:65%;">${m.subtext}</div>
+      <div style="margin-top:18px;font-size:19px;color:#888;line-height:1.6;max-width:65%;font-weight:400;">${m.subtext}</div>
       <div style="margin-top:30px;display:flex;gap:15px;align-items:center;">
-        <span style="background:#6366f1;color:#fff;padding:14px 35px;border-radius:6px;font-size:15px;font-weight:600;">Get Started</span>
-        <span style="color:#555;font-size:13px;">Hands-on engineering projects</span>
+        <span style="background:#6366f1;color:#fff;padding:14px 35px;border-radius:14px;font-size:15px;font-weight:600;">Get Started</span>
+        <span style="color:#666;font-size:13px;font-weight:400;">Build real engineering skills</span>
       </div>
     </div>
   </div>`;
 }
 
 function pixelArt(m) {
-  return `<div style="width:1200px;height:630px;background:#2d1b69;display:flex;flex-direction:column;font-family:'Press Start 2P',monospace;padding:40px;position:relative;overflow:hidden;image-rendering:pixelated;">
-    <div style="position:absolute;top:0;left:0;right:0;height:8px;background:#6366f1;"></div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:8px;background:#7c3aed;"></div>
-    <div style="border:4px solid #6366f1;flex:1;display:flex;flex-direction:column;padding:30px;background:#1a0a3e;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-        <div style="background:#6366f1;color:#fff;padding:8px 16px;font-size:10px;">SKILLS</div>
-        <div style="color:#fff;font-size:18px;">DEV/CRAFT</div>
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:15px;">
-        <div style="font-size:28px;color:#fff;line-height:1.3;text-transform:uppercase;">${m.headline}</div>
-        <div style="width:100%;height:4px;background:#6366f1;"></div>
-        <div style="font-size:12px;color:#aaa;line-height:1.8;">${m.subtext}</div>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <div style="background:#6366f1;color:#fff;padding:12px 20px;font-size:10px;border:2px solid #7c3aed;">&rarr; REGISTER</div>
-        <div style="color:#6366f1;padding:12px 20px;font-size:8px;border:2px solid #6366f1;">devcraft.fennark.xyz</div>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:0;position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);"></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:50px;">
+      <div style="background:#6366f1;color:#fff;padding:8px 22px;font-size:12px;font-weight:600;text-transform:uppercase;border-radius:20px;margin-bottom:25px;">Skills</div>
+      <div style="font-size:48px;font-weight:900;color:#000;line-height:1.08;max-width:90%;margin-bottom:10px;">${m.headline}</div>
+      <div style="width:60px;height:4px;background:#6366f1;border-radius:2px;margin-bottom:16px;"></div>
+      <div style="font-size:18px;color:#555;line-height:1.6;max-width:70%;font-weight:400;">${m.subtext}</div>
+      <div style="margin-top:30px;display:flex;gap:12px;">
+        <span style="background:#111;color:#fff;padding:12px 28px;font-size:14px;font-weight:600;border-radius:12px;">Apply Now</span>
+        <span style="color:#6366f1;padding:12px 24px;font-size:13px;font-weight:500;border:1px solid #6366f1;border-radius:12px;">devcraft.fennark.xyz</span>
       </div>
     </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#6366f1,#8b5cf6,#6366f1);"></div>
   </div>`;
 }
 
 function corporateClean(m) {
-  return `<div style="width:1200px;height:630px;background:#fff;display:flex;font-family:'Inter',sans-serif;padding:0;">
-    <div style="width:60%;padding:60px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="margin-bottom:25px;">
-        <span style="padding:6px 16px;background:#eef2ff;color:#6366f1;font-size:12px;font-weight:600;border-radius:4px;">DEVCRAFT INTERNSHIP PROGRAM</span>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;font-family:'Inter',sans-serif;padding:0;border-radius:0;">
+    <div style="width:65%;padding:60px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="margin-bottom:22px;">
+        <span style="padding:6px 18px;background:#eef2ff;color:#6366f1;font-size:12px;font-weight:600;border-radius:20px;">DEVCRAFT INTERNSHIP PROGRAM</span>
       </div>
-      <div style="font-size:42px;font-weight:800;color:#111;line-height:1.2;margin-bottom:10px;">${m.headline}</div>
-      <div style="width:50px;height:4px;background:#6366f1;margin-bottom:20px;"></div>
-      <div style="font-size:18px;color:#555;line-height:1.7;margin-bottom:30px;">${m.subtext}</div>
+      <div style="font-size:44px;font-weight:900;color:#000;line-height:1.15;margin-bottom:8px;">${m.headline}</div>
+      <div style="width:45px;height:3px;background:#6366f1;border-radius:2px;margin-bottom:18px;"></div>
+      <div style="font-size:18px;color:#555;font-weight:400;line-height:1.7;margin-bottom:28px;max-width:90%;">${m.subtext}</div>
       <div style="display:flex;gap:15px;">
-        <span style="background:#111;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;">Apply at devcraft.fennark.xyz &rarr;</span>
+        <span style="background:#111;color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:600;">Apply at devcraft.fennark.xyz &rarr;</span>
       </div>
     </div>
-    <div style="width:40%;background:#6366f1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;">
-      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">DEV/</div>
-      <div style="font-size:72px;font-weight:900;color:rgba(255,255,255,0.15);">CRAFT</div>
-      <div style="margin-top:30px;text-align:center;">
-        <div style="font-size:36px;font-weight:700;color:#fff;">REAL</div>
-        <div style="font-size:16px;color:rgba(255,255,255,0.7);">Industry Projects</div>
+    <div style="width:35%;background:#6366f1;border-radius:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;">
+      <div style="font-size:64px;font-weight:900;color:rgba(255,255,255,0.12);line-height:1;">DEV/</div>
+      <div style="font-size:64px;font-weight:900;color:rgba(255,255,255,0.12);line-height:1;">CRAFT</div>
+      <div style="margin-top:25px;text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:#fff;">REAL</div>
+        <div style="font-size:15px;color:rgba(255,255,255,0.7);font-weight:400;">Industry Projects</div>
       </div>
     </div>
   </div>`;
 }
 
 function bento(m) {
-  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;padding:6px;font-family:'Inter',sans-serif;">
-    <div style="grid-column:1/2;grid-row:1/3;background:#111122;border-radius:16px;padding:40px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="font-size:11px;color:#6366f1;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">DEV/CRAFT</div>
-      <div style="font-size:36px;font-weight:800;color:#fff;line-height:1.1;margin-bottom:8px;">${m.headline}</div>
-      <div style="font-size:14px;color:#555;line-height:1.5;">${m.subtext}</div>
+  return `<div style="width:1200px;height:630px;background:#f8f8ff;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;font-family:'Inter',sans-serif;">
+    <div style="grid-column:1/2;grid-row:1/3;background:#fff;border-radius:20px;padding:40px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #eee;">
+      <div style="font-size:11px;color:#6366f1;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">DEV/CRAFT</div>
+      <div style="font-size:38px;font-weight:900;color:#000;line-height:1.1;margin-bottom:6px;">${m.headline}</div>
+      <div style="font-size:14px;color:#555;line-height:1.5;font-weight:400;">${m.subtext}</div>
     </div>
-    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="font-size:32px;font-weight:800;color:#6366f1;">PY</div>
-      <div style="font-size:12px;color:#666;margin-top:5px;">Python</div>
+    <div style="background:#fff;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #eee;">
+      <div style="font-size:30px;font-weight:900;color:#6366f1;">PY</div>
+      <div style="font-size:13px;color:#888;margin-top:5px;font-weight:400;">Python</div>
     </div>
-    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="font-size:32px;font-weight:800;color:#6366f1;">DSA</div>
-      <div style="font-size:12px;color:#666;margin-top:5px;">Data Structures</div>
+    <div style="background:#fff;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #eee;">
+      <div style="font-size:30px;font-weight:900;color:#6366f1;">DSA</div>
+      <div style="font-size:13px;color:#888;margin-top:5px;font-weight:400;">Data Structures</div>
     </div>
-    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;">
-      <div style="font-size:32px;font-weight:800;color:#6366f1;">AI</div>
-      <div style="font-size:12px;color:#666;margin-top:5px;">Machine Learning</div>
+    <div style="background:#fff;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #eee;">
+      <div style="font-size:30px;font-weight:900;color:#6366f1;">AI</div>
+      <div style="font-size:13px;color:#888;margin-top:5px;font-weight:400;">Machine Learning</div>
     </div>
-    <div style="background:#1a1a2e;border-radius:16px;padding:30px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;">
-      <div style="font-size:12px;color:#888;">devcraft.fennark.xyz</div>
-      <div style="margin-top:8px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:600;">Apply &rarr;</div>
+    <div style="background:#fff;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;box-shadow:0 2px 8px rgba(0,0,0,0.04);border:1px solid #eee;">
+      <div style="font-size:12px;color:#999;font-weight:400;">devcraft.fennark.xyz</div>
+      <div style="margin-top:8px;background:#6366f1;color:#fff;padding:8px 20px;border-radius:12px;font-size:13px;font-weight:600;">Apply &rarr;</div>
     </div>
   </div>`;
 }
 
 function outline(m) {
-  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:50px;position:relative;">
-    <div style="position:absolute;top:20px;left:20px;right:20px;bottom:20px;border:1px solid #1a1a2a;border-radius:20px;pointer-events:none;"></div>
-    <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);background:#0a0a0f;padding:0 20px;font-size:11px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</div>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;padding:50px;position:relative;">
+    <div style="position:absolute;top:25px;left:25px;right:25px;bottom:25px;border:2px solid #e0e0e0;border-radius:24px;pointer-events:none;"></div>
+    <div style="position:absolute;top:25px;left:50%;transform:translateX(-50%);background:#fff;padding:0 20px;font-size:11px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;">
-      <div style="font-size:60px;font-weight:900;color:#fff;line-height:1.05;max-width:85%;margin-bottom:15px;text-shadow:-1px -1px 0 #6366f1,1px -1px 0 #6366f1,-1px 1px 0 #6366f1,1px 1px 0 #6366f1;">${m.headline}</div>
-      <div style="font-size:20px;color:#555;line-height:1.5;max-width:60%;">${m.subtext}</div>
-      <div style="margin-top:30px;display:flex;gap:20px;align-items:center;">
-        <span style="border:2px solid #6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;background:transparent;">devcraft.fennark.xyz</span>
-        <span style="background:#6366f1;color:#fff;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;">Register</span>
+      <div style="font-size:56px;font-weight:900;color:#000;line-height:1.05;max-width:85%;margin-bottom:12px;">${m.headline}</div>
+      <div style="font-size:19px;color:#555;line-height:1.5;max-width:60%;font-weight:400;">${m.subtext}</div>
+      <div style="margin-top:28px;display:flex;gap:16px;align-items:center;">
+        <span style="border:2px solid #6366f1;color:#6366f1;padding:12px 32px;border-radius:14px;font-size:14px;font-weight:600;background:transparent;">devcraft.fennark.xyz</span>
+        <span style="background:#6366f1;color:#fff;padding:12px 32px;border-radius:14px;font-size:14px;font-weight:600;">Register</span>
       </div>
     </div>
-    <div style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-size:10px;color:#2a2a3a;letter-spacing:2px;text-transform:uppercase;">Build skills that matter</div>
+    <div style="position:absolute;bottom:35px;left:50%;transform:translateX(-50%);font-size:10px;color:#ccc;letter-spacing:2px;text-transform:uppercase;font-weight:400;">Build skills that matter</div>
   </div>`;
 }
 
 function lateralBand(m) {
-  return `<div style="width:1200px;height:630px;background:#0a0a0f;display:flex;flex-direction:column;font-family:'Inter',sans-serif;position:relative;">
-    <div style="background:#6366f1;padding:20px 50px;">
-      <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;">DEV/CRAFT &mdash; Virtual Internship 2026</span>
+  return `<div style="width:1200px;height:630px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;position:relative;">
+    <div style="background:#6366f1;padding:18px 50px;">
+      <span style="font-size:13px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;">DEV/CRAFT — Virtual Internship 2026</span>
     </div>
     <div style="flex:1;display:flex;padding:50px;">
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:50px;">
-        <div style="font-size:10px;color:#6366f1;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Industry Projects &bull; Mentorship</div>
-        <div style="font-size:52px;font-weight:900;color:#fff;line-height:1.05;margin-bottom:12px;">${m.headline}</div>
-        <div style="font-size:18px;color:#555;line-height:1.6;max-width:85%;">${m.subtext}</div>
-        <div style="margin-top:25px;background:#6366f1;color:#fff;padding:14px 30px;border-radius:8px;font-size:14px;font-weight:600;width:fit-content;">devcraft.fennark.xyz &rarr;</div>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-right:40px;">
+        <div style="font-size:10px;color:#6366f1;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Industry Projects — Mentorship</div>
+        <div style="font-size:52px;font-weight:900;color:#000;line-height:1.05;margin-bottom:10px;">${m.headline}</div>
+        <div style="font-size:18px;color:#555;line-height:1.6;max-width:85%;font-weight:400;">${m.subtext}</div>
+        <div style="margin-top:22px;background:#6366f1;color:#fff;padding:14px 30px;border-radius:14px;font-size:14px;font-weight:600;width:fit-content;">devcraft.fennark.xyz &rarr;</div>
       </div>
-      <div style="width:4px;background:#6366f1;margin:20px 0;border-radius:2px;"></div>
-      <div style="width:250px;display:flex;flex-direction:column;justify-content:center;padding-left:50px;gap:20px;">
-        <div style="padding:15px;border-left:3px solid #6366f1;">
-          <div style="font-size:14px;color:#fff;font-weight:600;">Python</div>
-          <div style="font-size:11px;color:#555;">Core &amp; Advanced</div>
+      <div style="width:3px;background:#6366f1;margin:15px 0;border-radius:2px;"></div>
+      <div style="width:220px;display:flex;flex-direction:column;justify-content:center;padding-left:40px;gap:16px;">
+        <div style="padding:14px;border-left:3px solid #6366f1;border-radius:0 8px 8px 0;background:#f8f8ff;">
+          <div style="font-size:14px;color:#000;font-weight:600;">Python</div>
+          <div style="font-size:11px;color:#888;font-weight:400;">Core &amp; Advanced</div>
         </div>
-        <div style="padding:15px;border-left:3px solid #6366f1;">
-          <div style="font-size:14px;color:#fff;font-weight:600;">DSA</div>
-          <div style="font-size:11px;color:#555;">Problem Solving</div>
+        <div style="padding:14px;border-left:3px solid #6366f1;border-radius:0 8px 8px 0;background:#f8f8ff;">
+          <div style="font-size:14px;color:#000;font-weight:600;">DSA</div>
+          <div style="font-size:11px;color:#888;font-weight:400;">Problem Solving</div>
         </div>
-        <div style="padding:15px;border-left:3px solid #6366f1;">
-          <div style="font-size:14px;color:#fff;font-weight:600;">AI/ML</div>
-          <div style="font-size:11px;color:#555;">Hands-on Projects</div>
+        <div style="padding:14px;border-left:3px solid #6366f1;border-radius:0 8px 8px 0;background:#f8f8ff;">
+          <div style="font-size:14px;color:#000;font-weight:600;">AI/ML</div>
+          <div style="font-size:11px;color:#888;font-weight:400;">Hands-on Projects</div>
         </div>
       </div>
     </div>
