@@ -3,13 +3,32 @@ import { writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { scrapeSite } from './scraper.js';
-import { generatePost, reviewPost, atlasImprovePost } from './generator.js';
+import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
 import { postToLinkedinPage } from './linkedin-poster.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const IMAGES_DIR = join(__dirname, '..', 'images');
+
+function cleanPost(text) {
+  let t = text.trim();
+  // Strip leading reasoning/preface lines the AI sometimes adds
+  const prefacePatterns = [
+    /^here('s| is)\s+(the\s+)?(improved\s+)?(linkedin\s+)?post:?\s*/i,
+    /^here('s| is)\s+(your\s+)?(improved\s+)?post:?\s*/i,
+    /^i('ve| have)\s+(improved|rewritten|updated)\s+(the\s+)?(post|content):?\s*/i,
+    /^(okay|ok|sure|here|below|following)(,|!)?\s*(here's|is)\s*/i,
+    /^```(json|markdown)?\s*/i,
+  ];
+  for (const p of prefacePatterns) {
+    t = t.replace(p, '');
+  }
+  t = t.replace(/```/g, '').trim();
+  // Strip hashtags from body (sent separately via API)
+  t = t.replace(/\n?#\w+/g, '').trim();
+  return t;
+}
 
 async function uploadToGithub(filename, buffer) {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -34,6 +53,11 @@ async function uploadToGithub(filename, buffer) {
   return data?.content?.download_url;
 }
 
+function extractHashtags(text) {
+  const tags = text.match(/#\w+/g);
+  return tags ? [...new Set(tags)].join(' ') : '#DevCraft #VirtualInternship';
+}
+
 async function main() {
   console.log(`\n═══ DEV/CRAFT Agent ═══\n${new Date().toISOString()}\n`);
 
@@ -45,25 +69,25 @@ async function main() {
   const siteData = await scrapeSite();
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
-  let post, imageMeta, theme, designBrief;
+  let post, imageMeta, designBrief;
   let postOk = false;
   let feedback = '';
   for (let i = 0; i < 5; i++) {
     console.log(`[2/4] Generating post (attempt ${i + 1})...`);
     const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
-    post = r.post; imageMeta = r.imageMeta; theme = r.theme; designBrief = r.designBrief;
+    post = r.post; imageMeta = r.imageMeta; designBrief = r.designBrief;
     if (isDup(post, state)) { console.log('      Duplicate, retry...\n'); continue; }
-    console.log('      Atlas marketing improvement...');
-    post = await atlasImprovePost(post, NVIDIA_API_KEY, NVIDIA_MODEL);
-    console.log('      Reviewing content quality...');
-    const review = await reviewPost(post, NVIDIA_API_KEY, NVIDIA_MODEL);
+    const cleaned = cleanPost(post);
+    const review = await reviewPost(cleaned, NVIDIA_API_KEY, NVIDIA_MODEL);
     console.log(`      Quality score: ${review.score}/10 — ${review.feedback}`);
-    if (review.score >= 7) { postOk = true; break; }
+    if (review.score >= 7) { post = cleaned; postOk = true; break; }
     feedback = review.feedback;
     console.log('      Below threshold, retry...\n');
   }
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
   console.log(`\n${post}\n`);
+
+  const hashtags = extractHashtags(post);
 
   console.log('[3/4] Generating image...');
   let imageUrl = null;
@@ -136,7 +160,7 @@ async function main() {
         body: JSON.stringify({
           content: post,
           imageUrl: imageUrl || '',
-          hashtags: (post.match(/#\w+/g) || []).join(' '),
+          hashtags: hashtags,
         }),
       });
       if (res.ok) {
