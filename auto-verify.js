@@ -232,19 +232,26 @@ async function callNvidiaApi(prompt) {
   return JSON.parse(match[0]);
 }
 
-function extractImageUrl(text, url) {
-  const imageExtRe = /https?:\/\/[^\s<>"']+\.(?:png|jpg|jpeg|gif|webp)(?:\?[^\s<>"']*)?/i;
-  if (url && imageExtRe.test(url)) return url;
-  if (text) {
-    const m = text.match(imageExtRe);
-    if (m) return m[0];
-  }
-  if (url && /https?:\/\/[^\s<>"']+/i.test(url)) {
-    const linkedinRe = /https?:\/\/(?:www\.)?linkedin\.com\/./i;
-    if (linkedinRe.test(url)) return null;
-    return url;
-  }
-  return null;
+function isLinkedInPostUrl(url) {
+  if (!url) return false;
+  return /https?:\/\/(?:www\.)?linkedin\.com\/(?:feed\/update|posts|pulse)\//i.test(url)
+    || /https?:\/\/(?:www\.)?linkedin\.com\/.*\/(?:activity|post)\b/i.test(url);
+}
+
+async function extractImageFromLinkedInPost(postUrl) {
+  const res = await fetchWithTimeout(postUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+  }, 15000);
+  if (!res.ok) throw new Error(`LinkedIn fetch failed: ${res.status}`);
+  const html = await res.text();
+
+  const ogMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+  if (ogMatch) return ogMatch[1];
+
+  const twitterImgMatch = html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+  if (twitterImgMatch) return twitterImgMatch[1];
+
+  throw new Error("Could not extract image from LinkedIn post");
 }
 
 async function fetchImageAsBase64(imageUrl) {
@@ -342,17 +349,28 @@ async function main() {
 
         if (taskTitle.toLowerCase().includes("offer letter")) {
           console.log(`  Offer letter image verification`);
-          const imageUrl = extractImageUrl(submissionText, submissionUrl);
-          if (!imageUrl) {
+          if (!isLinkedInPostUrl(submissionUrl)) {
             result = {
               verified: false,
               confidence: 0,
-              reason: "No image URL found in submission. Provide a direct link to the offer letter image.",
-              message: "Submit a direct URL to your offer letter screenshot (PNG/JPG).",
+              reason: "Submission URL is not a LinkedIn post. Provide the LinkedIn post URL where your offer letter is uploaded.",
+              message: "Post your offer letter on LinkedIn and submit the post URL.",
             };
           } else {
-            console.log(`  Image URL: ${imageUrl.slice(0, 100)}...`);
-            result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
+            console.log(`  LinkedIn URL: ${submissionUrl.slice(0, 120)}...`);
+            try {
+              const imageUrl = await extractImageFromLinkedInPost(submissionUrl);
+              console.log(`  Extracted image: ${imageUrl.slice(0, 100)}...`);
+              result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
+            } catch (err) {
+              console.warn(`  Failed to extract image: ${err.message}`);
+              result = {
+                verified: false,
+                confidence: 0,
+                reason: `Could not access LinkedIn post image: ${err.message}`,
+                message: "Make sure the LinkedIn post is public and try again.",
+              };
+            }
             console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
             console.log(`  Reason: ${result.reason}`);
           }
