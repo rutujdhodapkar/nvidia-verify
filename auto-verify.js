@@ -234,8 +234,7 @@ async function callNvidiaApi(prompt) {
 
 function isLinkedInPostUrl(url) {
   if (!url) return false;
-  return /https?:\/\/(?:www\.)?linkedin\.com\/(?:feed\/update|posts|pulse)\//i.test(url)
-    || /https?:\/\/(?:www\.)?linkedin\.com\/.*\/(?:activity|post)\b/i.test(url);
+  return /https?:\/\/www\.linkedin\.com\//i.test(url);
 }
 
 async function extractImageFromLinkedInPost(postUrl) {
