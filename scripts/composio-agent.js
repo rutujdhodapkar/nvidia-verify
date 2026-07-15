@@ -6,6 +6,7 @@ import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
 import { postToLinkedinPage } from './linkedin-poster.js';
+import { postToLinkedinPage as postToLinkedinViaZapier } from './zapier-poster.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -153,27 +154,18 @@ async function main() {
   }
 
   if (!posted) {
-    const zapierUrl = 'https://hooks.zapier.com/hooks/catch/28223276/4uetor5/';
-    console.log('[4/4] Posting to LinkedIn via Zapier...');
+    console.log('[4/4] Posting to LinkedIn via Zapier MCP (image as link thumbnail)...');
     try {
-      const res = await fetch(zapierUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: post,
-          imageUrl: imageUrl || '',
-          hashtags: hashtags,
-        }),
+      const result = await postToLinkedinViaZapier({
+        content: post,
+        imageUrl: imageUrl || '',
+        zapierToken: process.env.ZAPIER_TOKEN,
+        pageId: process.env.LINKEDIN_PAGE_ID,
       });
-      if (res.ok) {
-        const text = await res.text();
-        console.log(`      ✓ Posted via Zapier: ${res.status} — ${text.slice(0, 100)}`);
-        posted = true;
-      } else {
-        console.log(`      ⚠ Zapier returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      }
+      console.log(`      ✓ Posted via Zapier MCP: ${result}`);
+      posted = true;
     } catch (err) {
-      console.log(`      ✗ Zapier failed: ${err.message}`);
+      console.log(`      ⚠ Zapier MCP failed: ${err.message.slice(0, 150)}`);
     }
   }
 
