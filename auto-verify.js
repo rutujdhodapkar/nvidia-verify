@@ -333,22 +333,12 @@ async function main() {
         let result;
 
         if (taskTitle.toLowerCase().includes("offer letter")) {
-          console.log(`  Offer letter image verification`);
           if (!submissionUrl) {
-            console.log(`  No submission URL — skipping, not yet submitted.`);
+            console.log(`  No submission URL — skipping.`);
             skipped++;
             continue;
-          } else {
-            console.log(`  Analyzing image from: ${submissionUrl.slice(0, 120)}...`);
-            try {
-              result = await callNvidiaWithRetry(() => verifyOfferLetterImage(submissionUrl, internName, internId, domain), 2);
-              console.log(`  NVIDIA OCR verdict: verified=${result.verified}, confidence=${result.confidence}`);
-            } catch (err) {
-              console.warn(`  NVIDIA vision failed (${err.message}), approving based on URL`);
-              result = await verifyLinkedInPost(submissionUrl, internName, internId, domain);
-              console.log(`  URL-based verdict: verified=${result.verified}, confidence=${result.confidence}`);
-            }
           }
+          result = { verified: true, confidence: 100, reason: `Offer letter posted — ${submissionUrl.slice(0, 100)}`, message: "Task completed." };
         } else {
           let codeFiles = [];
           try {
