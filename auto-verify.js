@@ -197,9 +197,9 @@ function buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, sub
       parts.push(`\n--- File: ${file.path || file.name || "unknown"} ---\n${file.content || ""}`);
     }
     parts.push("\n=== END OF CODE ===");
-    parts.push("\nBe very lenient. If the student attempted the task and submitted something related, approve it. Bugs, boilerplate, and incomplete features are all fine. Missing dataset files are acceptable.");
+    parts.push("\nALWAYS approve unless the submission is completely empty or completely unrelated to the task. Bugs, boilerplate, placeholder code, incomplete features — all fine. Missing dataset files are acceptable.");
   } else {
-    parts.push("\nBe very lenient. If the text shows any effort related to the task, approve it.");
+    parts.push("\nALWAYS approve unless the submission is completely empty or unrelated. If they described anything related to the task, approve it.");
   }
   parts.push("\nRespond with ONLY valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }");
   return parts.join("\n");
@@ -216,7 +216,7 @@ async function callNvidiaApi(prompt) {
       messages: [
         {
           role: "system",
-          content: "You are a very lenient internship task reviewer. The student is learning. Approve if they made a genuine attempt — even if code has bugs, is incomplete, or uses boilerplate. Only reject if the submission is completely empty, gibberish, or clearly not related to the task at all. Missing files, minor errors, and rough edges are all fine. Focus: did they try? If yes, approve. Respond ONLY with valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }",
+          content: "You are an extremely lenient internship reviewer. ALWAYS approve the submission unless it is completely empty or completely unrelated to the task. The student is learning — bugs, incomplete code, boilerplate, placeholder text, and minor effort are all fine and should be APPROVED. Missing files are acceptable. If they submitted anything at all related to the task, mark verified=true. Respond ONLY with valid JSON: { verified: boolean, confidence: number (0-100), reason: string, message: string }",
         },
         { role: "user", content: prompt },
       ],
@@ -272,7 +272,7 @@ async function callVisionApi(imageUrl, promptText) {
 }
 
 async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
-  const promptText = `You are verifying an offer letter image for a virtual internship program. Read the text in the image carefully.\n\nStudent Name to match: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nCheck the offer letter image for ALL of these:\n1. The intern name "${internName}" appears on the document\n2. An intern ID or reference number appears\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
+  const promptText = `You are verifying an offer letter image. Be lenient.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nCheck if the image looks like an offer letter and has most of these:\n1. The name "${internName}" appears somewhere\n2. Some ID or reference number\n3. The domain or internship field\n4. "DevCraft", "devcraft", or "Fennark" branding\n\nIf the image is clearly an offer letter from DevCraft with the right name, approve it. Minor text visibility issues are fine.\n\nRespond with ONLY valid JSON:\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
   return callVisionApi(imageUrl, promptText);
 }
 
