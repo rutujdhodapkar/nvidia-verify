@@ -197,9 +197,9 @@ function buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, sub
       parts.push(`\n--- File: ${file.path || file.name || "unknown"} ---\n${file.content || ""}`);
     }
     parts.push("\n=== END OF CODE ===");
-    parts.push("\nBe lenient — minor errors, boilerplate, or incomplete edge cases are okay. If the core logic matches the task and shows genuine effort, approve it. Missing dataset files are acceptable.");
+    parts.push("\nBe very lenient. If the student attempted the task and submitted something related, approve it. Bugs, boilerplate, and incomplete features are all fine. Missing dataset files are acceptable.");
   } else {
-    parts.push("\nBe lenient — if the text shows genuine effort and matches the task title, approve it. Missing files or minor issues are fine.");
+    parts.push("\nBe very lenient. If the text shows any effort related to the task, approve it.");
   }
   parts.push("\nRespond with ONLY valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }");
   return parts.join("\n");
@@ -216,7 +216,7 @@ async function callNvidiaApi(prompt) {
       messages: [
         {
           role: "system",
-          content: "You are an internship task reviewer. Be practical — if the submission clearly attempts the task and shows genuine work, approve it. The student is learning, not shipping production code. Minor bugs, incomplete edge cases, or rough styling are fine. Only reject if the submission is empty, off-topic, or shows no effort. Missing dataset files are acceptable — focus on logic and structure. Respond ONLY with valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }",
+          content: "You are a very lenient internship task reviewer. The student is learning. Approve if they made a genuine attempt — even if code has bugs, is incomplete, or uses boilerplate. Only reject if the submission is completely empty, gibberish, or clearly not related to the task at all. Missing files, minor errors, and rough edges are all fine. Focus: did they try? If yes, approve. Respond ONLY with valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }",
         },
         { role: "user", content: prompt },
       ],
@@ -230,6 +230,22 @@ async function callNvidiaApi(prompt) {
   const match = content.match(/\{[\s\S]*\}/);
   if (!match) throw new Error(`No JSON found in AI response: ${content.slice(0, 200)}`);
   return JSON.parse(match[0]);
+}
+
+async function callNvidiaWithRetry(promptFn, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await promptFn();
+    } catch (err) {
+      if (err.message.includes("503") || err.message.includes("ResourceExhausted")) {
+        console.warn(`  Rate limited, retrying (${attempt + 1}/${maxRetries})...`);
+        await new Promise(r => setTimeout(r, (attempt + 1) * 5000));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`All ${maxRetries} attempts failed due to rate limiting`);
 }
 
 async function callVisionApi(imageUrl, promptText) {
@@ -319,16 +335,13 @@ async function main() {
         if (taskTitle.toLowerCase().includes("offer letter")) {
           console.log(`  Offer letter image verification`);
           if (!submissionUrl) {
-            result = {
-              verified: false,
-              confidence: 0,
-              reason: "No submission URL provided.",
-              message: "Submit the URL of your posted offer letter.",
-            };
+            console.log(`  No submission URL — skipping, not yet submitted.`);
+            skipped++;
+            continue;
           } else {
             console.log(`  Analyzing image from: ${submissionUrl.slice(0, 120)}...`);
             try {
-              result = await verifyOfferLetterImage(submissionUrl, internName, internId, domain);
+              result = await callNvidiaWithRetry(() => verifyOfferLetterImage(submissionUrl, internName, internId, domain), 2);
               console.log(`  NVIDIA OCR verdict: verified=${result.verified}, confidence=${result.confidence}`);
             } catch (err) {
               console.warn(`  NVIDIA vision failed (${err.message}), approving based on URL`);
@@ -346,7 +359,7 @@ async function main() {
           }
 
           const prompt = buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, submissionUrl, internName, codeFiles);
-          result = await callNvidiaApi(prompt);
+          result = await callNvidiaWithRetry(() => callNvidiaApi(prompt));
           console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
         }
 
