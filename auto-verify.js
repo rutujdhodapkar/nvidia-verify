@@ -53,7 +53,7 @@ async function updateEnrollment(container, id, updates) {
   }
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -239,7 +239,18 @@ function isLinkedInPostUrl(url) {
 
 async function extractImageFromLinkedInPost(postUrl) {
   const res = await fetchWithTimeout(postUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "Cache-Control": "max-age=0",
+    },
   }, 15000);
   if (!res.ok) throw new Error(`LinkedIn fetch failed: ${res.status}`);
   const html = await res.text();
@@ -254,10 +265,22 @@ async function extractImageFromLinkedInPost(postUrl) {
 }
 
 async function fetchImageAsBase64(imageUrl) {
-  const res = await fetchWithTimeout(imageUrl, {}, 20000);
+  const res = await fetchWithTimeout(imageUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "image/avif,image/webp,image/apng,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Referer": "https://www.linkedin.com/",
+      "Sec-Fetch-Dest": "image",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "cross-site",
+    },
+  }, 20000);
   if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
   const contentType = res.headers.get("content-type") || "image/png";
   const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length < 100) throw new Error(`Image too small (${buffer.length} bytes)`);
+  if (buffer.length > 20 * 1024 * 1024) throw new Error(`Image too large (${(buffer.length / 1024 / 1024).toFixed(1)}MB)`);
   const b64 = buffer.toString("base64");
   return { base64: b64, mimeType: contentType };
 }
@@ -266,14 +289,25 @@ async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) throw new Error("NVIDIA_API_KEY not set");
 
-  const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
-  const dataUri = `data:${mimeType};base64,${base64}`;
-
   const promptText = `You are verifying an offer letter image for a virtual internship program.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nCheck the offer letter image for the following:\n1. The intern name "${internName}" appears on the document\n2. An intern ID or reference number appears\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nIf most elements are present and the image is clearly an offer letter from DevCraft, mark verified. Minor text visibility issues are okay as long as the key info is there.\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
+
+  let imageContent;
+  try {
+    const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
+    imageContent = { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } };
+  } catch (fetchErr) {
+    console.warn(`  Local fetch failed (${fetchErr.message}), passing URL directly to NVIDIA`);
+    imageContent = { type: "image_url", image_url: { url: imageUrl } };
+  }
 
   const response = await fetch(NVIDIA_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "User-Agent": "DevCraft-Verifier/1.0",
+      Accept: "application/json",
+    },
     body: JSON.stringify({
       model: NVIDIA_MODEL,
       messages: [
@@ -281,7 +315,7 @@ async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
           role: "user",
           content: [
             { type: "text", text: promptText },
-            { type: "image_url", image_url: { url: dataUri } },
+            imageContent,
           ],
         },
       ],
