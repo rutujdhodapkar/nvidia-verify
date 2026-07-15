@@ -414,7 +414,6 @@ async function main() {
               result = await verifyLinkedInPost(submissionUrl, internName, internId, domain);
               console.log(`  URL-based verdict: verified=${result.verified}, confidence=${result.confidence}`);
             }
-            console.log(`  Reason: ${result.reason}`);
           }
         } else {
           let codeFiles = [];
@@ -428,8 +427,9 @@ async function main() {
           const prompt = buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, submissionUrl, internName, codeFiles);
           result = await callNvidiaApi(prompt);
           console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
-          console.log(`  Reason: ${result.reason}`);
         }
+
+        console.log(`  Reason: ${result.reason}`);
 
         const nowStr = new Date().toISOString();
         const base = `submissions.${index}`;
@@ -460,9 +460,9 @@ async function main() {
 
         if (result.verified) {
           verified++;
-          console.log(`  ✓ Task verified successfully.`);
+          console.log(`  ✓ Task verified. ${result.reason}`);
         } else {
-          console.log(`  ✗ Task NOT verified.`);
+          console.log(`  ✗ Task NOT verified. ${result.reason}`);
         }
       } catch (err) {
         errors++;
