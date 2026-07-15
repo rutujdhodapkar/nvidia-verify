@@ -233,8 +233,7 @@ async function callNvidiaApi(prompt) {
 }
 
 function isLinkedInPostUrl(url) {
-  if (!url) return false;
-  return /https?:\/\/www\.linkedin\.com\//i.test(url);
+  return url && url.length > 0;
 }
 
 async function extractImageFromLinkedInPost(postUrl) {
@@ -333,15 +332,11 @@ async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
 }
 
 async function verifyLinkedInPost(postUrl, internName, internId, domain) {
-  const linkedinRe = /https?:\/\/(?:www\.)?linkedin\.com\//i;
-  if (!linkedinRe.test(postUrl)) {
-    return { verified: false, confidence: 0, reason: "Not a LinkedIn URL", message: "Submit a LinkedIn post URL." };
-  }
   return {
     verified: true,
     confidence: 75,
-    reason: `LinkedIn post URL submitted — offer letter posted by ${internName} for ${domain || "internship"}.`,
-    message: "Offer letter posted on LinkedIn successfully.",
+    reason: `Offer letter posted by ${internName} for ${domain || "internship"} — URL: ${postUrl.slice(0, 100)}`,
+    message: "Offer letter posted successfully.",
   };
 }
 
@@ -395,22 +390,22 @@ async function main() {
 
         if (taskTitle.toLowerCase().includes("offer letter")) {
           console.log(`  Offer letter image verification`);
-          if (!isLinkedInPostUrl(submissionUrl)) {
+          if (!submissionUrl) {
             result = {
               verified: false,
               confidence: 0,
-              reason: "Submission URL is not a LinkedIn post. Provide the LinkedIn post URL where your offer letter is uploaded.",
-              message: "Post your offer letter on LinkedIn and submit the post URL.",
+              reason: "No submission URL provided.",
+              message: "Submit the URL of your posted offer letter.",
             };
           } else {
-            console.log(`  LinkedIn URL: ${submissionUrl.slice(0, 120)}...`);
+            console.log(`  Submission URL: ${submissionUrl.slice(0, 120)}...`);
             try {
               const imageUrl = await extractImageFromLinkedInPost(submissionUrl);
               console.log(`  Extracted image: ${imageUrl.slice(0, 100)}...`);
               result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
               console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
             } catch (err) {
-              console.warn(`  Image extraction failed (${err.message}), verifying based on LinkedIn URL`);
+              console.warn(`  Image extraction failed (${err.message}), verifying based on URL`);
               result = await verifyLinkedInPost(submissionUrl, internName, internId, domain);
               console.log(`  URL-based verdict: verified=${result.verified}, confidence=${result.confidence}`);
             }
