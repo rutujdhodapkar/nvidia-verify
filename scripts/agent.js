@@ -147,7 +147,8 @@ async function main() {
 
   // Step 4: Post to LinkedIn company page
   console.log('[4/4] Posting to LinkedIn company page...');
-  await postToLinkedinPage({ content: post, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
+  const cleanPost = post.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
+  await postToLinkedinPage({ content: cleanPost, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
 
   // Track state
   state.previousPosts.push(post);

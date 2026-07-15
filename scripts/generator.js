@@ -256,7 +256,8 @@ Generate the post now. Return ONLY the JSON.`;
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join('\n') : '';
 
   const postParts = [title, '', hook, '', 'Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
-  const postText = postParts.filter(Boolean).join('\n');
+  let postText = postParts.filter(Boolean).join('\n');
+  postText = postText.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
 
   const designBrief = parsed.design_brief || null;
 

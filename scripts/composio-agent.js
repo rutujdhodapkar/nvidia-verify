@@ -27,6 +27,8 @@ function cleanPost(text) {
   t = t.replace(/```/g, '').trim();
   // Strip hashtags from body (sent separately via API)
   t = t.replace(/\n?#\w+/g, '').trim();
+  // Strip raw URL from post text (image already has it)
+  t = t.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz').trim();
   return t;
 }
 
