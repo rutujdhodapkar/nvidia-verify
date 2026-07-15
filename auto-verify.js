@@ -232,92 +232,16 @@ async function callNvidiaApi(prompt) {
   return JSON.parse(match[0]);
 }
 
-function isLinkedInPostUrl(url) {
-  return url && url.length > 0;
-}
-
-async function extractImageFromLinkedInPost(postUrl) {
-  const res = await fetchWithTimeout(postUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-      "Sec-Fetch-User": "?1",
-      "Upgrade-Insecure-Requests": "1",
-      "Cache-Control": "max-age=0",
-    },
-  }, 15000);
-  if (!res.ok) throw new Error(`LinkedIn fetch failed: ${res.status}`);
-  const html = await res.text();
-
-  const ogMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-  if (ogMatch) return ogMatch[1];
-
-  const twitterImgMatch = html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
-  if (twitterImgMatch) return twitterImgMatch[1];
-
-  throw new Error("Could not extract image from LinkedIn post");
-}
-
-async function fetchImageAsBase64(imageUrl) {
-  const res = await fetchWithTimeout(imageUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "image/avif,image/webp,image/apng,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Referer": "https://www.linkedin.com/",
-      "Sec-Fetch-Dest": "image",
-      "Sec-Fetch-Mode": "no-cors",
-      "Sec-Fetch-Site": "cross-site",
-    },
-  }, 20000);
-  if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
-  const contentType = res.headers.get("content-type") || "image/png";
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (buffer.length < 100) throw new Error(`Image too small (${buffer.length} bytes)`);
-  if (buffer.length > 20 * 1024 * 1024) throw new Error(`Image too large (${(buffer.length / 1024 / 1024).toFixed(1)}MB)`);
-  const b64 = buffer.toString("base64");
-  return { base64: b64, mimeType: contentType };
-}
-
-async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
+async function callVisionApi(imageUrl, promptText) {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) throw new Error("NVIDIA_API_KEY not set");
 
-  const promptText = `You are verifying an offer letter image for a virtual internship program.\n\nStudent Name: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nCheck the offer letter image for the following:\n1. The intern name "${internName}" appears on the document\n2. An intern ID or reference number appears\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nIf most elements are present and the image is clearly an offer letter from DevCraft, mark verified. Minor text visibility issues are okay as long as the key info is there.\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
-
-  let imageContent;
-  try {
-    const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
-    imageContent = { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } };
-  } catch (fetchErr) {
-    console.warn(`  Local fetch failed (${fetchErr.message}), passing URL directly to NVIDIA`);
-    imageContent = { type: "image_url", image_url: { url: imageUrl } };
-  }
-
   const response = await fetch(NVIDIA_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "User-Agent": "DevCraft-Verifier/1.0",
-      Accept: "application/json",
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: NVIDIA_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: promptText },
-            imageContent,
-          ],
-        },
-      ],
+      messages: [{ role: "user", content: [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: imageUrl } }] }],
       temperature: 0.3,
       max_tokens: 700,
     }),
@@ -329,6 +253,11 @@ async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
   const match = content.match(/\{[\s\S]*\}/);
   if (!match) throw new Error(`No JSON found in AI response: ${content.slice(0, 200)}`);
   return JSON.parse(match[0]);
+}
+
+async function verifyOfferLetterImage(imageUrl, internName, internId, domain) {
+  const promptText = `You are verifying an offer letter image for a virtual internship program. Read the text in the image carefully.\n\nStudent Name to match: ${internName}\nIntern ID: ${internId || "N/A"}\nDomain: ${domain || "N/A"}\n\nCheck the offer letter image for ALL of these:\n1. The intern name "${internName}" appears on the document\n2. An intern ID or reference number appears\n3. The domain (${domain || "the internship domain"}) is mentioned\n4. "DevCraft", "DEV/CRAFT", "devcraft", or "Fennark" branding is visible\n\nRespond with ONLY valid JSON (no markdown, no extra text):\n{ "verified": boolean, "confidence": number (0-100), "reason": string, "message": string }`;
+  return callVisionApi(imageUrl, promptText);
 }
 
 async function verifyLinkedInPost(postUrl, internName, internId, domain) {
@@ -369,8 +298,7 @@ async function main() {
       const index = Number(indexStr);
 
       if (!sub.submittedAt) continue;
-      if (sub.verified) { skipped++; continue; }
-      if (sub.rejected) { skipped++; continue; }
+      if (sub.verified && !sub.resubmit) { skipped++; continue; }
 
       const project = projects[index];
       if (!project) {
@@ -398,14 +326,12 @@ async function main() {
               message: "Submit the URL of your posted offer letter.",
             };
           } else {
-            console.log(`  Submission URL: ${submissionUrl.slice(0, 120)}...`);
+            console.log(`  Analyzing image from: ${submissionUrl.slice(0, 120)}...`);
             try {
-              const imageUrl = await extractImageFromLinkedInPost(submissionUrl);
-              console.log(`  Extracted image: ${imageUrl.slice(0, 100)}...`);
-              result = await verifyOfferLetterImage(imageUrl, internName, internId, domain);
-              console.log(`  NVIDIA verdict: verified=${result.verified}, confidence=${result.confidence}`);
+              result = await verifyOfferLetterImage(submissionUrl, internName, internId, domain);
+              console.log(`  NVIDIA OCR verdict: verified=${result.verified}, confidence=${result.confidence}`);
             } catch (err) {
-              console.warn(`  Image extraction failed (${err.message}), verifying based on URL`);
+              console.warn(`  NVIDIA vision failed (${err.message}), approving based on URL`);
               result = await verifyLinkedInPost(submissionUrl, internName, internId, domain);
               console.log(`  URL-based verdict: verified=${result.verified}, confidence=${result.confidence}`);
             }
