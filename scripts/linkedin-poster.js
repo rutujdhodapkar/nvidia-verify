@@ -100,7 +100,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
     }
   }
 
-  // Step 4: Create post
+  // Step 4: Create post — normal image post (URL is embedded in image, not in text)
   console.log('      Creating LinkedIn post...');
   const postBody = {
     author: owner,

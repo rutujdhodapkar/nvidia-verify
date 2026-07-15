@@ -201,7 +201,7 @@ leverage, synergy, passionate, excited to announce, thrilled, game-changer, unlo
 4. BODY — 2-4 lines answering What/Why/When/Where/Who — focus on benefits, timeline, what they receive
 5. PROOF — One line with a specific number (e.g. "10,000+ learners already enrolled")
 6. ENGAGEMENT — One W-question from the techniques list (with emoji)
-7. CTA — "Apply here: https://devcraft.fennark.xyz/"
+7. CTA — "Apply now → devcraft.fennark.xyz"
 8. HASHTAGS — 3-5 relevant hashtags (always include #DevCraft and #VirtualInternship)
 
 ## OUTPUT FORMAT
@@ -217,7 +217,7 @@ Return ONLY valid JSON (no markdown, no code fences):
   "body": "No waiting, no interviews, no fees. You enroll, get your offer letter instantly, and start building real projects the same day. Self-paced, 6 weeks, entirely online. When you finish, you get a verified certificate + LOR that employers can check instantly.",
   "proof": "10,000+ engineering students already enrolled across India.",
   "engagement": "What's the #1 thing you want from an internship? Drop below 👇",
-  "cta_line": "Apply here: https://devcraft.fennark.xyz/",
+  "cta_line": "Apply now → devcraft.fennark.xyz",
   "hashtags": ["#DevCraft", "#VirtualInternship", "#Python", "#EngineeringStudents"],
   "design_brief": {
     "tone": "clean | editorial | bold | professional | tech",
@@ -252,7 +252,7 @@ Generate the post now. Return ONLY the JSON.`;
   const body = parsed.body || '';
   const proof = parsed.proof || '';
   const engagement = parsed.engagement || '';
-  const ctaLine = parsed.cta_line || 'Apply here: https://devcraft.fennark.xyz/';
+  const ctaLine = parsed.cta_line || 'Apply now at devcraft.fennark.xyz';
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.join('\n') : '';
 
   const postParts = [title, '', hook, '', 'Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
@@ -298,7 +298,7 @@ Rules:
 - Make hook more urgent and specific — name the exact fear
 - Ensure skills are prominent (3 bullet points max)
 - Add natural emoji in engagement line (one only)
-- Ensure CTA uses the exact URL: https://devcraft.fennark.xyz/
+- Ensure CTA references devcraft.fennark.xyz as a text mention (no raw URL)
 - Remove any pricing language — no "free", no fees mentioned
 - Remove any banned words (leverage, synergy, passionate, game-changer, etc.)
 - Stay compliant: no employment/placement guarantees, no placed students, no job outcomes, no claims of industry recognition

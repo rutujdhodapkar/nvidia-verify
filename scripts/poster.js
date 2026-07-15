@@ -1,5 +1,3 @@
-const SITE_URL = 'devcraft.fennark.xyz';
-
 export async function postToLinkedin({ content, imageBuffer, refreshToken, clientId, clientSecret, pageId }) {
   if (!refreshToken) throw new Error('Missing LINKEDIN_REFRESH_TOKEN');
 
@@ -13,7 +11,7 @@ export async function postToLinkedin({ content, imageBuffer, refreshToken, clien
 
   const COMPANY_LINK = `https://www.linkedin.com/company/devcraft-internships/`;
   const safe = content.length > 2800 ? content.slice(0, 2780).trim().replace(/[\s,]+$/, '') + '…' : content;
-  const finalContent = safe.includes(SITE_URL) ? `${safe}\n\n${COMPANY_LINK}` : `${safe}\n\nApply at ${SITE_URL}\n${COMPANY_LINK}`;
+  const finalContent = `${safe}\n\n${COMPANY_LINK}`;
 
   const ok = await tryPost(authorUrn, { text: finalContent }, imageBuffer, headers);
   if (!ok) throw new Error('Post failed');
