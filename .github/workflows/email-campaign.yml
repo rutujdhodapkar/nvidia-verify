@@ -20,3 +20,8 @@ jobs:
       - run: node scripts/send-bulk.js
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
+          PORTFOLIO_FIREBASE_URL: ${{ secrets.PORTFOLIO_FIREBASE_URL || 'https://portfolio-cfe62-default-rtdb.firebaseio.com' }}
+          FIREBASE_LOGS_URL: ${{ secrets.FIREBASE_LOGS_URL || 'https://laptop-privacy-default-rtdb.firebaseio.com' }}
+          BLOCKED_EMAILS: ${{ secrets.BLOCKED_EMAILS }}

@@ -1,238 +1,402 @@
 import 'dotenv/config';
-import { isBlocked, filterBlocked } from '../lib/blocklist.js';
+import { sendEmail } from '../lib/mailjet.js';
+import { sendBrevoEmail } from '../lib/brevo.js';
+import { isBlocked } from '../lib/blocklist.js';
+import {
+  pfGet, pfPut, pfPatch, pfDelete, pfPush, encodeKey, removeBlockedEmails,
+} from '../lib/portfolio-firebase.js';
+import { logEmailSend } from '../lib/firebase.js';
 
-const FIREBASE_URL = 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const FROM_EMAIL = 'Support@fennark.xyz';
-const FROM_NAME = 'Fennark';
-const DAILY_LIMIT = 300;
-const BATCH_SIZE = 10;
 const SITE = 'devcraft.fennark.xyz';
+const FROM_EMAIL = 'support@fennark.xyz';
+const FROM_NAME = 'DEV/CRAFT';
+const MAILJET_DAILY = 200;
+const BREVO_DAILY = 300;
+const HOLD_DAYS = 5;
 
-const templates = [
-  {
-    subject: 'Your virtual internship is waiting',
-    bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
+const templates = {
+  welcome: {
+    subject: 'Welcome to DEV/CRAFT! Start Your Internship Journey',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Welcome to DEV/CRAFT</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>Thanks for signing up! You're now part of the DEV/CRAFT community.</p>
+<p><strong>Next step:</strong> Complete your profile and select your internship domain to receive your offer letter with a unique Intern ID.</p>
+<p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#6366f1;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Get Started</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  login: {
+    subject: 'Continue Your DEV/CRAFT Internship',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#059669,#10b981);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Your Internship Awaits</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>We noticed you've logged in but haven't completed your enrollment yet.</p>
+<p>Select your domain to receive your instant offer letter and start working on real projects. It takes just 2 minutes.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Choose Your Domain</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  internship_application: {
+    subject: 'Your DEV/CRAFT Application — Next Steps',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#2563eb,#3b82f6);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Application Received</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>Your internship application has been received! Here's what happens next:</p>
+<ul><li>Complete your payment to activate your internship</li><li>Receive your offer letter with a unique Intern ID</li><li>Start working on 6 weeks of real projects</li><li>Earn your completion certificate with live verification</li></ul>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Complete Enrollment</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  payment_success: {
+    subject: 'Payment Confirmed — Your Internship is Active',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#059669,#10b981);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Payment Successful</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>Your payment has been confirmed. Your internship is now fully active!</p>
+<p>You can start working on your projects immediately. Complete all tasks to earn your certificate.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Go to Dashboard</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  all_done_with_payment: {
+    subject: 'Congratulations! Your Internship is Complete',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#7c3aed,#a855f7);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Internship Complete</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>Congratulations on completing your DEV/CRAFT internship! Your certificate is ready with a live verification link.</p>
+<p>Share your achievement on LinkedIn and tag DEV/CRAFT. Stay tuned for advanced programs and referral rewards.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">View Certificate</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  all_tasks_done_no_payment: {
+    subject: 'Complete Your Payment to Get Certified',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#f59e0b,#d97706);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Almost There!</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>You've completed all your tasks — great work! Just one more step: complete your payment to unlock your certificate.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#f59e0b;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Complete Payment</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  internship_expired: {
+    subject: 'Your Internship Has Expired — Re-apply Now',
+    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:linear-gradient(135deg,#dc2626,#ef4444);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">Time to Re-Apply</h1></div>
+<p>Hi ${name || 'there'},</p>
+<p>Your previous internship period has ended. But don't worry — you can re-apply and continue from where you left off.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#dc2626;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Re-Apply Now</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+  },
+  promo: [
+    {
+      subject: 'Your virtual internship is waiting',
+      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
 <p>Hi ${name || 'there'},</p>
 <p>DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
 <p>When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.</p>
 <p>It takes 2 minutes to apply. No interviews. No waiting.</p>
-<p><a href="https://${SITE}">${SITE}</a></p>
-<p>Best,<br>The DEV/CRAFT Team</p>
-</div>`,
-    bodyText: (name) => `Hi ${name || 'there'},
-
-DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.
-
-When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.
-
-It takes 2 minutes to apply. No interviews. No waiting.
-
-${SITE}
-
-Best,
-The DEV/CRAFT Team`,
-  },
-  {
-    subject: 'Your offer letter is ready — just apply',
-    bodyHTML: (name) => `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px">
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Apply Now</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+      text: (name) => `Hi ${name || 'there'},\n\nDEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.\n\nWhen you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.\n\nIt takes 2 minutes to apply. No interviews. No waiting.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
+    },
+    {
+      subject: 'Your offer letter is ready — just apply',
+      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
 <p>Hi ${name || 'there'},</p>
 <p>At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.</p>
 <p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.</p>
 <p>Your certificate comes with a live verification link employers can check in seconds.</p>
-<p><a href="https://${SITE}">${SITE}</a></p>
-<p>Best,<br>The DEV/CRAFT Team</p>
-</div>`,
-    bodyText: (name) => `Hi ${name || 'there'},
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Enroll Now</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+      text: (name) => `Hi ${name || 'there'},\n\nAt DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.\n\nChoose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.\n\nYour certificate comes with a live verification link employers can check in seconds.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
+    },
+    {
+      subject: 'Get certified in just 6 weeks — free to start',
+      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<p>Hi ${name || 'there'},</p>
+<p>Start your DEV/CRAFT virtual internship today. Complete 6 weeks of real projects and earn a certificate with live verification.</p>
+<p>20+ domains available. Self-paced. No experience required.</p>
+<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Start Free</a></p>
+<p>Best,<br>The DEV/CRAFT Team</p></div>`,
+      text: (name) => `Hi ${name || 'there'},\n\nStart your DEV/CRAFT virtual internship today. Complete 6 weeks of real projects and earn a certificate with live verification.\n\n20+ domains available. Self-paced. No experience required.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
+    },
+  ],
+};
 
-At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.
+function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.
+function daysBetween(d1, d2) {
+  const a = new Date(d1);
+  const b = new Date(d2);
+  return Math.floor((b - a) / (1000 * 60 * 60 * 24));
+}
 
-Your certificate comes with a live verification link employers can check in seconds.
-
-${SITE}
-
-Best,
-The DEV/CRAFT Team`,
-  },
-];
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+function pickTemplate(category, counter = 0) {
+  const tpl = templates[category];
+  if (!tpl) return templates.promo[counter % templates.promo.length];
+  if (Array.isArray(tpl)) return tpl[counter % tpl.length];
+  return tpl;
 }
 
 async function getMeta() {
-  const res = await fetch(`${FIREBASE_URL}/meta.json`);
-  if (res.status === 404) return {};
-  const data = await res.json();
+  const data = await pfGet('meta');
   return data || {};
 }
 
 async function saveMeta(meta) {
-  await fetch(`${FIREBASE_URL}/meta.json`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(meta),
-  });
+  await pfPut('meta', meta);
 }
 
-async function getQueueBatch(limit) {
-  const res = await fetch(`${FIREBASE_URL}/queue.json?orderBy="$key"&limitToFirst=${limit}`);
-  if (res.status === 404) return {};
-  const data = await res.json();
+async function getAllWebEmails() {
+  const cats = await pfGet('emailCategories');
+  if (!cats || typeof cats !== 'object') return [];
+  const emails = [];
+  for (const [category, entries] of Object.entries(cats)) {
+    if (!entries || typeof entries !== 'object') continue;
+    for (const [encodedEmail] of Object.entries(entries)) {
+      const email = encodedEmail.replace(/_/g, match => match === '_at_' ? '@' : match === '_dot_' ? '.' : match);
+      const decodedEmail = encodedEmail.replace(/_/g, '.').replace(/,/g, '@');
+      emails.push({ email: decodedEmail, name: '', category, source: 'web', encodedKey: encodedEmail });
+    }
+  }
+  return emails;
+}
+
+async function getQueueEmails() {
+  const data = await pfGet('queue');
+  if (!data || typeof data !== 'object') return [];
+  return Object.entries(data).map(([key, item]) => ({
+    email: item.email || key,
+    name: item.name || '',
+    category: 'promo',
+    source: 'queue',
+    queueKey: key,
+    retryCount: item.retryCount || 0,
+  }));
+}
+
+async function getSentEmails() {
+  const data = await pfGet('sent');
+  if (!data || typeof data !== 'object') return [];
+  return Object.values(data).filter(e => e.email);
+}
+
+async function getUserState(email) {
+  const data = await pfGet(`user-state/${encodeKey(email)}`);
   return data || {};
 }
 
-async function sendViaBrevo({ email, name, templateIdx }) {
-  const tpl = templates[templateIdx % templates.length];
-  const body = {
-    sender: { email: FROM_EMAIL, name: FROM_NAME },
-    to: [{ email, name: name || '' }],
-    subject: tpl.subject,
-    htmlContent: tpl.bodyHTML(name),
-    textContent: tpl.bodyText(name),
-    replyTo: { email: FROM_EMAIL },
-  };
-
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Brevo error ${res.status}: ${err}`);
-  }
-
-  return res.json();
+async function updateUserState(email, updates) {
+  await pfPatch(`user-state/${encodeKey(email)}`, updates);
 }
 
-async function moveToSent(queueKey, item, messageId, templateIdx) {
-  const sentEntry = {
-    name: item.name,
-    email: item.email,
-    sentAt: new Date().toISOString(),
-    messageId,
-    template: templateIdx % templates.length,
-  };
-
-  const [sentRes, delRes] = await Promise.all([
-    fetch(`${FIREBASE_URL}/sent/${queueKey}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sentEntry),
-    }),
-    fetch(`${FIREBASE_URL}/queue/${queueKey}.json`, {
-      method: 'DELETE',
-    }),
-  ]);
-
-  if (!sentRes.ok || !delRes.ok) {
-    const err = await sentRes.text();
-    throw new Error(`Firebase move error: ${err}`);
-  }
+async function shouldSkipDueToHold(email) {
+  const state = await getUserState(email);
+  if (!state.lastSentAt) return false;
+  return daysBetween(state.lastSentAt, todayStr()) < HOLD_DAYS;
 }
 
-async function sendBatch() {
+async function sendViaChannel({ email, name, subject, html, text, category, headers }) {
+  if (category === 'web') {
+    return await sendEmail({ to: email, toName: name || '', subject, html, text, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
+  }
+  return await sendBrevoEmail({ to: email, toName: name || '', subject, htmlContent: html, textContent: text });
+}
+
+async function main() {
+  console.log(`\n=== Unified Email Campaign: ${new Date().toISOString()} ===\n`);
+
   const meta = await getMeta();
   const today = todayStr();
 
   if (meta.lastRunDate !== today) {
-    meta.dailyCount = 0;
-    meta.templateCounter = 0;
+    meta.dailyMailjetCount = 0;
+    meta.dailyBrevoCount = 0;
     meta.lastRunDate = today;
+    meta.templateCounter = meta.templateCounter || 0;
   }
 
-  if (meta.dailyCount >= DAILY_LIMIT) {
-    return { meta, sent: 0, failed: 0, done: true };
+  const mailjetRemaining = MAILJET_DAILY - (meta.dailyMailjetCount || 0);
+  const brevoRemaining = BREVO_DAILY - (meta.dailyBrevoCount || 0);
+  console.log(`Daily capacity: Mailjet ${mailjetRemaining}/${MAILJET_DAILY}, Brevo ${brevoRemaining}/${BREVO_DAILY}`);
+
+  console.log('\nFetching web emails from emailCategories...');
+  let webEmails = await getAllWebEmails();
+  console.log(`Found ${webEmails.length} web email entries.\n`);
+
+  console.log('Fetching promo emails from queue...');
+  let promoEmails = await getQueueEmails();
+  console.log(`Found ${promoEmails.length} promo email entries in queue.\n`);
+
+  console.log('Processing sent emails for promo re-targeting...');
+  const sentEmails = await getSentEmails();
+  const sentEmailSet = new Set(sentEmails.map(e => e.email?.toLowerCase().trim()).filter(Boolean));
+  console.log(`Found ${sentEmails.length} sent entries, will re-target as promo.\n`);
+
+  let templateCounter = meta.templateCounter || 0;
+
+  const dedupMap = new Map();
+
+  for (const e of webEmails) {
+    const key = e.email.toLowerCase().trim();
+    if (!dedupMap.has(key)) {
+      dedupMap.set(key, { email: e.email, name: e.name, categories: [], source: 'web' });
+    }
+    dedupMap.get(key).categories.push(e.category);
   }
 
-  const remaining = DAILY_LIMIT - meta.dailyCount;
-  const batchSize = Math.min(BATCH_SIZE, remaining);
-
-  const queue = await getQueueBatch(batchSize);
-  const entries = Object.entries(queue);
-
-  if (entries.length === 0) {
-    return { meta, sent: 0, failed: 0, done: true };
+  for (const e of promoEmails) {
+    const key = e.email.toLowerCase().trim();
+    if (!dedupMap.has(key)) {
+      dedupMap.set(key, { email: e.email, name: e.name, categories: ['promo'], source: 'promo', queueKey: e.queueKey, retryCount: e.retryCount });
+    } else {
+      const entry = dedupMap.get(key);
+      if (!entry.categories.includes('promo')) entry.categories.push('promo');
+      entry.source = 'both';
+      entry.queueKey = entry.queueKey || e.queueKey;
+      entry.retryCount = Math.max(entry.retryCount || 0, e.retryCount || 0);
+    }
   }
 
-  let sent = 0;
-  let failed = 0;
-  let templateIdx = meta.templateCounter || 0;
+  for (const email of sentEmailSet) {
+    const key = email.toLowerCase().trim();
+    if (!dedupMap.has(key)) {
+      dedupMap.set(key, { email, name: '', categories: ['promo'], source: 'promo' });
+    } else {
+      const entry = dedupMap.get(key);
+      if (!entry.categories.includes('promo')) entry.categories.push('promo');
+    }
+  }
 
-  for (const [key, item] of entries) {
-    if (isBlocked(item.email)) {
-      console.log(`  ⊙ Blocked: ${item.email} — moving to /blocked/`);
-      await fetch(`${FIREBASE_URL}/blocked/${key}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...item, blockedAt: new Date().toISOString(), reason: 'blocklisted' }),
-      });
-      await fetch(`${FIREBASE_URL}/queue/${key}.json`, { method: 'DELETE' });
+  let entries = Array.from(dedupMap.values());
+
+  const blockedEmails = ['vibhuteonkar588@gmail.com', 'harshadyadav2122005@gmail.com', 'atharvajangam159@gmail.com'];
+  const blockedSet = new Set(blockedEmails.map(e => e.toLowerCase()));
+
+  entries = entries.filter(e => {
+    if (isBlocked(e.email) || blockedSet.has(e.email.toLowerCase())) {
+      console.log(`  \u2299 Blocked: ${e.email}`);
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`\nTotal unique recipients after dedup: ${entries.length}\n`);
+
+  console.log('Checking 5-day hold...');
+  const toSend = [];
+  for (const e of entries) {
+    if (await shouldSkipDueToHold(e.email)) {
+      const state = await getUserState(e.email);
+      console.log(`  \u25c7 Skipped ${e.email} (last sent ${state.lastSentAt?.slice(0, 10)})`);
       continue;
     }
+    toSend.push(e);
+  }
+  console.log(`Ready to send: ${toSend.length} recipients\n`);
+
+  const webEntries = toSend.filter(e => e.categories.some(c => c !== 'promo'));
+  const promoEntries = toSend.filter(e => e.categories.includes('promo'));
+
+  let mailjetSent = 0, brevoSent = 0, errors = 0;
+
+  // Phase 1: Web emails via Mailjet (priority)
+  console.log('[Phase 1: Web Emails via Mailjet]');
+  const webToSend = webEntries.slice(0, mailjetRemaining);
+  for (const e of webToSend) {
     try {
-      const result = await sendViaBrevo({ email: item.email, name: item.name, templateIdx });
-      await moveToSent(key, item, result.messageId, templateIdx);
-      meta.dailyCount = (meta.dailyCount || 0) + 1;
-      templateIdx++;
-      sent++;
-    } catch (err) {
-      console.error(`  ✗ ${item.email}: ${err.message}`);
-      const retryCount = (item.retryCount || 0) + 1;
-      if (retryCount >= 3) {
-        await fetch(`${FIREBASE_URL}/failed/${key}.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...item, retryCount, lastError: err.message, failedAt: new Date().toISOString() }),
-        });
-        await fetch(`${FIREBASE_URL}/queue/${key}.json`, { method: 'DELETE' });
-        console.log(`  → Moved to /failed/ after ${retryCount} attempts`);
-      } else {
-        await fetch(`${FIREBASE_URL}/queue/${key}.json`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ retryCount }),
-        });
-        console.log(`  → Will retry (attempt ${retryCount}/3)`);
+      const primaryCat = e.categories.find(c => c !== 'promo') || e.categories[0];
+      const tpl = pickTemplate(primaryCat);
+      const subject = typeof tpl.subject === 'function' ? tpl.subject(e.name) : tpl.subject;
+      const html = typeof tpl.html === 'function' ? tpl.html(e.name) : '';
+      const headers = [{ Name: 'X-Category', Value: primaryCat }];
+
+      const result = await sendEmail({ to: e.email, toName: e.name, subject, html, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
+      const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || '';
+
+      await updateUserState(e.email, { lastSentAt: new Date().toISOString(), lastCategory: primaryCat, lastSource: 'mailjet' });
+      await logEmailSend({ email: e.email, name: e.name, type: `web_${primaryCat}`, subject, status: 'sent', messageId });
+
+      mailjetSent++;
+      console.log(`  \u2713 ${e.email} [${primaryCat}] via Mailjet`);
+
+      // Move to promo: if internship_application or sent, add to queue
+      if (primaryCat === 'internship_application' || sentEmailSet.has(e.email.toLowerCase())) {
+        const queueKey = encodeKey(e.email);
+        const existingQueue = await pfGet(`queue/${queueKey}`);
+        if (!existingQueue) {
+          await pfPut(`queue/${queueKey}`, { email: e.email, name: e.name, addedAt: new Date().toISOString(), source: `auto_from_${primaryCat}` });
+          console.log(`  \u2192 Added ${e.email} to promo queue (auto from ${primaryCat})`);
+        }
       }
-      failed++;
+    } catch (err) {
+      console.error(`  \u2717 ${e.email}: ${err.message}`);
+      errors++;
     }
   }
+  console.log(`Web sent: ${mailjetSent}/${webToSend.length}\n`);
 
-  meta.templateCounter = templateIdx;
-  await saveMeta(meta);
-  return { meta, sent, failed, done: false };
-}
+  // Phase 2: Promo emails via remaining Mailjet + Brevo
+  const remainingMailjet = mailjetRemaining - mailjetSent;
+  const promoMailjetAllocation = Math.min(promoEntries.length, remainingMailjet);
+  const promoBrevoAllocation = Math.min(promoEntries.length - promoMailjetAllocation, brevoRemaining);
 
-async function main() {
-  console.log(`\n=== Email Campaign: ${new Date().toISOString()} ===\n`);
+  console.log('[Phase 2: Promo Emails]');
+  console.log(`Allocation: Mailjet ${promoMailjetAllocation}, Brevo ${promoBrevoAllocation}\n`);
 
-  let totalSent = 0;
-  let totalFailed = 0;
-  let round = 0;
+  let promoIdx = 0;
 
-  while (true) {
-    round++;
-    const result = await sendBatch();
+  for (const e of promoEntries) {
+    if (promoIdx >= promoMailjetAllocation + promoBrevoAllocation) break;
 
-    totalSent += result.sent;
-    totalFailed += result.failed;
+    try {
+      const tpl = pickTemplate('promo', templateCounter);
+      const subject = tpl.subject;
+      const html = tpl.html(e.name);
+      const text = tpl.text ? tpl.text(e.name) : undefined;
 
-    if (result.done) break;
+      let messageId = '';
+      if (promoIdx < promoMailjetAllocation) {
+        const headers = [{ Name: 'X-Category', Value: 'promo' }, { Name: 'Precedence', Value: 'bulk' }];
+        const result = await sendEmail({ to: e.email, toName: e.name, subject, html, text, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
+        messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || '';
+        mailjetSent++;
+        console.log(`  \u2713 ${e.email} [promo] via Mailjet`);
+      } else {
+        const result = await sendBrevoEmail({ to: e.email, toName: e.name, subject, htmlContent: html, textContent: text });
+        messageId = result?.messageId || '';
+        brevoSent++;
+        console.log(`  \u2713 ${e.email} [promo] via Brevo`);
+      }
 
-    if (result.sent === 0 && result.failed === 0) break;
+      await updateUserState(e.email, { lastSentAt: new Date().toISOString(), lastCategory: 'promo', lastSource: promoIdx < promoMailjetAllocation ? 'mailjet' : 'brevo' });
+      await logEmailSend({ email: e.email, name: e.name, type: 'promo', subject, status: 'sent', messageId });
 
-    await new Promise(r => setTimeout(r, 2000));
+      templateCounter++;
+
+      // Remove from queue if it came from there
+      if (e.queueKey) {
+        await pfDelete(`queue/${encodeKey(e.queueKey)}`);
+      }
+    } catch (err) {
+      console.error(`  \u2717 ${e.email}: ${err.message}`);
+      errors++;
+    }
+    promoIdx++;
   }
+  console.log(`Promo sent: ${Math.min(promoIdx, promoMailjetAllocation + promoBrevoAllocation)} (MJ: ${Math.min(promoIdx, promoMailjetAllocation)}, BV: ${Math.max(0, promoIdx - promoMailjetAllocation)})\n`);
 
-  console.log(`\n=== Done: ${totalSent} sent, ${totalFailed} failed ===`);
+  // Update meta
+  meta.dailyMailjetCount = (meta.dailyMailjetCount || 0) + mailjetSent;
+  meta.dailyBrevoCount = (meta.dailyBrevoCount || 0) + brevoSent;
+  meta.templateCounter = templateCounter;
+  await saveMeta(meta);
+
+  console.log(`=== Done: ${mailjetSent} Mailjet, ${brevoSent} Brevo, ${errors} errors ===\n`);
 }
 
 main().catch(err => { console.error('[FATAL]', err); process.exit(1); });
