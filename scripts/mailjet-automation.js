@@ -12,6 +12,7 @@ import {
 import {
   analyzeEnrollmentsForEmailing, deduplicateEnrollments, suggestEmailContent, analyzeLogs,
 } from '../lib/ai-analyzer.js';
+import { isBlocked } from '../lib/blocklist.js';
 
 const COSMOS_DATABASE = 'devcraft';
 const COSMOS_CONTAINER = 'main';
@@ -21,17 +22,6 @@ const FROM_NAME = 'DEV/CRAFT';
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-run');
 const SANDBOX_EMAIL = process.env.SANDBOX_EMAIL || null;
 const IS_PROD = process.env.NODE_ENV === 'production';
-
-const BLOCKED_EMAILS = new Set([
-  'vibhuteonkar588@gmail.com',
-  'harshadyadav2122005@gmail.com',
-  'atharvajangam159@gmail.com',
-  ...(process.env.BLOCKED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean),
-]);
-
-function isBlocked(email) {
-  return BLOCKED_EMAILS.has((email || '').toLowerCase().trim());
-}
 
 function resolveEmail(original) {
   if (DRY_RUN) return null;

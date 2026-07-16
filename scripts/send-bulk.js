@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { isBlocked, filterBlocked } from '../lib/blocklist.js';
 
 const FIREBASE_URL = 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
@@ -166,6 +167,16 @@ async function sendBatch() {
   let templateIdx = meta.templateCounter || 0;
 
   for (const [key, item] of entries) {
+    if (isBlocked(item.email)) {
+      console.log(`  ⊙ Blocked: ${item.email} — moving to /blocked/`);
+      await fetch(`${FIREBASE_URL}/blocked/${key}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, blockedAt: new Date().toISOString(), reason: 'blocklisted' }),
+      });
+      await fetch(`${FIREBASE_URL}/queue/${key}.json`, { method: 'DELETE' });
+      continue;
+    }
     try {
       const result = await sendViaBrevo({ email: item.email, name: item.name, templateIdx });
       await moveToSent(key, item, result.messageId, templateIdx);
