@@ -20,7 +20,10 @@
     "mailjet:expiry": "node scripts/mailjet-automation.js pre-expiry",
     "mailjet:complete": "node scripts/mailjet-automation.js completion",
     "mailjet:dryrun": "node scripts/mailjet-automation.js all --dry-run",
-    "mailjet:sandbox": "node scripts/mailjet-automation.js all"
+    "mailjet:analyze": "node scripts/mailjet-automation.js analyze",
+    "mailjet:logs": "node scripts/mailjet-automation.js logs",
+    "mailjet:test": "node scripts/mailjet-automation.js all",
+    "mailjet:prod": "set NODE_ENV=production && node scripts/mailjet-automation.js all"
   },
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
