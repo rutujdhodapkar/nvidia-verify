@@ -6,6 +6,7 @@ import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { generateImage } from './image-gen.js';
 import { postToLinkedinPage } from './linkedin-poster.js';
+import { postToLinkedinPage as postToLinkedinViaZapier } from './zapier-poster.js';
 import { getFigmaImageUrl } from './figma.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
@@ -53,7 +54,7 @@ async function uploadToGithub(filename, buffer) {
 async function main() {
   console.log(`\n═══ DEV/CRAFT LinkedIn Agent ═══\n${new Date().toISOString()}\n`);
   const state = await loadState();
-  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_PAGE_ID = '134233993', FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
+  const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, HF_API_TOKEN, LINKEDIN_CLIENT_ID, LINKEDIN_REFRESH_TOKEN, LINKEDIN_PAGE_ID = '134233993', FIGMA_TOKEN, FIGMA_FILE_KEY, FIGMA_FRAME_ID } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
   if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
@@ -146,9 +147,41 @@ async function main() {
   console.log(`      ✓ Image: ${imageUrl}\n`);
 
   // Step 4: Post to LinkedIn company page
-  console.log('[4/4] Posting to LinkedIn company page...');
+  let posted = false;
   const cleanPost = post.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
-  await postToLinkedinPage({ content: cleanPost, imageUrl, zapierToken: ZAPIER_TOKEN, pageId: LINKEDIN_PAGE_ID });
+
+  if (LINKEDIN_CLIENT_ID && LINKEDIN_REFRESH_TOKEN) {
+    console.log('[4/4] Posting via LinkedIn REST API (direct, image embedded)...');
+    try {
+      const result = await postToLinkedinPage({ content: cleanPost, imageUrl, pageId: LINKEDIN_PAGE_ID });
+      console.log(`      ✓ Posted via LinkedIn API: ${result}`);
+      posted = true;
+    } catch (err) {
+      console.log(`      ⚠ LinkedIn API failed: ${err.message.slice(0, 150)}`);
+      console.log('      Falling back to Zapier...');
+    }
+  }
+
+  if (!posted) {
+    console.log('[4/4] Posting to LinkedIn via Zapier MCP (image as link thumbnail)...');
+    try {
+      const result = await postToLinkedinViaZapier({
+        content: cleanPost,
+        imageUrl: imageUrl || '',
+        zapierToken: ZAPIER_TOKEN,
+        pageId: LINKEDIN_PAGE_ID,
+      });
+      console.log(`      ✓ Posted via Zapier MCP: ${result}`);
+      posted = true;
+    } catch (err) {
+      console.log(`      ⚠ Zapier MCP failed: ${err.message.slice(0, 150)}`);
+    }
+  }
+
+  if (!posted) {
+    console.error('[!] All posting methods failed');
+    process.exit(1);
+  }
 
   // Track state
   state.previousPosts.push(post);

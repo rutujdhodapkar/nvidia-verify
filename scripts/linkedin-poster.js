@@ -1,32 +1,32 @@
 const TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
-const API = 'https://api.linkedin.com/v2';
+const API_REST = 'https://api.linkedin.com/rest';
+const API_V2 = 'https://api.linkedin.com/v2';
+
+function authHeaders(accessToken) {
+  return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+}
 
 async function discoverOrgUrn(accessToken, pageId) {
-  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
-  // Try looking up by vanity name
-  const vanityRes = await fetch(`${API}/organizations?q=vanityName&vanityName=devcraft-internships`, { headers });
+  const headers = authHeaders(accessToken);
+  const vanityRes = await fetch(`${API_V2}/organizations?q=vanityName&vanityName=devcraft-internships`, { headers });
   if (vanityRes.ok) {
     const data = await vanityRes.json();
     if (data?.elements?.[0]?.id) return `urn:li:organization:${data.elements[0].id}`;
   }
-  // Try user's org admin endpoints
-  const aclRes = await fetch(`${API}/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, { headers });
+  const aclRes = await fetch(`${API_V2}/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, { headers });
   if (aclRes.ok) {
     const data = await aclRes.json();
     const entity = data?.elements?.[0]?.organizationalTarget;
     if (entity) return entity;
   }
-  // Fallback: use pageId directly
   return `urn:li:organization:${pageId || '134233993'}`;
 }
 
-export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageId }) {
+async function refreshAccessToken() {
   const { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REFRESH_TOKEN } = process.env;
   if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET || !LINKEDIN_REFRESH_TOKEN) {
     throw new Error('Missing LinkedIn OAuth credentials');
   }
-
-  // Step 1: Get access token
   console.log('      Refreshing LinkedIn token...');
   const tokenRes = await fetch(TOKEN_URL, {
     method: 'POST',
@@ -47,94 +47,179 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   const accessToken = tokenData.access_token;
   if (!accessToken) throw new Error('No access_token in response');
   console.log('      ✓ Token refreshed');
+  return accessToken;
+}
 
-  const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
-
-  // Discover correct org URN
-  console.log('      Looking up organization...');
-  const owner = await discoverOrgUrn(accessToken, pageId);
-  console.log(`      ✓ Owner: ${owner}`);
-
-  // Step 2: If image URL provided, register upload and upload image
-  let mediaAsset = null;
-  if (imageUrl) {
-    console.log('      Registering image upload...');
-    const registerRes = await fetch(`${API}/assets?action=registerUpload`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        registerUploadRequest: {
-          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-          owner,
-          serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
-        },
-      }),
-    });
-    if (!registerRes.ok) {
-      const err = await registerRes.text().catch(() => '');
-      console.log(`      Image register failed: ${err.slice(0, 150)}`);
-    } else {
-      const regData = await registerRes.json();
-      const uploadUrl = regData?.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
-      const asset = regData?.value?.asset;
-      if (uploadUrl && asset) {
-        // Step 3: Upload the image binary
-        console.log('      Uploading image binary...');
-        const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
-        if (imgRes.ok) {
-          const imgBuf = await imgRes.arrayBuffer();
-          const uploadRes = await fetch(uploadUrl, { method: 'POST', body: imgBuf, signal: AbortSignal.timeout(30000) });
-          if (uploadRes.ok) {
-            mediaAsset = asset;
-            console.log(`      ✓ Image uploaded: ${mediaAsset}`);
-          } else {
-            const ue = await uploadRes.text().catch(() => '');
-            console.log(`      Image binary upload failed: ${ue.slice(0, 100)}`);
-          }
-        } else {
-          console.log(`      Fetching image from URL failed: ${imgRes.status}`);
-        }
-      } else {
-        console.log('      No upload URL in register response');
-      }
-    }
+async function uploadImageRestApi(accessToken, owner, imageUrl) {
+  const initRes = await fetch(`${API_REST}/images?action=initializeUpload`, {
+    method: 'POST',
+    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '20240101' },
+    body: JSON.stringify({ initializeUploadRequest: { owner } }),
+  });
+  if (!initRes.ok) {
+    const errText = await initRes.text().catch(() => '');
+    console.log(`      /rest/images init failed (${initRes.status}): ${errText.slice(0, 200)}`);
+    return null;
   }
+  const initData = await initRes.json();
+  const uploadUrl = initData?.value?.uploadUrl;
+  const imageUrn = initData?.value?.image;
+  if (!uploadUrl || !imageUrn) {
+    console.log('      No uploadUrl or image in /rest/images response');
+    return null;
+  }
+  console.log('      Uploading image binary to /rest/images upload URL...');
+  const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
+  if (!imgRes.ok) {
+    console.log(`      Fetching image from URL failed: ${imgRes.status}`);
+    return null;
+  }
+  const imgBuf = await imgRes.arrayBuffer();
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: imgBuf,
+    headers: { 'Content-Type': 'application/octet-stream' },
+    signal: AbortSignal.timeout(30000),
+  });
+  if (uploadRes.ok) {
+    console.log(`      ✓ Image uploaded via /rest/images: ${imageUrn}`);
+    return imageUrn;
+  }
+  const ue = await uploadRes.text().catch(() => '');
+  console.log(`      Image binary upload to /rest/images failed: ${ue.slice(0, 100)}`);
+  return null;
+}
 
-  // Step 4: Create post — normal image post (URL is embedded in image, not in text)
-  console.log('      Creating LinkedIn post...');
+async function uploadImageLegacyApi(accessToken, owner, imageUrl) {
+  const registerRes = await fetch(`${API_V2}/assets?action=registerUpload`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+        owner,
+        serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
+      },
+    }),
+  });
+  if (!registerRes.ok) {
+    const err = await registerRes.text().catch(() => '');
+    console.log(`      /v2/assets register failed (${registerRes.status}): ${err.slice(0, 200)}`);
+    return null;
+  }
+  const regData = await registerRes.json();
+  const uploadUrl = regData?.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
+  const asset = regData?.value?.asset;
+  if (!uploadUrl || !asset) {
+    console.log('      No uploadUrl or asset in /v2/assets response');
+    return null;
+  }
+  console.log('      Uploading image binary to /v2/assets upload URL...');
+  const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
+  if (!imgRes.ok) {
+    console.log(`      Fetching image from URL failed: ${imgRes.status}`);
+    return null;
+  }
+  const imgBuf = await imgRes.arrayBuffer();
+  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: imgBuf, signal: AbortSignal.timeout(30000) });
+  if (uploadRes.ok) {
+    console.log(`      ✓ Image uploaded via /v2/assets: ${asset}`);
+    return asset;
+  }
+  const ue = await uploadRes.text().catch(() => '');
+  console.log(`      Image binary upload to /v2/assets failed: ${ue.slice(0, 100)}`);
+  return null;
+}
+
+async function postViaRestApi(accessToken, owner, commentary, mediaUrn) {
+  if (mediaUrn && !mediaUrn.startsWith('urn:li:image:')) {
+    console.log('      Media URN is legacy format, skipping /rest/posts');
+    return null;
+  }
+  const postBody = {
+    author: owner,
+    commentary,
+    visibility: 'PUBLIC',
+    distribution: {
+      feedDistribution: 'MAIN_FEED',
+      targetEntities: [],
+      thirdPartyDistributionChannels: [],
+    },
+    lifecycleState: 'PUBLISHED',
+    isReshareDisabledByAuthor: false,
+  };
+  if (mediaUrn && mediaUrn.startsWith('urn:li:image:')) {
+    postBody.content = {
+      media: { id: mediaUrn, altText: 'DevCraft Virtual Internship Program' },
+    };
+  }
+  const postRes = await fetch(`${API_REST}/posts`, {
+    method: 'POST',
+    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '20240101' },
+    body: JSON.stringify(postBody),
+  });
+  if (postRes.ok) {
+    const postId = postRes.headers.get('x-restli-id') || postRes.headers.get('location') || 'success';
+    console.log(`[POST] ✓ Company page post: ${postId}`);
+    return postId;
+  }
+  const errText = await postRes.text().catch(() => '');
+  console.log(`      /rest/posts failed (${postRes.status}): ${errText.slice(0, 300)}`);
+  return null;
+}
+
+async function postViaUgcApi(accessToken, owner, commentary, mediaUrn) {
+  const shareMediaCategory = mediaUrn && mediaUrn.startsWith('urn:li:digitalmediaAsset:') ? 'IMAGE' : 'NONE';
   const postBody = {
     author: owner,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
-        shareCommentary: { text: content },
-        shareMediaCategory: mediaAsset ? 'IMAGE' : 'NONE',
+        shareCommentary: { text: commentary },
+        shareMediaCategory,
       },
     },
     visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
   };
-
-  if (mediaAsset) {
+  if (shareMediaCategory === 'IMAGE') {
     postBody.specificContent['com.linkedin.ugc.ShareContent'].media = [{
       status: 'READY',
-      description: { text: 'DevCraft Virtual Internship' },
-      media: mediaAsset,
+      description: { text: 'DevCraft Virtual Internship Program' },
+      media: mediaUrn,
       title: { text: 'DevCraft Internship' },
     }];
   }
-
-  const postRes = await fetch(`${API}/ugcPosts`, {
+  const postRes = await fetch(`${API_V2}/ugcPosts`, {
     method: 'POST',
-    headers: { ...headers, 'X-Restli-Protocol-Version': '2.0.0' },
+    headers: { ...authHeaders(accessToken), 'X-Restli-Protocol-Version': '2.0.0' },
     body: JSON.stringify(postBody),
   });
+  if (postRes.ok) {
+    const postUrl = postRes.headers.get('location') || 'success';
+    console.log(`[POST] ✓ Company page (UGC): ${postUrl}`);
+    return postUrl;
+  }
+  const errText = await postRes.text().catch(() => '');
+  throw new Error(`UGC post failed ${postRes.status}: ${errText.slice(0, 300)}`);
+}
 
-  if (!postRes.ok) {
-    const err = await postRes.text().catch(() => '');
-    throw new Error(`LinkedIn post failed ${postRes.status}: ${err.slice(0, 300)}`);
+export async function postToLinkedinPage({ content, imageUrl, pageId }) {
+  const accessToken = await refreshAccessToken();
+  const owner = await discoverOrgUrn(accessToken, pageId);
+  console.log(`      ✓ Owner: ${owner}`);
+
+  let mediaUrn = null;
+  if (imageUrl) {
+    console.log('      Registering image upload...');
+    mediaUrn = await uploadImageRestApi(accessToken, owner, imageUrl);
+    if (!mediaUrn) {
+      mediaUrn = await uploadImageLegacyApi(accessToken, owner, imageUrl);
+    }
   }
 
-  const postUrl = postRes.headers.get('location') || 'success';
-  console.log(`[POST] ✓ Company page: ${postUrl}`);
-  return postUrl;
+  const result = await postViaRestApi(accessToken, owner, content, mediaUrn);
+  if (result) return result;
+
+  console.log('      Falling back to UGC API...');
+  return await postViaUgcApi(accessToken, owner, content, mediaUrn);
 }

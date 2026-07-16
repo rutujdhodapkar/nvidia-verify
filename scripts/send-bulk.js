@@ -159,7 +159,7 @@ async function getAllWebEmails() {
     if (!entries || typeof entries !== 'object') continue;
     for (const [encodedEmail] of Object.entries(entries)) {
       const email = encodedEmail.replace(/_/g, match => match === '_at_' ? '@' : match === '_dot_' ? '.' : match);
-      const decodedEmail = encodedEmail.replace(/_/g, '.').replace(/,/g, '@');
+      const decodedEmail = encodedEmail.replace(/_/g, '@').replace(/,/g, '.');
       emails.push({ email: decodedEmail, name: '', category, source: 'web', encodedKey: encodedEmail });
     }
   }
@@ -313,7 +313,7 @@ async function main() {
       const tpl = pickTemplate(primaryCat);
       const subject = typeof tpl.subject === 'function' ? tpl.subject(e.name) : tpl.subject;
       const html = typeof tpl.html === 'function' ? tpl.html(e.name) : '';
-      const headers = [{ Name: 'X-Category', Value: primaryCat }];
+      const headers = { 'X-Category': primaryCat };
 
       const result = await sendEmail({ to: e.email, toName: e.name, subject, html, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
       const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || '';
@@ -361,7 +361,7 @@ async function main() {
 
       let messageId = '';
       if (promoIdx < promoMailjetAllocation) {
-        const headers = [{ Name: 'X-Category', Value: 'promo' }, { Name: 'Precedence', Value: 'bulk' }];
+        const headers = { 'X-Category': 'promo', Precedence: 'bulk' };
         const result = await sendEmail({ to: e.email, toName: e.name, subject, html, text, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
         messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || '';
         mailjetSent++;
