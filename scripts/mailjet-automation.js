@@ -51,30 +51,6 @@ async function listEnrollments(container) {
   return resources.map((r) => ({ id: r.id, ...cleanDoc(r) }));
 }
 
-async function updateEnrollment(container, id, updates) {
-  try {
-    const { resource: existing } = await container.item(id, 'enrollments').read();
-    if (!existing) { console.warn(`  Enrollment ${id} not found`); return; }
-    const merged = { ...existing };
-    for (const [key, value] of Object.entries(updates)) {
-      if (key.includes('.')) {
-        const parts = key.split('.');
-        let obj = merged;
-        for (let i = 0; i < parts.length - 1; i++) {
-          if (!(parts[i] in obj) || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
-          obj = obj[parts[i]];
-        }
-        obj[parts[parts.length - 1]] = value;
-      } else {
-        merged[key] = value;
-      }
-    }
-    await container.item(id, 'enrollments').replace(merged);
-  } catch (err) {
-    console.error(`  Failed to update enrollment ${id}: ${err.message}`);
-  }
-}
-
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 function daysBetween(d1, d2) {
@@ -94,52 +70,83 @@ function getTaskStats(projects, submissions) {
   return { totalTasks, completedTasks, pendingTasks, lastSubmittedAt };
 }
 
-function determinePendingEmailTypes(enrollment) {
-  const types = [];
-  const today = todayStr();
-  const { pendingTasks, totalTasks, completedTasks } = getTaskStats(enrollment.projects || [], enrollment.submissions || {});
-  const endDate = enrollment.endDate || enrollment.internshipEndDate;
-
-  if (!enrollment.mailjet?.welcomeSent) types.push('welcome');
-  if (enrollment.internId && enrollment.domain && !enrollment.mailjet?.offerLetterSent) types.push('offerLetter');
-  if (enrollment.paymentStatus === 'completed' && enrollment.internId && !enrollment.mailjet?.paymentSent) types.push('payment');
-  if (enrollment.internId && pendingTasks > 0) {
-    const lastReminderSentAt = enrollment.mailjet?.lastTaskReminderSentAt;
-    const daysSinceLastReminder = lastReminderSentAt ? daysBetween(lastReminderSentAt, today) : Infinity;
-    if (daysSinceLastReminder >= 4) types.push('taskReminder');
-  }
-  if (enrollment.internId && endDate) {
-    const daysUntilEnd = daysBetween(today, endDate);
-    if (daysUntilEnd === 5 && pendingTasks > 0 && !enrollment.mailjet?.preExpirySent) types.push('preExpiry');
-  }
-  if (enrollment.internId && totalTasks > 0 && completedTasks >= totalTasks && !enrollment.mailjet?.completionSent) types.push('completion');
-
-  return types;
+function encodeKey(str) {
+  return (str || '').toLowerCase().replace(/[.#$\/\[\]]/g, '_');
 }
 
-function buildCombinedBody(enrollment, types) {
-  const { name, email, internId, domain, paymentAmount, paymentId } = enrollment;
+async function getUserState(email) {
+  const data = await fbGet(`mailjet/user-state/${encodeKey(email)}`);
+  return data || {};
+}
+
+async function updateUserState(email, updates) {
+  await fbPatch(`mailjet/user-state/${encodeKey(email)}`, updates);
+}
+
+function determineCategory(enrollment, state) {
+  const { totalTasks, completedTasks } = getTaskStats(enrollment.projects || [], enrollment.submissions || {});
+  const allDone = totalTasks > 0 && completedTasks >= totalTasks;
+  if (allDone) return 'completed';
+  if (state?.category === 'completed') return 're-enrolled';
+  return 'active';
+}
+
+function shouldSendCombined(enrollment, state) {
+  const today = todayStr();
+  const lastSent = state?.lastCombinedSentAt;
+  if (!lastSent) return true;
+  return daysBetween(lastSent, today) >= 5;
+}
+
+function buildCombinedBody(enrollment, category) {
+  const { name, email, internId, domain, paymentAmount, projects, submissions } = enrollment;
   const endDate = enrollment.endDate || enrollment.internshipEndDate;
-  const { pendingTasks, totalTasks, completedTasks } = getTaskStats(enrollment.projects || [], enrollment.submissions || {});
+  const { totalTasks, completedTasks, pendingTasks } = getTaskStats(projects || [], submissions || {});
   const today = todayStr();
   const daysUntilEnd = endDate ? daysBetween(today, endDate) : null;
-  const lastSubmittedAt = getTaskStats(enrollment.projects || [], enrollment.submissions || {}).lastSubmittedAt;
-  const daysSinceActivity = lastSubmittedAt ? daysBetween(lastSubmittedAt, today) : null;
+  const now = new Date().toISOString();
 
-  const sections = {
-    welcome: types.includes('welcome') ? `<h2>Welcome to DEV/CRAFT!</h2><p>Hi ${name},</p><p>Welcome to the DEV/CRAFT internship program! We're excited to have you on board.</p><p>You'll receive further instructions about your domain and tasks shortly.</p>` : '',
-    offerLetter: types.includes('offerLetter') ? `<h2>Offer Letter & Internship Details</h2><p>Congratulations ${name}!</p><p>Your internship offer has been confirmed.</p><ul><li><strong>Intern ID:</strong> ${internId}</li><li><strong>Domain:</strong> ${domain}</li></ul><p>Please keep your Intern ID handy for all future correspondence.</p>` : '',
-    payment: types.includes('payment') ? `<h2>Payment Confirmation</h2><p>Hi ${name},</p><p>Your payment of <strong>${paymentAmount || 'N/A'}</strong> has been received successfully.</p>${paymentId ? `<p>Payment ID: ${paymentId}</p>` : ''}<p>Your internship is now active. Get started with your tasks!</p>` : '',
-    taskReminder: types.includes('taskReminder') ? `<h2>Task Reminder</h2><p>Hi ${name},</p><p>You have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''} in your internship.</p>${daysSinceActivity !== null ? `<p>Last activity was ${daysSinceActivity} day${daysSinceActivity !== 1 ? 's' : ''} ago.</p>` : '<p>Please start working on your tasks as soon as possible.</p>'}<p>Stay on track to complete your internship successfully!</p>` : '',
-    preExpiry: types.includes('preExpiry') ? `<h2>Internship Ending Soon</h2><p>Hi ${name},</p><p>Your internship is ending in <strong>${daysUntilEnd} days</strong> (${endDate}).</p><p>You still have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''}. Please complete them before the deadline.</p><p>If you need an extension, please reach out to us.</p>` : '',
-    completion: types.includes('completion') ? `<h2>Congratulations! Internship Complete</h2><p>Hi ${name},</p><p>You have successfully completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''} of your DEV/CRAFT internship!</p><p>Your completion certificate will be issued shortly.</p><p>Thank you for your hard work and dedication.</p>` : '',
-  };
+  let subject, greeting, sections = [];
 
-  const bodySections = Object.values(sections).filter(Boolean);
-  if (bodySections.length === 0) return null;
+  if (category === 'completed') {
+    subject = 'Your DEV/CRAFT Journey – What\'s Next?';
+    greeting = `<h2>Congratulations, ${name || 'Intern'}!</h2>`;
+    sections = [
+      `<p>You've successfully completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''} of your DEV/CRAFT internship. Great work!</p>`,
+      `<p>Your certificate of completion is available. Stay tuned for updates on new opportunities, advanced programs, and referral rewards.</p>`,
+      `<p style="color:#6b7280;font-size:13px">If you'd like to explore a new internship with us, simply re-apply and we'll fast-track your enrollment.</p>`,
+    ];
+  } else {
+    const prefix = category === 're-enrolled' ? 'Welcome Back' : 'DEV/CRAFT Update';
+    subject = `${prefix} – Your Internship Progress`;
+    greeting = `<h2>Hi ${name || 'Intern'}${category === 're-enrolled' ? ', welcome back!' : '!'}</h2>`;
 
-  const subjectPrefix = types.includes('completion') ? 'Congratulations! ' : types.includes('preExpiry') ? 'Urgent: ' : '';
-  const subject = `${subjectPrefix}DEV/CRAFT Internship Update`;
+    if (category === 're-enrolled') {
+      sections.push(`<p>We're glad to see you again! Your new internship is now active.</p>`);
+    } else if (internId && !enrollment.mailjet?.welcomeSent) {
+      sections.push(`<p>Welcome to the DEV/CRAFT internship program! We're excited to have you on board.</p>`);
+    }
+
+    if (internId && domain) {
+      sections.push(`<h3>Your Internship Details</h3><ul><li><strong>Intern ID:</strong> ${internId}</li><li><strong>Domain:</strong> ${domain}</li></ul>`);
+    }
+
+    if (pendingTasks > 0) {
+      sections.push(`<h3>Task Progress</h3><p>You have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''} out of ${totalTasks} total.</p>`);
+      if (completedTasks > 0) sections.push(`<p>Completed: ${completedTasks} / ${totalTasks}</p>`);
+      if (daysUntilEnd !== null && daysUntilEnd > 0) {
+        sections.push(`<p><strong>Deadline:</strong> ${daysUntilEnd} day${daysUntilEnd !== 1 ? 's' : ''} remaining (${endDate}).</p>`);
+      }
+    } else if (totalTasks > 0) {
+      sections.push(`<h3>Task Progress</h3><p>You've completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''}! Your final review is in progress.</p>`);
+    }
+
+    if (enrollment.paymentStatus === 'completed' && paymentAmount) {
+      sections.push(`<p>Payment received: <strong>${paymentAmount}</strong></p>`);
+    }
+
+    sections.push(`<p style="color:#6b7280;font-size:13px">Check your dashboard for detailed task status and submissions.</p>`);
+  }
 
   const html = `<!DOCTYPE html>
 <html>
@@ -150,7 +157,8 @@ function buildCombinedBody(enrollment, types) {
 <h1 style="color:#fff;margin:0;font-size:22px">DEV/CRAFT Internship</h1>
 </div>
 <div style="padding:24px">
-${bodySections.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">')}
+${greeting}
+${sections.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">')}
 </div>
 <div style="background:#f9fafb;padding:16px 24px;text-align:center;font-size:12px;color:#6b7280">
 <p style="margin:4px 0">DEV/CRAFT Internship Program</p>
@@ -164,48 +172,43 @@ ${bodySections.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:
 }
 
 async function sendCombinedEmails(container, enrollments, stats) {
-  let sent = 0;
+  let sent = 0, skipped = 0, blocked = 0;
   for (const e of enrollments) {
     try {
-      const types = determinePendingEmailTypes(e);
-      if (types.length === 0) continue;
+      if (!e.email) continue;
+      if (isBlocked(e.email)) { logSend('combined', e, 'blocked'); blocked++; continue; }
 
-      if (isBlocked(e.email)) { logSend('combined', e, `[${types.join(', ')}] blocked`); continue; }
+      const state = await getUserState(e.email);
+      const category = determineCategory(e, state);
+
+      if (!shouldSendCombined(e, state)) {
+        const lastSent = state?.lastCombinedSentAt?.slice(0, 10);
+        logSend('skipped', e, `last sent ${lastSent}, < 5 days`);
+        skipped++;
+        continue;
+      }
 
       const to = resolveEmail(e.email);
-      if (!to) { logSend('combined', e, `[${types.join(', ')}] (dry-run)`); continue; }
+      if (!to) { logSend('combined', e, `[${category}] (dry-run)`); sent++; continue; }
 
-      const emailContent = buildCombinedBody(e, types);
-      if (!emailContent) continue;
+      const emailContent = buildCombinedBody(e, category);
+      if (!emailContent) { skipped++; continue; }
 
-      const flags = {};
-      const now = new Date().toISOString();
-      for (const t of types) {
-        const flagMap = {
-          welcome: 'mailjet.welcomeSent',
-          offerLetter: 'mailjet.offerLetterSent',
-          payment: 'mailjet.paymentSent',
-          taskReminder: 'mailjet.lastTaskReminderSentAt',
-          preExpiry: 'mailjet.preExpirySent',
-          completion: 'mailjet.completionSent',
-        };
-        const flag = flagMap[t];
-        if (flag.endsWith('SentAt')) flags[flag] = now;
-        else flags[flag] = true;
-        if (flag.endsWith('Sent')) flags[flag.replace('Sent', 'SentAt')] = now;
+      const headers = category === 'completed'
+        ? [{ Name: 'Precedence', Value: 'bulk' }, { Name: 'X-Category', Value: 'promo' }]
+        : [];
+      if (category === 're-enrolled') {
+        headers.push({ Name: 'X-Category', Value: 're-enrolled' });
       }
 
-      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, html: emailContent.html, fromEmail: FROM_EMAIL, fromName: FROM_NAME });
+      const now = new Date().toISOString();
+      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, html: emailContent.html, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
       const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
 
-      if (!SANDBOX_EMAIL) {
-        if (Object.keys(flags).length > 0) await updateEnrollment(container, e.id, flags);
-      }
+      await updateUserState(e.email, { category, lastCombinedSentAt: now });
+      await logEmailSend({ email: e.email, name: e.name, internId: e.internId, type: `combined_${category}`, subject: emailContent.subject, status: 'sent', messageId });
 
-      for (const t of types) {
-        await logEmailSend({ email: e.email, name: e.name, internId: e.internId, type: t, subject: emailContent.subject, status: 'sent', messageId });
-      }
-      logSend('combined', e, `[${types.join(', ')}]`);
+      logSend('combined', e, `[${category}]`);
       sent++;
     } catch (err) {
       console.error(`  \u2717 combined failed for ${e.email}: ${err.message}`);
@@ -213,7 +216,7 @@ async function sendCombinedEmails(container, enrollments, stats) {
       stats.errors++;
     }
   }
-  return sent;
+  return { sent, skipped, blocked };
 }
 
 async function main() {
@@ -255,9 +258,9 @@ async function main() {
   }
 
   if (mode === 'all' || mode === 'combined') {
-    console.log('[Combined Emails \u2014 one per user with all applicable sections]');
-    const n = await sendCombinedEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
+    console.log('[Combined Emails \u2014 one per user every 5 days]');
+    const result = await sendCombinedEmails(container, enrollments, stats);
+    console.log(`  \u2192 ${result.sent} sent, ${result.skipped} skipped (< 5 days), ${result.blocked} blocked\n`);
   }
 
   if (mode === 'all' || mode === 'logs') {
