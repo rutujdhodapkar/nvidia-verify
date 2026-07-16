@@ -66,6 +66,12 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 7. "Who actually qualifies for a DevCraft internship? Almost everyone."
 8. "Most internships make you wait for an offer letter. DevCraft gives it on day 1."
 
+## CRITICAL — NEVER INCLUDE THESE (ZERO TOLERANCE)
+- NEVER mention jobs, placement, employment, hiring, career, recruit, interview, salary, package
+- NEVER claim certificates are recognized, accepted, valued, or accredited by anyone
+- NEVER say "free", "100% free", "no cost", "paid", "fee", or any pricing
+- NEVER say "industry-recognized", "globally recognized", "employer-accepted"
+
 ## OUTPUT FORMAT — Return ONLY valid JSON:
 {
   "title": "...",
@@ -84,7 +90,25 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
   "variant_label": "A | B"
 }
 
-Generate the post now. IMPORTANT: Every field must contain complete sentences. No fragments. No incomplete thoughts. Body must be 3-5 complete sentences.`;
+Generate the post now. Every sentence must be complete. Body must be 3-5 complete sentences. Violating the CRITICAL rules above will cause automatic rejection.`;
+
+const BLOCKED_PATTERNS = [
+  /\b(job|placement|employ(?:ment|er|ed)|hire|hiring|career|recruit(?:er|ing|ment)?|interview|salary|package|ctc|lpa)\b/i,
+  /\b(industry[- ]?recognized|industry[- ]?accepted|employer[- ]?recognized|globally recognized|widely accepted|accredited)\b/i,
+  /\b(100%\s*free|completely free|totally free|absolutely free|no cost|at no cost|totally free)\b/i,
+  /\bfree\s+(internship|certificate|course|program|training|internship program)\b/i,
+  /\b(paid|pricing|fee|fees|refund)\b/i,
+];
+
+function hasViolations(text) {
+  for (const p of BLOCKED_PATTERNS) {
+    if (p.test(text)) {
+      const match = text.match(p);
+      return `Contains blocked content: "${match?.[0] || p}"`;
+    }
+  }
+  return null;
+}
 
 export async function generatePost(siteData, previousPosts = [], apiKey, model, previousFeedback) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
@@ -134,6 +158,12 @@ Generate the post now. Return ONLY the JSON. REMEMBER: Every sentence must be a 
   const postParts = [title, '', hook, '', 'Skills You\'ll Build:', skills, '', body, '', proof, '', engagement, '', ctaLine, '', hashtags];
   let postText = postParts.filter(Boolean).join('\n');
   postText = postText.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
+
+  const violation = hasViolations(postText);
+  if (violation) {
+    console.log(`      ${violation}`);
+    throw new Error(violation);
+  }
 
   const designBrief = parsed.design_brief || null;
 

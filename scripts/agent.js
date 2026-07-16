@@ -68,8 +68,15 @@ async function main() {
   let feedback = '';
   for (let i = 0; i < 5; i++) {
     console.log(`[2/4] Generating post (attempt ${i + 1})...`);
-    const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
-    post = r.post; html = r.html; imageMeta = r.imageMeta; theme = r.theme; designBrief = r.designBrief;
+    try {
+      const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
+      post = r.post; html = r.html; imageMeta = r.imageMeta; theme = r.theme; designBrief = r.designBrief;
+    } catch (err) {
+      feedback = err.message;
+      console.log(`      ${err.message}`);
+      if (i < 4) console.log('      Retrying...\n');
+      continue;
+    }
     if (isDup(post, state)) { console.log('      Duplicate, retry...\n'); continue; }
 
     console.log('      Reviewing content quality...');
