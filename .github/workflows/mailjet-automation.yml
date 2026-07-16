@@ -19,6 +19,11 @@ on:
           - task-reminder
           - pre-expiry
           - completion
+      dry-run:
+        description: 'Dry run (preview only, no emails sent)'
+        required: false
+        default: false
+        type: boolean
   repository_dispatch:
     types:
       - trigger-mailjet-welcome
@@ -46,8 +51,14 @@ jobs:
           if [[ "${{ github.event.action }}" == "trigger-mailjet-completion" ]]; then MODE="completion"; fi
           echo "mode=$MODE" >> $GITHUB_OUTPUT
 
-      - run: node scripts/mailjet-automation.js ${{ steps.mode.outputs.mode }}
+      - id: args
+        run: |
+          ARGS="${{ steps.mode.outputs.mode }}"
+          if [[ "${{ github.event.inputs.dry-run }}" == "true" ]]; then ARGS="$ARGS --dry-run"; fi
+          echo "args=$ARGS" >> $GITHUB_OUTPUT
+      - run: node scripts/mailjet-automation.js ${{ steps.args.outputs.args }}
         env:
+          NODE_ENV: production
           COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
           MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}

@@ -18,7 +18,9 @@
     "mailjet:payment": "node scripts/mailjet-automation.js payment",
     "mailjet:tasks": "node scripts/mailjet-automation.js task-reminder",
     "mailjet:expiry": "node scripts/mailjet-automation.js pre-expiry",
-    "mailjet:complete": "node scripts/mailjet-automation.js completion"
+    "mailjet:complete": "node scripts/mailjet-automation.js completion",
+    "mailjet:dryrun": "node scripts/mailjet-automation.js all --dry-run",
+    "mailjet:sandbox": "node scripts/mailjet-automation.js all"
   },
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
