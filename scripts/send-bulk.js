@@ -14,113 +14,133 @@ const MAILJET_DAILY = 200;
 const BREVO_DAILY = 300;
 const HOLD_DAYS = 5;
 
+function renderBody(bodyContent) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@media only screen and (max-width:480px){
+  .card{padding:16px!important}
+  .header{padding:20px 16px!important}
+  .header h1{font-size:18px!important}
+  .btn{display:block!important;text-align:center!important;padding:14px 20px!important;font-size:16px!important;width:auto!important}
+  .content{padding:16px!important;font-size:14px!important}
+}
+</style></head>
+<body style="margin:0;padding:0;background:#f4f4f4;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<div class="card" style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+${bodyContent}
+</div></body></html>`;
+}
+
+function headerHtml(gradient, title) {
+  return `<div class="header" style="background:${gradient};padding:30px;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">${title}</h1></div>`;
+}
+
+function btnHtml(url, color, text) {
+  return `<p style="text-align:center;margin:24px 0"><a href="${url}" class="btn" style="display:inline-block;background:${color};color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">${text}</a></p>`;
+}
+
 const templates = {
   welcome: {
     subject: 'Welcome to DEV/CRAFT! Start Your Internship Journey',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Welcome to DEV/CRAFT</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#6366f1,#8b5cf6)','Welcome to DEV/CRAFT')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Thanks for signing up! You're now part of the DEV/CRAFT community.</p>
 <p><strong>Next step:</strong> Complete your profile and select your internship domain to receive your offer letter with a unique Intern ID.</p>
 <p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#6366f1;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Get Started</a></p>
+${btnHtml('https://'+SITE,'#6366f1','Get Started')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   login: {
     subject: 'Continue Your DEV/CRAFT Internship',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#059669,#10b981);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Your Internship Awaits</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#059669,#10b981)','Your Internship Awaits')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>We noticed you've logged in but haven't completed your enrollment yet.</p>
 <p>Select your domain to receive your instant offer letter and start working on real projects. It takes just 2 minutes.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Choose Your Domain</a></p>
+${btnHtml('https://'+SITE,'#059669','Choose Your Domain')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   internship_application: {
     subject: 'Your DEV/CRAFT Application — Next Steps',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#2563eb,#3b82f6);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Application Received</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#2563eb,#3b82f6)','Application Received')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Your internship application has been received! Here's what happens next:</p>
 <ul><li>Complete your payment to activate your internship</li><li>Receive your offer letter with a unique Intern ID</li><li>Start working on 6 weeks of real projects</li><li>Earn your completion certificate with live verification</li></ul>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Complete Enrollment</a></p>
+${btnHtml('https://'+SITE,'#2563eb','Complete Enrollment')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   payment_success: {
     subject: 'Payment Confirmed — Your Internship is Active',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#059669,#10b981);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Payment Successful</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#059669,#10b981)','Payment Successful')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Your payment has been confirmed. Your internship is now fully active!</p>
 <p>You can start working on your projects immediately. Complete all tasks to earn your certificate.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Go to Dashboard</a></p>
+${btnHtml('https://'+SITE,'#059669','Go to Dashboard')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   all_done_with_payment: {
     subject: 'Congratulations! Your Internship is Complete',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#7c3aed,#a855f7);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Internship Complete</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#7c3aed,#a855f7)','Internship Complete')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Congratulations on completing your DEV/CRAFT internship! Your certificate is ready with a live verification link.</p>
 <p>Share your achievement on LinkedIn and tag DEV/CRAFT. Stay tuned for advanced programs and referral rewards.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">View Certificate</a></p>
+${btnHtml('https://'+SITE,'#7c3aed','View Certificate')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   all_tasks_done_no_payment: {
     subject: 'Complete Your Payment to Get Certified',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#f59e0b,#d97706);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Almost There!</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#f59e0b,#d97706)','Almost There!')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>You've completed all your tasks — great work! Just one more step: complete your payment to unlock your certificate.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#f59e0b;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Complete Payment</a></p>
+${btnHtml('https://'+SITE,'#f59e0b','Complete Payment')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   internship_expired: {
     subject: 'Your Internship Has Expired — Re-apply Now',
-    html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:linear-gradient(135deg,#dc2626,#ef4444);margin:-24px -24px 20px;padding:30px;border-radius:8px 8px 0 0;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">Time to Re-Apply</h1></div>
+    body: (name) => `${headerHtml('linear-gradient(135deg,#dc2626,#ef4444)','Time to Re-Apply')}
+<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Your previous internship period has ended. But don't worry — you can re-apply and continue from where you left off.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#dc2626;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Re-Apply Now</a></p>
+${btnHtml('https://'+SITE,'#dc2626','Re-Apply Now')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
   },
   promo: [
     {
       subject: 'Your virtual internship is waiting',
-      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+      body: (name) => `<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.</p>
 <p>When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.</p>
 <p>It takes 2 minutes to apply. No interviews. No waiting.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Apply Now</a></p>
+${btnHtml('https://'+SITE,'#2563eb','Apply Now')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
       text: (name) => `Hi ${name || 'there'},\n\nDEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.\n\nWhen you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.\n\nIt takes 2 minutes to apply. No interviews. No waiting.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
     },
     {
       subject: 'Your offer letter is ready — just apply',
-      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+      body: (name) => `<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.</p>
 <p>Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.</p>
 <p>Your certificate comes with a live verification link employers can check in seconds.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#059669;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Enroll Now</a></p>
+${btnHtml('https://'+SITE,'#059669','Enroll Now')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
       text: (name) => `Hi ${name || 'there'},\n\nAt DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.\n\nChoose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.\n\nYour certificate comes with a live verification link employers can check in seconds.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
     },
     {
       subject: 'Get certified in just 6 weeks — free to start',
-      html: (name) => `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.5;max-width:600px;margin:20px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+      body: (name) => `<div class="content" style="padding:24px">
 <p>Hi ${name || 'there'},</p>
 <p>Start your DEV/CRAFT virtual internship today. Complete 6 weeks of real projects and earn a certificate with live verification.</p>
 <p>20+ domains available. Self-paced. No experience required.</p>
-<p style="text-align:center;margin:24px 0"><a href="https://${SITE}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:600">Start Free</a></p>
+${btnHtml('https://'+SITE,'#7c3aed','Start Free')}
 <p>Best,<br>The DEV/CRAFT Team</p></div>`,
       text: (name) => `Hi ${name || 'there'},\n\nStart your DEV/CRAFT virtual internship today. Complete 6 weeks of real projects and earn a certificate with live verification.\n\n20+ domains available. Self-paced. No experience required.\n\n${SITE}\n\nBest,\nThe DEV/CRAFT Team`,
     },
@@ -307,7 +327,7 @@ async function main() {
       const primaryCat = e.categories.find(c => c !== 'promo') || e.categories[0];
       const tpl = pickTemplate(primaryCat);
       const subject = typeof tpl.subject === 'function' ? tpl.subject(e.name) : tpl.subject;
-      const html = typeof tpl.html === 'function' ? tpl.html(e.name) : '';
+      const html = renderBody(typeof tpl.body === 'function' ? tpl.body(e.name) : '');
       const headers = { 'X-Category': primaryCat };
 
       const result = await sendEmail({ to: e.email, toName: e.name, subject, html, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
@@ -351,7 +371,7 @@ async function main() {
     try {
       const tpl = pickTemplate('promo', templateCounter);
       const subject = tpl.subject;
-      const html = tpl.html(e.name);
+      const html = renderBody(tpl.body(e.name));
       const text = tpl.text ? tpl.text(e.name) : undefined;
 
       let messageId = '';

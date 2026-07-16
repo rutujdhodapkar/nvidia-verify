@@ -243,8 +243,18 @@ Generate the post now. Return ONLY the JSON.`;
   const raw = await callWithRetry(postPrompt, apiKey, model, 2500);
   if (!raw) throw new Error('Post generation failed');
 
-  const cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
-  const parsed = JSON.parse(cleaned);
+  let cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    const objMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (objMatch) {
+      parsed = JSON.parse(objMatch[0]);
+    } else {
+      throw new Error(`Invalid JSON from AI: ${cleaned.slice(0, 200)}`);
+    }
+  }
 
   const title = parsed.title || parsed.headline || '';
   const hook = parsed.hook || '';
