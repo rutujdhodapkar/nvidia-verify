@@ -144,24 +144,58 @@ Generate the post now. Return ONLY the JSON. REMEMBER: Every sentence must be a 
   return { post: postText, html: null, imageMeta, theme: siteData.theme, designBrief };
 }
 
+function checkBlockedContent(text) {
+  const violations = [];
+  const lower = text.toLowerCase();
+  if (/\b(job|placement|employ(?:ment|er|ed)|hire|hiring|career|recruit(?:er|ing|ment)?|interview|salary|package|ctc|lpa|offer letter.*job)\b/i.test(lower)) violations.push('mentions jobs/placement/employment — remove all');
+  if (/\b(industry[- ]?recognized|industry[- ]?accepted|employer[- ]?recognized|globally recognized|widely accepted)\b/i.test(lower)) violations.push('claims certificate recognition — remove');
+  if(/\b(100%\s*free|completely free|totally free|absolutely free|no cost|at no cost)\b/i.test(lower)) violations.push('mentions free/no cost — remove');
+  if(/\bfree\s+(internship|certificate|course|program|training)\b/i.test(lower)) violations.push('mentions free program — remove');
+  if (lower.includes('paid') || lower.includes('pricing') || lower.includes('fee')) violations.push('mentions paid/pricing — remove');
+  return violations;
+}
+
+function checkSentenceCompleteness(text) {
+  const sentences = text.split(/[.!?\n]+/).filter(s => s.trim().length > 15);
+  const incomplete = sentences.filter(s => {
+    const t = s.trim();
+    return !/^[A-Z"'(]/.test(t) || !/.+(ing|ed|es|s|e)$/i.test(t.slice(-3));
+  });
+  return incomplete.length > sentences.length * 0.4 ? 'Many sentences are incomplete or fragments — make every sentence complete with subject + verb' : null;
+}
+
 export async function reviewPost(post, apiKey, model) {
+  const localChecks = checkBlockedContent(post);
+  if (localChecks.length > 0) {
+    return { score: 3, feedback: `VIOLATION: ${localChecks.join('; ')}` };
+  }
+
+  const completenessIssue = checkSentenceCompleteness(post);
+  if (completenessIssue) {
+    return { score: 4, feedback: completenessIssue };
+  }
+
   try {
-    const review = await callWithRetry(`Rate this LinkedIn post 1-10. Criteria:
-- Title grabs attention immediately (0-2)
-- Hook is specific and emotional in first 2 lines (0-2)
-- Every sentence is a COMPLETE sentence (no fragments, no incomplete thoughts) (0-2)
-- Skills are clearly listed with bullet points (0-2)
-- Has proper structure and engagement (0-2)
+    const review = await callWithRetry(`Rate this LinkedIn post 1-10. STRICT CRITERIA (penalize hard for violations):
+- Any mention of jobs, placement, employment, hiring, career outcomes → score 1
+- Any claim of certificate recognition/accreditation → score 1
+- Any mention of free/paid/pricing → score 1
+- Every sentence is a COMPLETE sentence (no fragments) (0-3)
+- Hook grabs attention and promises value in first 2 lines (0-2)
+- Skills section has 3 clear bullet points (0-2)
+- Body has 3-5 complete sentences flowing logically (0-3)
 
 Post:
----${post.slice(0, 600)}---
+---${post.slice(0, 700)}---
 
-Return ONLY valid JSON: {"score": <1-10>, "feedback": "<one line explaining what to improve>"}`, apiKey, model, 500);
+Return valid JSON: {"score": 1-10, "feedback": "specific fix instruction"}`, apiKey, model, 500);
     const cleaned = review.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
     const parsed = JSON.parse(cleaned);
-    return { score: Math.min(10, Math.max(1, parsed.score)), feedback: parsed.feedback || 'No feedback' };
+    return { score: Math.min(10, Math.max(1, parsed.score)), feedback: parsed.feedback || 'Improve quality' };
   } catch {
-    return { score: 8, feedback: 'Pass (review parse failed, defaulting to pass)' };
+    const hasBlocked = checkBlockedContent(post);
+    if (hasBlocked.length > 0) return { score: 3, feedback: hasBlocked.join('; ') };
+    return { score: 6, feedback: 'Review failed, please ensure complete sentences and no job/pricing claims' };
   }
 }
 
