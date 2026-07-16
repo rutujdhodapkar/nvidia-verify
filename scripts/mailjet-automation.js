@@ -2,10 +2,6 @@ import 'dotenv/config';
 import { CosmosClient } from '@azure/cosmos';
 import { sendEmail } from '../lib/mailjet.js';
 import {
-  welcomeEmail, offerLetterEmail, paymentConfirmationEmail,
-  taskReminderEmail, preExpiryEmail, completionCertificateEmail,
-} from '../lib/email-templates.js';
-import {
   fbGet, fbPut, fbPatch, fbPush, logEmailSend, hasEmailBeenSent,
   getEmailLogs, analyzeAndStoreEnrollments, getEnrollmentCategories,
 } from '../lib/firebase.js';
@@ -98,120 +94,124 @@ function getTaskStats(projects, submissions) {
   return { totalTasks, completedTasks, pendingTasks, lastSubmittedAt };
 }
 
-async function shouldSendEmail(email, type) {
-  if (SANDBOX_EMAIL || DRY_RUN) return true;
-  return !(await hasEmailBeenSent({ email, type }));
-}
-
-async function sendWithTracking({ enrollment, type, subject, html, container, flag }) {
-  if (isBlocked(enrollment.email)) { logSend(type, enrollment); return true; }
-  const to = resolveEmail(enrollment.email);
-  if (!to) { logSend(type, enrollment, '(dry-run)'); return true; }
-  try {
-    const result = await sendEmail({ to, toName: enrollment.name, subject, html, fromEmail: FROM_EMAIL, fromName: FROM_NAME });
-    const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
-    if (!SANDBOX_EMAIL) {
-      if (flag) await updateEnrollment(container, enrollment.id, { [flag]: true, [flag.replace('Sent', 'SentAt')]: new Date().toISOString() });
-    }
-    await logEmailSend({ email: enrollment.email, name: enrollment.name, internId: enrollment.internId, type, subject, status: 'sent', messageId });
-    logSend(type, enrollment);
-    return true;
-  } catch (err) {
-    console.error(`  \u2717 ${type} failed for ${enrollment.email}: ${err.message}`);
-    await logEmailSend({ email: enrollment.email, name: enrollment.name, internId: enrollment.internId, type, subject, status: 'failed', error: err.message });
-    return false;
-  }
-}
-
-async function sendWelcomeEmails(container, enrollments, stats) {
-  let sent = 0;
-  for (const e of enrollments) {
-    if (e.mailjet?.welcomeSent) continue;
-    if (!(await shouldSendEmail(e.email, 'welcome'))) { console.log(`  Skipped ${e.email}: already sent via Firebase`); continue; }
-    const tpl = welcomeEmail({ name: e.name || 'Intern', email: e.email });
-    const ok = await sendWithTracking({ enrollment: e, type: 'welcome', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.welcomeSent' });
-    if (ok) sent++; else stats.errors++;
-  }
-  return sent;
-}
-
-async function sendOfferLetterEmails(container, enrollments, stats) {
-  let sent = 0;
-  for (const e of enrollments) {
-    if (e.mailjet?.offerLetterSent) continue;
-    if (!e.internId || !e.domain) continue;
-    if (!(await shouldSendEmail(e.email, 'offerLetter'))) continue;
-    const tpl = offerLetterEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain });
-    const ok = await sendWithTracking({ enrollment: e, type: 'offerLetter', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.offerLetterSent' });
-    if (ok) sent++; else stats.errors++;
-  }
-  return sent;
-}
-
-async function sendPaymentConfirmationEmails(container, enrollments, stats) {
-  let sent = 0;
-  for (const e of enrollments) {
-    if (e.mailjet?.paymentSent) continue;
-    if (e.paymentStatus !== 'completed') continue;
-    if (!e.internId) continue;
-    if (!(await shouldSendEmail(e.email, 'payment'))) continue;
-    const tpl = paymentConfirmationEmail({ name: e.name || 'Intern', email: e.email, amount: e.paymentAmount, paymentId: e.paymentId, internId: e.internId, domain: e.domain });
-    const ok = await sendWithTracking({ enrollment: e, type: 'payment', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.paymentSent' });
-    if (ok) sent++; else stats.errors++;
-  }
-  return sent;
-}
-
-async function sendTaskReminderEmails(container, enrollments, stats) {
-  let sent = 0;
+function determinePendingEmailTypes(enrollment) {
+  const types = [];
   const today = todayStr();
-  for (const e of enrollments) {
-    if (!e.internId) continue;
-    const { pendingTasks, lastSubmittedAt } = getTaskStats(e.projects || [], e.submissions || {});
-    if (pendingTasks === 0) continue;
-    const lastReminderSentAt = e.mailjet?.lastTaskReminderSentAt;
+  const { pendingTasks, totalTasks, completedTasks } = getTaskStats(enrollment.projects || [], enrollment.submissions || {});
+  const endDate = enrollment.endDate || enrollment.internshipEndDate;
+
+  if (!enrollment.mailjet?.welcomeSent) types.push('welcome');
+  if (enrollment.internId && enrollment.domain && !enrollment.mailjet?.offerLetterSent) types.push('offerLetter');
+  if (enrollment.paymentStatus === 'completed' && enrollment.internId && !enrollment.mailjet?.paymentSent) types.push('payment');
+  if (enrollment.internId && pendingTasks > 0) {
+    const lastReminderSentAt = enrollment.mailjet?.lastTaskReminderSentAt;
     const daysSinceLastReminder = lastReminderSentAt ? daysBetween(lastReminderSentAt, today) : Infinity;
-    if (daysSinceLastReminder < 4) continue;
-    if (!(await shouldSendEmail(e.email, 'taskReminder'))) continue;
-    const daysSinceActivity = lastSubmittedAt ? daysBetween(lastSubmittedAt, today) : null;
-    const tpl = taskReminderEmail({ name: e.name || 'Intern', email: e.email, pendingTasks, daysSinceLastActivity: daysSinceActivity, internId: e.internId });
-    const ok = await sendWithTracking({ enrollment: e, type: 'taskReminder', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.lastTaskReminderSentAt' });
-    if (ok) sent++; else stats.errors++;
+    if (daysSinceLastReminder >= 4) types.push('taskReminder');
   }
-  return sent;
-}
-
-async function sendPreExpiryEmails(container, enrollments, stats) {
-  let sent = 0;
-  const today = todayStr();
-  for (const e of enrollments) {
-    if (!e.internId) continue;
-    const endDate = e.endDate || e.internshipEndDate;
-    if (!endDate) continue;
+  if (enrollment.internId && endDate) {
     const daysUntilEnd = daysBetween(today, endDate);
-    if (daysUntilEnd !== 5) continue;
-    if (e.mailjet?.preExpirySent) continue;
-    const { pendingTasks } = getTaskStats(e.projects || [], e.submissions || {});
-    if (pendingTasks === 0) continue;
-    if (!(await shouldSendEmail(e.email, 'preExpiry'))) continue;
-    const tpl = preExpiryEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain || 'N/A', endDate, remainingTasks: pendingTasks });
-    const ok = await sendWithTracking({ enrollment: e, type: 'preExpiry', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.preExpirySent' });
-    if (ok) sent++; else stats.errors++;
+    if (daysUntilEnd === 5 && pendingTasks > 0 && !enrollment.mailjet?.preExpirySent) types.push('preExpiry');
   }
-  return sent;
+  if (enrollment.internId && totalTasks > 0 && completedTasks >= totalTasks && !enrollment.mailjet?.completionSent) types.push('completion');
+
+  return types;
 }
 
-async function sendCompletionEmails(container, enrollments, stats) {
+function buildCombinedBody(enrollment, types) {
+  const { name, email, internId, domain, paymentAmount, paymentId } = enrollment;
+  const endDate = enrollment.endDate || enrollment.internshipEndDate;
+  const { pendingTasks, totalTasks, completedTasks } = getTaskStats(enrollment.projects || [], enrollment.submissions || {});
+  const today = todayStr();
+  const daysUntilEnd = endDate ? daysBetween(today, endDate) : null;
+  const lastSubmittedAt = getTaskStats(enrollment.projects || [], enrollment.submissions || {}).lastSubmittedAt;
+  const daysSinceActivity = lastSubmittedAt ? daysBetween(lastSubmittedAt, today) : null;
+
+  const sections = {
+    welcome: types.includes('welcome') ? `<h2>Welcome to DEV/CRAFT!</h2><p>Hi ${name},</p><p>Welcome to the DEV/CRAFT internship program! We're excited to have you on board.</p><p>You'll receive further instructions about your domain and tasks shortly.</p>` : '',
+    offerLetter: types.includes('offerLetter') ? `<h2>Offer Letter & Internship Details</h2><p>Congratulations ${name}!</p><p>Your internship offer has been confirmed.</p><ul><li><strong>Intern ID:</strong> ${internId}</li><li><strong>Domain:</strong> ${domain}</li></ul><p>Please keep your Intern ID handy for all future correspondence.</p>` : '',
+    payment: types.includes('payment') ? `<h2>Payment Confirmation</h2><p>Hi ${name},</p><p>Your payment of <strong>${paymentAmount || 'N/A'}</strong> has been received successfully.</p>${paymentId ? `<p>Payment ID: ${paymentId}</p>` : ''}<p>Your internship is now active. Get started with your tasks!</p>` : '',
+    taskReminder: types.includes('taskReminder') ? `<h2>Task Reminder</h2><p>Hi ${name},</p><p>You have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''} in your internship.</p>${daysSinceActivity !== null ? `<p>Last activity was ${daysSinceActivity} day${daysSinceActivity !== 1 ? 's' : ''} ago.</p>` : '<p>Please start working on your tasks as soon as possible.</p>'}<p>Stay on track to complete your internship successfully!</p>` : '',
+    preExpiry: types.includes('preExpiry') ? `<h2>Internship Ending Soon</h2><p>Hi ${name},</p><p>Your internship is ending in <strong>${daysUntilEnd} days</strong> (${endDate}).</p><p>You still have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''}. Please complete them before the deadline.</p><p>If you need an extension, please reach out to us.</p>` : '',
+    completion: types.includes('completion') ? `<h2>Congratulations! Internship Complete</h2><p>Hi ${name},</p><p>You have successfully completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''} of your DEV/CRAFT internship!</p><p>Your completion certificate will be issued shortly.</p><p>Thank you for your hard work and dedication.</p>` : '',
+  };
+
+  const bodySections = Object.values(sections).filter(Boolean);
+  if (bodySections.length === 0) return null;
+
+  const subjectPrefix = types.includes('completion') ? 'Congratulations! ' : types.includes('preExpiry') ? 'Urgent: ' : '';
+  const subject = `${subjectPrefix}DEV/CRAFT Internship Update`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f4f4f4">
+<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<div style="background:#2563eb;padding:20px;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:22px">DEV/CRAFT Internship</h1>
+</div>
+<div style="padding:24px">
+${bodySections.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">')}
+</div>
+<div style="background:#f9fafb;padding:16px 24px;text-align:center;font-size:12px;color:#6b7280">
+<p style="margin:4px 0">DEV/CRAFT Internship Program</p>
+<p style="margin:4px 0">Email: support@fennark.xyz</p>
+</div>
+</div>
+</body>
+</html>`;
+
+  return { subject, html };
+}
+
+async function sendCombinedEmails(container, enrollments, stats) {
   let sent = 0;
   for (const e of enrollments) {
-    if (e.mailjet?.completionSent) continue;
-    if (!e.internId) continue;
-    const { totalTasks, completedTasks } = getTaskStats(e.projects || [], e.submissions || {});
-    if (totalTasks === 0 || completedTasks < totalTasks) continue;
-    if (!(await shouldSendEmail(e.email, 'completion'))) continue;
-    const tpl = completionCertificateEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain || 'N/A' });
-    const ok = await sendWithTracking({ enrollment: e, type: 'completion', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.completionSent' });
-    if (ok) sent++; else stats.errors++;
+    try {
+      const types = determinePendingEmailTypes(e);
+      if (types.length === 0) continue;
+
+      if (isBlocked(e.email)) { logSend('combined', e, `[${types.join(', ')}] blocked`); continue; }
+
+      const to = resolveEmail(e.email);
+      if (!to) { logSend('combined', e, `[${types.join(', ')}] (dry-run)`); continue; }
+
+      const emailContent = buildCombinedBody(e, types);
+      if (!emailContent) continue;
+
+      const flags = {};
+      const now = new Date().toISOString();
+      for (const t of types) {
+        const flagMap = {
+          welcome: 'mailjet.welcomeSent',
+          offerLetter: 'mailjet.offerLetterSent',
+          payment: 'mailjet.paymentSent',
+          taskReminder: 'mailjet.lastTaskReminderSentAt',
+          preExpiry: 'mailjet.preExpirySent',
+          completion: 'mailjet.completionSent',
+        };
+        const flag = flagMap[t];
+        if (flag.endsWith('SentAt')) flags[flag] = now;
+        else flags[flag] = true;
+        if (flag.endsWith('Sent')) flags[flag.replace('Sent', 'SentAt')] = now;
+      }
+
+      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, html: emailContent.html, fromEmail: FROM_EMAIL, fromName: FROM_NAME });
+      const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
+
+      if (!SANDBOX_EMAIL) {
+        if (Object.keys(flags).length > 0) await updateEnrollment(container, e.id, flags);
+      }
+
+      for (const t of types) {
+        await logEmailSend({ email: e.email, name: e.name, internId: e.internId, type: t, subject: emailContent.subject, status: 'sent', messageId });
+      }
+      logSend('combined', e, `[${types.join(', ')}]`);
+      sent++;
+    } catch (err) {
+      console.error(`  \u2717 combined failed for ${e.email}: ${err.message}`);
+      await logEmailSend({ email: e.email, name: e.name, internId: e.internId, type: 'combined', subject: 'DEV/CRAFT Internship Update', status: 'failed', error: err.message });
+      stats.errors++;
+    }
   }
   return sent;
 }
@@ -223,7 +223,7 @@ async function main() {
     console.error('SAFETY: Use --dry-run, SANDBOX_EMAIL, or NODE_ENV=production');
     process.exit(1);
   }
-  if (DRY_RUN) console.log('  \u{1F7E1} DRY RUN — no emails sent\n');
+  if (DRY_RUN) console.log('  \u{1F7E1} DRY RUN \u2014 no emails sent\n');
   if (SANDBOX_EMAIL) console.log(`  \u{1F7E1} SANDBOX \u2192 ${SANDBOX_EMAIL}\n`);
 
   const cosmos = getCosmosClient();
@@ -254,39 +254,9 @@ async function main() {
     console.log();
   }
 
-  if (mode === 'all' || mode === 'welcome') {
-    console.log('[Welcome Emails \u2014 1-time only]');
-    const n = await sendWelcomeEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
-  }
-
-  if (mode === 'all' || mode === 'offer-letter') {
-    console.log('[Offer Letter Emails]');
-    const n = await sendOfferLetterEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
-  }
-
-  if (mode === 'all' || mode === 'payment') {
-    console.log('[Payment Confirmation Emails]');
-    const n = await sendPaymentConfirmationEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
-  }
-
-  if (mode === 'all' || mode === 'task-reminder') {
-    console.log('[Task Reminder Emails \u2014 combined, every 4 days max]');
-    const n = await sendTaskReminderEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
-  }
-
-  if (mode === 'all' || mode === 'pre-expiry') {
-    console.log('[Pre-Expiry Emails \u2014 5 days before end]');
-    const n = await sendPreExpiryEmails(container, enrollments, stats);
-    console.log(`  \u2192 ${n} sent\n`);
-  }
-
-  if (mode === 'all' || mode === 'completion') {
-    console.log('[Completion Certificate Emails]');
-    const n = await sendCompletionEmails(container, enrollments, stats);
+  if (mode === 'all' || mode === 'combined') {
+    console.log('[Combined Emails \u2014 one per user with all applicable sections]');
+    const n = await sendCombinedEmails(container, enrollments, stats);
     console.log(`  \u2192 ${n} sent\n`);
   }
 

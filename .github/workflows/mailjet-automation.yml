@@ -9,16 +9,13 @@ on:
       mode:
         description: 'Email mode to run'
         required: true
-        default: 'all'
+        default: 'combined'
         type: choice
         options:
           - all
-          - welcome
-          - offer-letter
-          - payment
-          - task-reminder
-          - pre-expiry
-          - completion
+          - combined
+          - analyze
+          - logs
       dry-run:
         description: 'Dry run (preview only, no emails sent)'
         required: false
@@ -49,11 +46,8 @@ jobs:
       - name: Determine email mode
         id: mode
         run: |
-          MODE="${{ github.event.inputs.mode || 'all' }}"
-          if [[ "${{ github.event.action }}" == "trigger-mailjet-welcome" ]]; then MODE="welcome"; fi
-          if [[ "${{ github.event.action }}" == "trigger-mailjet-offer" ]]; then MODE="offer-letter"; fi
-          if [[ "${{ github.event.action }}" == "trigger-mailjet-payment" ]]; then MODE="payment"; fi
-          if [[ "${{ github.event.action }}" == "trigger-mailjet-completion" ]]; then MODE="completion"; fi
+          MODE="${{ github.event.inputs.mode || 'combined' }}"
+          if [[ "${{ github.event.action }}" == trigger-mailjet-* ]]; then MODE="combined"; fi
           echo "mode=$MODE" >> $GITHUB_OUTPUT
 
       - id: args
