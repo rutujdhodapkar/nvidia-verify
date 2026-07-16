@@ -35,16 +35,16 @@ function isBlocked(email) {
 
 function resolveEmail(original) {
   if (DRY_RUN) return null;
-  if (isBlocked(original)) { console.log(`  ⊘ Blocked: ${original}`); return null; }
   if (SANDBOX_EMAIL) return SANDBOX_EMAIL;
   return original;
 }
 
 function logSend(label, enrollment, details = '') {
   const to = enrollment?.email || '';
-  if (DRY_RUN) { console.log(`  ◇ ${label}: ${to} ${details}`.trim()); return; }
-  if (SANDBOX_EMAIL) { console.log(`  ✓ ${label}: ${to} → ${SANDBOX_EMAIL} ${details}`.trim()); return; }
-  console.log(`  ✓ ${label}: ${to} ${details}`.trim());
+  if (isBlocked(to)) { console.log(`  \u2299 ${label}: ${to} blocked`); return; }
+  if (DRY_RUN) { console.log(`  \u25c7 ${label}: ${to} ${details}`.trim()); return; }
+  if (SANDBOX_EMAIL) { console.log(`  \u2713 ${label}: ${to} \u2192 ${SANDBOX_EMAIL} ${details}`.trim()); return; }
+  console.log(`  \u2713 ${label}: ${to} ${details}`.trim());
 }
 
 function getCosmosClient() {
@@ -114,6 +114,7 @@ async function shouldSendEmail(email, type) {
 }
 
 async function sendWithTracking({ enrollment, type, subject, html, container, flag }) {
+  if (isBlocked(enrollment.email)) { logSend(type, enrollment); return true; }
   const to = resolveEmail(enrollment.email);
   if (!to) { logSend(type, enrollment, '(dry-run)'); return true; }
   try {
@@ -126,7 +127,7 @@ async function sendWithTracking({ enrollment, type, subject, html, container, fl
     logSend(type, enrollment);
     return true;
   } catch (err) {
-    console.error(`  ✗ ${type} failed for ${enrollment.email}: ${err.message}`);
+    console.error(`  \u2717 ${type} failed for ${enrollment.email}: ${err.message}`);
     await logEmailSend({ email: enrollment.email, name: enrollment.name, internId: enrollment.internId, type, subject, status: 'failed', error: err.message });
     return false;
   }
@@ -139,8 +140,7 @@ async function sendWelcomeEmails(container, enrollments, stats) {
     if (!(await shouldSendEmail(e.email, 'welcome'))) { console.log(`  Skipped ${e.email}: already sent via Firebase`); continue; }
     const tpl = welcomeEmail({ name: e.name || 'Intern', email: e.email });
     const ok = await sendWithTracking({ enrollment: e, type: 'welcome', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.welcomeSent' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -153,8 +153,7 @@ async function sendOfferLetterEmails(container, enrollments, stats) {
     if (!(await shouldSendEmail(e.email, 'offerLetter'))) continue;
     const tpl = offerLetterEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain });
     const ok = await sendWithTracking({ enrollment: e, type: 'offerLetter', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.offerLetterSent' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -168,8 +167,7 @@ async function sendPaymentConfirmationEmails(container, enrollments, stats) {
     if (!(await shouldSendEmail(e.email, 'payment'))) continue;
     const tpl = paymentConfirmationEmail({ name: e.name || 'Intern', email: e.email, amount: e.paymentAmount, paymentId: e.paymentId, internId: e.internId, domain: e.domain });
     const ok = await sendWithTracking({ enrollment: e, type: 'payment', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.paymentSent' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -188,8 +186,7 @@ async function sendTaskReminderEmails(container, enrollments, stats) {
     const daysSinceActivity = lastSubmittedAt ? daysBetween(lastSubmittedAt, today) : null;
     const tpl = taskReminderEmail({ name: e.name || 'Intern', email: e.email, pendingTasks, daysSinceLastActivity: daysSinceActivity, internId: e.internId });
     const ok = await sendWithTracking({ enrollment: e, type: 'taskReminder', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.lastTaskReminderSentAt' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -209,8 +206,7 @@ async function sendPreExpiryEmails(container, enrollments, stats) {
     if (!(await shouldSendEmail(e.email, 'preExpiry'))) continue;
     const tpl = preExpiryEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain || 'N/A', endDate, remainingTasks: pendingTasks });
     const ok = await sendWithTracking({ enrollment: e, type: 'preExpiry', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.preExpirySent' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -225,8 +221,7 @@ async function sendCompletionEmails(container, enrollments, stats) {
     if (!(await shouldSendEmail(e.email, 'completion'))) continue;
     const tpl = completionCertificateEmail({ name: e.name || 'Intern', email: e.email, internId: e.internId, domain: e.domain || 'N/A' });
     const ok = await sendWithTracking({ enrollment: e, type: 'completion', subject: tpl.subject, html: tpl.html, container, flag: 'mailjet.completionSent' });
-    if (ok) sent++;
-    else stats.errors++;
+    if (ok) sent++; else stats.errors++;
   }
   return sent;
 }
@@ -238,8 +233,8 @@ async function main() {
     console.error('SAFETY: Use --dry-run, SANDBOX_EMAIL, or NODE_ENV=production');
     process.exit(1);
   }
-  if (DRY_RUN) console.log('  🔸 DRY RUN — no emails sent\n');
-  if (SANDBOX_EMAIL) console.log(`  🔸 SANDBOX → ${SANDBOX_EMAIL}\n`);
+  if (DRY_RUN) console.log('  \u{1F7E1} DRY RUN — no emails sent\n');
+  if (SANDBOX_EMAIL) console.log(`  \u{1F7E1} SANDBOX \u2192 ${SANDBOX_EMAIL}\n`);
 
   const cosmos = getCosmosClient();
   const db = cosmos.database(COSMOS_DATABASE);
@@ -252,7 +247,7 @@ async function main() {
   const { unique: enrollments, duplicates } = await deduplicateEnrollments(rawEnrollments);
   if (duplicates.length > 0) {
     console.log(`Dedup removed ${duplicates.length} duplicate entries:`);
-    for (const d of duplicates) console.log(`  Removed ${d.duplicate} (kept ${d.kept}) — ${d.email}`);
+    for (const d of duplicates) console.log(`  Removed ${d.duplicate} (kept ${d.kept}) \u2014 ${d.email}`);
     await fbPut('mailjet/dedup/latest', { duplicates, count: duplicates.length, cleanedAt: new Date().toISOString() });
     console.log();
   }
@@ -262,55 +257,47 @@ async function main() {
   const stats = { errors: 0 };
 
   if (mode === 'all' || mode === 'analyze') {
-    console.log('[AI Analysis]');
-    console.log('  Analyzing enrollment data with AI...');
-    const aiResult = await analyzeEnrollmentsForEmailing(enrollments);
-    if (aiResult) {
-      await fbPut('mailjet/ai-analysis/latest', aiResult);
-      console.log(`  AI identified: ${aiResult.needsWelcome?.length || 0} welcome, ${aiResult.needsOfferLetter?.length || 0} offer letters, ${aiResult.needsPaymentConfirm?.length || 0} payments, ${aiResult.needsTaskReminder?.length || 0} reminders, ${aiResult.needsPreExpiry?.length || 0} pre-expiry, ${aiResult.needsCompletion?.length || 0} completions`);
-      if (aiResult.duplicates?.length) console.log(`  AI flagged ${aiResult.duplicates.length} duplicates`);
-    } else {
-      console.log('  AI analysis unavailable, using rule-based analysis');
-    }
+    console.log('[Analysis & Categorization]');
     const summary = await analyzeAndStoreEnrollments(enrollments);
     const categories = await getEnrollmentCategories(enrollments);
-    console.log(`  Stored: ${summary.total} enrollments, ${categories.active.length} active, ${categories.completed.length} completed\n`);
+    console.log(`  ${summary.total} enrollments, ${categories.active.length} active, ${categories.completed.length} completed, ${categories.new_signups.length} new, ${categories.near_completion.length} near-end, ${categories.expired.length} expired`);
+    console.log();
   }
 
   if (mode === 'all' || mode === 'welcome') {
-    console.log('[Welcome Emails — 1-time only]');
+    console.log('[Welcome Emails \u2014 1-time only]');
     const n = await sendWelcomeEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'offer-letter') {
     console.log('[Offer Letter Emails]');
     const n = await sendOfferLetterEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'payment') {
     console.log('[Payment Confirmation Emails]');
     const n = await sendPaymentConfirmationEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'task-reminder') {
-    console.log('[Task Reminder Emails — combined, every 4 days max]');
+    console.log('[Task Reminder Emails \u2014 combined, every 4 days max]');
     const n = await sendTaskReminderEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'pre-expiry') {
-    console.log('[Pre-Expiry Emails — 5 days before end]');
+    console.log('[Pre-Expiry Emails \u2014 5 days before end]');
     const n = await sendPreExpiryEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'completion') {
     console.log('[Completion Certificate Emails]');
     const n = await sendCompletionEmails(container, enrollments, stats);
-    console.log(`  → ${n} sent\n`);
+    console.log(`  \u2192 ${n} sent\n`);
   }
 
   if (mode === 'all' || mode === 'logs') {
