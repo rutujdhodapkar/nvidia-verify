@@ -11,12 +11,20 @@
     "post": "node scripts/poster.js",
     "send-promo": "node scripts/send-promo.js",
     "load-contacts": "node scripts/load-contacts.js",
-    "send-bulk": "node scripts/send-bulk.js"
+    "send-bulk": "node scripts/send-bulk.js",
+    "mailjet": "node scripts/mailjet-automation.js",
+    "mailjet:welcome": "node scripts/mailjet-automation.js welcome",
+    "mailjet:offer": "node scripts/mailjet-automation.js offer-letter",
+    "mailjet:payment": "node scripts/mailjet-automation.js payment",
+    "mailjet:tasks": "node scripts/mailjet-automation.js task-reminder",
+    "mailjet:expiry": "node scripts/mailjet-automation.js pre-expiry",
+    "mailjet:complete": "node scripts/mailjet-automation.js completion"
   },
   "dependencies": {
-    "playwright": "^1.52.0",
+    "@azure/cosmos": "^4.0.0",
     "dotenv": "^16.4.7",
+    "node-mailjet": "^6.0.11",
     "nodemailer": "^6.9.16",
-    "@azure/cosmos": "^4.0.0"
+    "playwright": "^1.52.0"
   }
 }

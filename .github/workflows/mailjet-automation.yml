@@ -1,0 +1,53 @@
+name: Mailjet Email Automation
+
+on:
+  schedule:
+    - cron: '30 18 * * *'
+      timezone: 'Asia/Kolkata'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Email mode to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - welcome
+          - offer-letter
+          - payment
+          - task-reminder
+          - pre-expiry
+          - completion
+  repository_dispatch:
+    types:
+      - trigger-mailjet-welcome
+      - trigger-mailjet-offer
+      - trigger-mailjet-payment
+      - trigger-mailjet-completion
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Determine email mode
+        id: mode
+        run: |
+          MODE="${{ github.event.inputs.mode || 'all' }}"
+          if [[ "${{ github.event.action }}" == "trigger-mailjet-welcome" ]]; then MODE="welcome"; fi
+          if [[ "${{ github.event.action }}" == "trigger-mailjet-offer" ]]; then MODE="offer-letter"; fi
+          if [[ "${{ github.event.action }}" == "trigger-mailjet-payment" ]]; then MODE="payment"; fi
+          if [[ "${{ github.event.action }}" == "trigger-mailjet-completion" ]]; then MODE="completion"; fi
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+
+      - run: node scripts/mailjet-automation.js ${{ steps.mode.outputs.mode }}
+        env:
+          COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
