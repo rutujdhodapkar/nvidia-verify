@@ -194,17 +194,12 @@ async function updateUserState(email, updates) {
   await pfPatch(`user-state/${encodeKey(email)}`, updates);
 }
 
-async function shouldSkipDueToHold(email) {
+async function shouldSkipDueToHold(email, type = 'web') {
   const state = await getUserState(email);
-  if (!state.lastSentAt) return false;
-  return daysBetween(state.lastSentAt, todayStr()) < HOLD_DAYS;
-}
-
-async function sendViaChannel({ email, name, subject, html, text, category, headers }) {
-  if (category === 'web') {
-    return await sendEmail({ to: email, toName: name || '', subject, html, text, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
-  }
-  return await sendBrevoEmail({ to: email, toName: name || '', subject, htmlContent: html, textContent: text });
+  const field = type === 'promo' ? 'lastPromoSentAt' : 'lastSentAt';
+  const val = state[field];
+  if (!val) return false;
+  return daysBetween(val, todayStr()) < HOLD_DAYS;
 }
 
 async function main() {
@@ -287,20 +282,23 @@ async function main() {
 
   console.log(`\nTotal unique recipients after dedup: ${entries.length}\n`);
 
-  console.log('Checking 5-day hold...');
-  const toSend = [];
+  const webEntries = [];
+  const promoEntries = [];
   for (const e of entries) {
-    if (await shouldSkipDueToHold(e.email)) {
+    const isPromo = e.categories.includes('promo');
+    if (!isPromo && await shouldSkipDueToHold(e.email, 'web')) {
       const state = await getUserState(e.email);
-      console.log(`  \u25c7 Skipped ${e.email} (last sent ${state.lastSentAt?.slice(0, 10)})`);
+      console.log(`  \u25c7 Skipped ${e.email} (web, last sent ${state.lastSentAt?.slice(0, 10)})`);
       continue;
     }
-    toSend.push(e);
+    if (isPromo && await shouldSkipDueToHold(e.email, 'promo')) {
+      const state = await getUserState(e.email);
+      console.log(`  \u25c7 Skipped ${e.email} (promo, last promo sent ${state.lastPromoSentAt?.slice(0, 10)})`);
+      continue;
+    }
+    if (isPromo) promoEntries.push(e); else webEntries.push(e);
   }
-  console.log(`Ready to send: ${toSend.length} recipients\n`);
-
-  const webEntries = toSend.filter(e => e.categories.some(c => c !== 'promo'));
-  const promoEntries = toSend.filter(e => e.categories.includes('promo'));
+  console.log(`Ready to send: ${webEntries.length} web, ${promoEntries.length} promo\n`);
 
   let mailjetSent = 0, brevoSent = 0, errors = 0;
 
@@ -373,7 +371,7 @@ async function main() {
         console.log(`  \u2713 ${e.email} [promo] via Brevo`);
       }
 
-      await updateUserState(e.email, { lastSentAt: new Date().toISOString(), lastCategory: 'promo', lastSource: promoIdx < promoMailjetAllocation ? 'mailjet' : 'brevo' });
+      await updateUserState(e.email, { lastPromoSentAt: new Date().toISOString(), lastCategory: 'promo', lastSource: promoIdx < promoMailjetAllocation ? 'mailjet' : 'brevo' });
       await logEmailSend({ email: e.email, name: e.name, type: 'promo', subject, status: 'sent', messageId });
 
       templateCounter++;
