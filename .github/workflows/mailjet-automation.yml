@@ -24,6 +24,11 @@ on:
         required: false
         default: false
         type: boolean
+      sandbox:
+        description: 'Sandbox email (redirect all sends to this address)'
+        required: false
+        default: ''
+        type: string
   repository_dispatch:
     types:
       - trigger-mailjet-welcome
@@ -56,9 +61,14 @@ jobs:
           ARGS="${{ steps.mode.outputs.mode }}"
           if [[ "${{ github.event.inputs.dry-run }}" == "true" ]]; then ARGS="$ARGS --dry-run"; fi
           echo "args=$ARGS" >> $GITHUB_OUTPUT
+      - id: envs
+        run: |
+          SANDBOX="${{ github.event.inputs.sandbox }}"
+          echo "sandbox=$SANDBOX" >> $GITHUB_OUTPUT
       - run: node scripts/mailjet-automation.js ${{ steps.args.outputs.args }}
         env:
           NODE_ENV: production
+          SANDBOX_EMAIL: ${{ steps.envs.outputs.sandbox }}
           COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
           MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
