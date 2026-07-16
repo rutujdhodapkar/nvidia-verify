@@ -53,7 +53,7 @@ async function refreshAccessToken() {
 async function uploadImageRestApi(accessToken, owner, imageUrl) {
   const initRes = await fetch(`${API_REST}/images?action=initializeUpload`, {
     method: 'POST',
-    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '20240101' },
+    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202401' },
     body: JSON.stringify({ initializeUploadRequest: { owner } }),
   });
   if (!initRes.ok) {
@@ -155,7 +155,7 @@ async function postViaRestApi(accessToken, owner, commentary, mediaUrn) {
   }
   const postRes = await fetch(`${API_REST}/posts`, {
     method: 'POST',
-    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '20240101' },
+    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202401' },
     body: JSON.stringify(postBody),
   });
   if (postRes.ok) {
