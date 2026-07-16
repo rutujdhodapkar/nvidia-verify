@@ -41,8 +41,10 @@ function resolveEmail(original) {
 }
 
 function logSend(label, enrollment, details = '') {
-  const to = DRY_RUN ? '[DRY-RUN]' : (SANDBOX_EMAIL ? `${enrollment.email} → ${SANDBOX_EMAIL}` : enrollment.email);
-  console.log(`  ${DRY_RUN ? '◇' : '✓'} ${label}: ${to} ${details}`.trim());
+  const to = enrollment?.email || '';
+  if (DRY_RUN) { console.log(`  ◇ ${label}: ${to} ${details}`.trim()); return; }
+  if (SANDBOX_EMAIL) { console.log(`  ✓ ${label}: ${to} → ${SANDBOX_EMAIL} ${details}`.trim()); return; }
+  console.log(`  ✓ ${label}: ${to} ${details}`.trim());
 }
 
 function getCosmosClient() {
@@ -113,7 +115,7 @@ async function shouldSendEmail(email, type) {
 
 async function sendWithTracking({ enrollment, type, subject, html, container, flag }) {
   const to = resolveEmail(enrollment.email);
-  if (!to) { logSend('◇ ' + type, enrollment, '[DRY-RUN]'); return true; }
+  if (!to) { logSend(type, enrollment, '(dry-run)'); return true; }
   try {
     const result = await sendEmail({ to, toName: enrollment.name, subject, html, fromEmail: FROM_EMAIL, fromName: FROM_NAME });
     const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
