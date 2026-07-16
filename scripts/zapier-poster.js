@@ -4,33 +4,35 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  // Use the post text as-is, don't append raw URL
-  // Instead, pass image as content thumbnail for a link share
   const params = {
     company_id: pid,
     comment: content,
     content_url: 'https://devcraft.fennark.xyz',
     content_title: 'DEV/CRAFT Virtual Internship',
-    content_description: '100% free, self-paced, virtual. Build real skills. Get certified.',
+    content_description: 'Self-paced, virtual. Build real skills. Get certified.',
     content__submitted_image_url: imageUrl,
   };
 
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const r = await callZapier(zapierToken, {
+      const result = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
         action: 'create_company_update',
         instructions: 'Post to devcraft-internships company page with image thumbnail',
         output: 'post_url',
         params,
       });
-      const postUrl = r?.results?.post_url || r?.results;
-      console.log(`[POST] ✓ Company page: ${postUrl || 'success'}`);
+      if (result?.error) {
+        throw new Error(`Zapier action error: ${result.error}${result.hint ? ' — ' + result.hint : ''}`);
+      }
+      console.log(`[POST] ✓ Zapier response: ${JSON.stringify(result).slice(0, 300)}`);
+      const postUrl = result?.post_url || result?.url || result?.id || JSON.stringify(result);
+      console.log(`[POST] ✓ Company page: ${postUrl}`);
       return postUrl;
     } catch (err) {
       lastErr = err;
-      console.log(`[POST] Attempt ${attempt + 1} failed: ${err.message.slice(0, 100)}`);
+      console.log(`[POST] Attempt ${attempt + 1} failed: ${err.message.slice(0, 200)}`);
       if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
     }
   }
@@ -46,13 +48,19 @@ async function callZapier(token, args) {
 
   const txt = await res.text();
   const match = txt.match(/data: (.+)/);
-  if (!match) throw new Error('Zapier API error: ' + txt.slice(0, 200));
+  if (!match) {
+    console.log(`[ZAPIER RAW] ${txt.slice(0, 300)}`);
+    throw new Error('Zapier API error: ' + txt.slice(0, 200));
+  }
 
   const data = JSON.parse(match[1]);
   if (data.error) throw new Error('Zapier error: ' + JSON.stringify(data.error));
 
   const textContent = data.result?.content?.[0]?.text;
-  if (!textContent) throw new Error('Zapier: empty response');
+  if (!textContent) {
+    console.log(`[ZAPIER DATA] ${JSON.stringify(data).slice(0, 300)}`);
+    throw new Error('Zapier: empty response');
+  }
 
   return JSON.parse(textContent);
 }

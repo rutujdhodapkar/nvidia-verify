@@ -291,11 +291,8 @@ async function main() {
       console.log(`  \u25c7 Skipped ${e.email} (web, last sent ${state.lastSentAt?.slice(0, 10)})`);
       continue;
     }
-    if (isPromo && await shouldSkipDueToHold(e.email, 'promo')) {
-      const state = await getUserState(e.email);
-      console.log(`  \u25c7 Skipped ${e.email} (promo, last promo sent ${state.lastPromoSentAt?.slice(0, 10)})`);
-      continue;
-    }
+    // Promo has 13k recipients and 500/day cap — won't loop back for 26 days, no hold needed
+
     if (isPromo) promoEntries.push(e); else webEntries.push(e);
   }
   console.log(`Ready to send: ${webEntries.length} web, ${promoEntries.length} promo\n`);
