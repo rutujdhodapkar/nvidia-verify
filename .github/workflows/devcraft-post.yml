@@ -1,6 +1,8 @@
 name: DEV/CRAFT LinkedIn Post
 
 on:
+  schedule:
+    - cron: '0 9 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [trigger-devcraft-post]

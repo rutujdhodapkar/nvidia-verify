@@ -177,10 +177,9 @@ async function getAllWebEmails() {
   const emails = [];
   for (const [category, entries] of Object.entries(cats)) {
     if (!entries || typeof entries !== 'object') continue;
-    for (const [encodedEmail] of Object.entries(entries)) {
-      const email = encodedEmail.replace(/_/g, match => match === '_at_' ? '@' : match === '_dot_' ? '.' : match);
-      const decodedEmail = encodedEmail.replace(/_/g, '@').replace(/,/g, '.');
-      emails.push({ email: decodedEmail, name: '', category, source: 'web', encodedKey: encodedEmail });
+    for (const [encodedKey, entry] of Object.entries(entries)) {
+      const email = (entry.email || entry.name || '').trim() || encodedKey.replace(/_/g, '.');
+      emails.push({ email, name: entry.name || '', category, source: 'web', encodedKey });
     }
   }
   return emails;

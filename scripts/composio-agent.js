@@ -87,17 +87,18 @@ async function main() {
       continue;
     }
     if (isDup(post, state)) { console.log('      Duplicate, retry...\n'); continue; }
+    const hashtagsBeforeClean = extractHashtags(post || '');
     const cleaned = cleanPost(post);
     const review = await reviewPost(cleaned, NVIDIA_API_KEY, NVIDIA_MODEL);
     console.log(`      Quality score: ${review.score}/10 — ${review.feedback}`);
-    if (review.score >= 7) { post = cleaned; postOk = true; break; }
+    if (review.score >= 7) { post = cleaned + '\n\n' + hashtagsBeforeClean; postOk = true; break; }
     feedback = review.feedback;
     console.log('      Below threshold, retry...\n');
   }
   if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
   console.log(`\n${post}\n`);
 
-  const hashtags = extractHashtags(post);
+  const hashtags = extractHashtags(post || '');
 
   console.log('[3/4] Generating image...');
   let imageUrl = null;

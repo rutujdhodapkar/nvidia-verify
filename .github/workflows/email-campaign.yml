@@ -2,8 +2,7 @@ name: Email Campaign
 
 on:
   schedule:
-    - cron: '30 4 * * *'
-      timezone: 'Asia/Kolkata'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [trigger-email-campaign]
