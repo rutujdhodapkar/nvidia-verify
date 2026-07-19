@@ -123,14 +123,14 @@ function hasViolations(text) {
 
 export async function generatePost(siteData, previousPosts = [], apiKey, model, previousFeedback) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
-  const feedbackHint = previousFeedback ? `\nPrevious attempt feedback (improve on this): ${previousFeedback}\n` : '';
+  const feedbackHint = previousFeedback ? `\n## FEEDBACK FROM PREVIOUS ATTEMPT — apply this fix:\n${previousFeedback}\n` : '';
 
   const postPrompt = `${SYSTEM_PROMPT}
 
 SITE DATA:
 ${siteCtx}${dupGuard}${feedbackHint}
 
-Generate the post now. Return ONLY the JSON. REMEMBER: Every sentence must be a complete sentence. Body must be 3-5 complete sentences that flow logically.`;
+Generate the post now. Return ONLY the JSON.`;
 
   const raw = await callWithRetry(postPrompt, apiKey, model, 3500);
   if (!raw) throw new Error('Post generation failed');
@@ -196,47 +196,38 @@ function checkBlockedContent(text) {
   return violations;
 }
 
-function checkSentenceCompleteness(text) {
-  const sentences = text.split(/[.!?\n]+/).filter(s => s.trim().length > 15);
-  const incomplete = sentences.filter(s => {
-    const t = s.trim();
-    return !/^[A-Z"'(]/.test(t) || !/.+(ing|ed|es|s|e)$/i.test(t.slice(-3));
-  });
-  return incomplete.length > sentences.length * 0.4 ? 'Many sentences are incomplete or fragments — make every sentence complete with subject + verb' : null;
-}
-
 export async function reviewPost(post, apiKey, model) {
   const localChecks = checkBlockedContent(post);
   if (localChecks.length > 0) {
     return { score: 3, feedback: `VIOLATION: ${localChecks.join('; ')}` };
   }
 
-  const completenessIssue = checkSentenceCompleteness(post);
-  if (completenessIssue) {
-    return { score: 4, feedback: completenessIssue };
-  }
-
   try {
-    const review = await callWithRetry(`Rate this LinkedIn post 1-10. STRICT CRITERIA (penalize hard for violations):
-- Any mention of jobs, placement, employment, hiring, career outcomes → score 1
-- Any claim of certificate recognition/accreditation → score 1
-- Any mention of free/paid/pricing → score 1
-- Every sentence is a COMPLETE sentence (no fragments) (0-3)
-- Hook grabs attention and promises value in first 2 lines (0-2)
-- Skills section has 3 clear bullet points (0-2)
-- Body has 3-5 complete sentences flowing logically (0-3)
+    const review = await callWithRetry(`You are a quality rater for LinkedIn posts. Rate 1-10.
+
+Scoring guide:
+- 8-10: Excellent hook, clear value prop, complete sentences, proper structure, engaging, CTAs well
+- 6-7: Good post with minor issues (hook could be sharper, or structure slightly off)
+- 4-5: Needs work — missing elements or weak hook
+- 1-3: Contains violations (jobs, pricing, recognition claims)
+
+Focus on:
+1. Does the hook grab attention in first 2 lines? (0-3 pts)
+2. Are skills/body clear and complete? (0-3 pts)
+3. Does it read naturally and engage? (0-2 pts)
+4. Is the CTA clear? (0-2 pts)
 
 Post:
 ---${post.slice(0, 700)}---
 
-Return valid JSON: {"score": 1-10, "feedback": "specific fix instruction"}`, apiKey, model, 500);
+Return JSON: {"score": 1-10, "feedback": "2-3 word area to improve, or empty"}`, apiKey, model, 500);
     const cleaned = review.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
     const parsed = JSON.parse(cleaned);
-    return { score: Math.min(10, Math.max(1, parsed.score)), feedback: parsed.feedback || 'Improve quality' };
+    return { score: Math.min(10, Math.max(1, parsed.score)), feedback: parsed.feedback || '' };
   } catch {
     const hasBlocked = checkBlockedContent(post);
     if (hasBlocked.length > 0) return { score: 3, feedback: hasBlocked.join('; ') };
-    return { score: 6, feedback: 'Review failed, please ensure complete sentences and no job/pricing claims' };
+    return { score: 7, feedback: '' };
   }
 }
 

@@ -74,6 +74,7 @@ async function main() {
 
   let post, imageMeta, designBrief;
   let postOk = false;
+  let bestPost = null, bestScore = 0, bestImageMeta = null, bestDesignBrief = null;
   let feedback = '';
   for (let i = 0; i < 5; i++) {
     console.log(`[2/4] Generating post (attempt ${i + 1})...`);
@@ -81,7 +82,7 @@ async function main() {
       const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
       post = r.post; imageMeta = r.imageMeta; designBrief = r.designBrief;
     } catch (err) {
-      feedback = err.message;
+      feedback = 'violation: ' + err.message.slice(0, 100);
       console.log(`      ${err.message}`);
       if (i < 4) console.log('      Retrying...\n');
       continue;
@@ -89,13 +90,30 @@ async function main() {
     if (isDup(post, state)) { console.log('      Duplicate, retry...\n'); continue; }
     const hashtagsBeforeClean = extractHashtags(post || '');
     const cleaned = cleanPost(post);
-    const review = await reviewPost(cleaned, NVIDIA_API_KEY, NVIDIA_MODEL);
+    const review = await reviewPost(cleaned + '\n\n' + hashtagsBeforeClean, NVIDIA_API_KEY, NVIDIA_MODEL);
     console.log(`      Quality score: ${review.score}/10 — ${review.feedback}`);
     if (review.score >= 7) { post = cleaned + '\n\n' + hashtagsBeforeClean; postOk = true; break; }
-    feedback = review.feedback;
+    if (review.score > bestScore) {
+      bestScore = review.score;
+      bestPost = cleaned + '\n\n' + hashtagsBeforeClean;
+      bestImageMeta = imageMeta;
+      bestDesignBrief = designBrief;
+    }
+    feedback = review.feedback || 'write a stronger hook and clearer value';
     console.log('      Below threshold, retry...\n');
   }
-  if (!postOk) { console.error('[!] No quality post after 5 attempts'); process.exit(1); }
+  if (!postOk) {
+    if (bestPost) {
+      console.log(`\nUsing best attempt (score ${bestScore}/10)\n`);
+      post = bestPost;
+      imageMeta = bestImageMeta;
+      designBrief = bestDesignBrief;
+      postOk = true;
+    } else {
+      console.error('[!] No quality post after 5 attempts');
+      process.exit(1);
+    }
+  }
   console.log(`\n${post}\n`);
 
   const hashtags = extractHashtags(post || '');
