@@ -37,7 +37,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
         throw new Error(`Zapier needs more info: ${result.followUpQuestion.slice(0, 200)}`);
       }
       console.log(`[POST] ✓ Zapier response: ${JSON.stringify(result).slice(0, 300)}`);
-      const postUrl = result?.post_url || result?.url || result?.id;
+      const postUrl = result?.post_url || result?.url || result?.id || result?.results;
       if (!postUrl) throw new Error(`No post URL in response: ${JSON.stringify(result).slice(0, 200)}`);
       console.log(`[POST] ✓ Company page: ${postUrl}`);
       return postUrl;
