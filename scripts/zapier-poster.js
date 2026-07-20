@@ -7,21 +7,14 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const params = imageUrl ? {
-        company_id: pid,
-        comment: content,
-        content_url: imageUrl,
-        content_title: 'DEV/CRAFT Virtual Internship',
-        content_description: 'Self-paced virtual internship. Build real skills. Get certified.',
-        media_url: imageUrl,
-      } : {
+      const params = {
         company_id: pid,
         comment: content,
       };
 
       const instructions = imageUrl
-        ? 'Create a LinkedIn company page update on devcraft-internships page with the text and image'
-        : 'Create a LinkedIn company page update on devcraft-internships page with the text';
+        ? `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Attach the image from this URL as a link thumbnail: ${imageUrl}. Do NOT ask any questions — all information including the company page ID, the full post text, and the image URL is provided. Proceed and return the post URL.`
+        : `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
 
       const result = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
