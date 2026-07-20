@@ -4,35 +4,50 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
-  const params = {
-    company_id: pid,
-    comment: content,
-    content_url: 'https://devcraft.fennark.xyz',
-    content_title: 'DEV/CRAFT Virtual Internship',
-    content_description: 'Self-paced, virtual. Build real skills. Get certified.',
-    content__submitted_image_url: imageUrl,
-  };
-
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      const params = imageUrl ? {
+        company_id: pid,
+        comment: content,
+        content_url: imageUrl,
+        content_title: 'DEV/CRAFT Virtual Internship',
+        content_description: 'Self-paced virtual internship. Build real skills. Get certified.',
+        media_url: imageUrl,
+      } : {
+        company_id: pid,
+        comment: content,
+      };
+
+      const instructions = imageUrl
+        ? 'Create a LinkedIn company page update on devcraft-internships page with the text and image'
+        : 'Create a LinkedIn company page update on devcraft-internships page with the text';
+
       const result = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
         action: 'create_company_update',
-        instructions: 'Post to devcraft-internships company page with image thumbnail',
+        instructions,
         output: 'post_url',
         params,
       });
       if (result?.error) {
         throw new Error(`Zapier action error: ${result.error}${result.hint ? ' — ' + result.hint : ''}`);
       }
+      if (result?.followUpQuestion) {
+        throw new Error(`Zapier needs more info: ${result.followUpQuestion.slice(0, 200)}`);
+      }
       console.log(`[POST] ✓ Zapier response: ${JSON.stringify(result).slice(0, 300)}`);
-      const postUrl = result?.post_url || result?.url || result?.id || JSON.stringify(result);
+      const postUrl = result?.post_url || result?.url || result?.id;
+      if (!postUrl) throw new Error(`No post URL in response: ${JSON.stringify(result).slice(0, 200)}`);
       console.log(`[POST] ✓ Company page: ${postUrl}`);
       return postUrl;
     } catch (err) {
       lastErr = err;
       console.log(`[POST] Attempt ${attempt + 1} failed: ${err.message.slice(0, 200)}`);
+      if (attempt < 2 && imageUrl) {
+        console.log('      Retrying without image...');
+        imageUrl = null;
+      }
       if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
     }
   }

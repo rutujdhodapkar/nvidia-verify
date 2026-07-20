@@ -41,6 +41,9 @@ async function refreshAccessToken() {
   });
   if (!tokenRes.ok) {
     const err = await tokenRes.text().catch(() => '');
+    if (tokenRes.status === 400 && err.includes('invalid_grant')) {
+      throw new Error(`LinkedIn refresh token expired. Run: node scripts/get-token.js`);
+    }
     throw new Error(`Token refresh failed ${tokenRes.status}: ${err.slice(0, 200)}`);
   }
   const tokenData = await tokenRes.json();

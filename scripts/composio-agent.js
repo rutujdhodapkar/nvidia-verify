@@ -197,6 +197,8 @@ async function main() {
 
   if (!posted) {
     console.log('[!] All posting methods failed');
+    console.log('      To fix LinkedIn: Run "node scripts/get-token.js" locally, follow the OAuth flow,');
+    console.log('      and update the LINKEDIN_REFRESH_TOKEN GitHub secret with the new token.');
     process.exit(1);
   }
 
