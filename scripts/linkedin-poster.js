@@ -53,92 +53,7 @@ async function refreshAccessToken() {
   return accessToken;
 }
 
-async function uploadImageRestApi(accessToken, owner, imageUrl) {
-  const initRes = await fetch(`${API_REST}/images?action=initializeUpload`, {
-    method: 'POST',
-    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202401' },
-    body: JSON.stringify({ initializeUploadRequest: { owner } }),
-  });
-  if (!initRes.ok) {
-    const errText = await initRes.text().catch(() => '');
-    console.log(`      /rest/images init failed (${initRes.status}): ${errText.slice(0, 200)}`);
-    return null;
-  }
-  const initData = await initRes.json();
-  const uploadUrl = initData?.value?.uploadUrl;
-  const imageUrn = initData?.value?.image;
-  if (!uploadUrl || !imageUrn) {
-    console.log('      No uploadUrl or image in /rest/images response');
-    return null;
-  }
-  console.log('      Uploading image binary to /rest/images upload URL...');
-  const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
-  if (!imgRes.ok) {
-    console.log(`      Fetching image from URL failed: ${imgRes.status}`);
-    return null;
-  }
-  const imgBuf = await imgRes.arrayBuffer();
-  const uploadRes = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: imgBuf,
-    headers: { 'Content-Type': 'application/octet-stream' },
-    signal: AbortSignal.timeout(30000),
-  });
-  if (uploadRes.ok) {
-    console.log(`      ✓ Image uploaded via /rest/images: ${imageUrn}`);
-    return imageUrn;
-  }
-  const ue = await uploadRes.text().catch(() => '');
-  console.log(`      Image binary upload to /rest/images failed: ${ue.slice(0, 100)}`);
-  return null;
-}
-
-async function uploadImageLegacyApi(accessToken, owner, imageUrl) {
-  const registerRes = await fetch(`${API_V2}/assets?action=registerUpload`, {
-    method: 'POST',
-    headers: authHeaders(accessToken),
-    body: JSON.stringify({
-      registerUploadRequest: {
-        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-        owner,
-        serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
-      },
-    }),
-  });
-  if (!registerRes.ok) {
-    const err = await registerRes.text().catch(() => '');
-    console.log(`      /v2/assets register failed (${registerRes.status}): ${err.slice(0, 200)}`);
-    return null;
-  }
-  const regData = await registerRes.json();
-  const uploadUrl = regData?.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
-  const asset = regData?.value?.asset;
-  if (!uploadUrl || !asset) {
-    console.log('      No uploadUrl or asset in /v2/assets response');
-    return null;
-  }
-  console.log('      Uploading image binary to /v2/assets upload URL...');
-  const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
-  if (!imgRes.ok) {
-    console.log(`      Fetching image from URL failed: ${imgRes.status}`);
-    return null;
-  }
-  const imgBuf = await imgRes.arrayBuffer();
-  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: imgBuf, signal: AbortSignal.timeout(30000) });
-  if (uploadRes.ok) {
-    console.log(`      ✓ Image uploaded via /v2/assets: ${asset}`);
-    return asset;
-  }
-  const ue = await uploadRes.text().catch(() => '');
-  console.log(`      Image binary upload to /v2/assets failed: ${ue.slice(0, 100)}`);
-  return null;
-}
-
-async function postViaRestApi(accessToken, owner, commentary, mediaUrn) {
-  if (mediaUrn && !mediaUrn.startsWith('urn:li:image:')) {
-    console.log('      Media URN is legacy format, skipping /rest/posts');
-    return null;
-  }
+async function postViaRestApi(accessToken, owner, commentary) {
   const postBody = {
     author: owner,
     commentary,
@@ -151,11 +66,6 @@ async function postViaRestApi(accessToken, owner, commentary, mediaUrn) {
     lifecycleState: 'PUBLISHED',
     isReshareDisabledByAuthor: false,
   };
-  if (mediaUrn && mediaUrn.startsWith('urn:li:image:')) {
-    postBody.content = {
-      media: { id: mediaUrn, altText: 'DevCraft Virtual Internship Program' },
-    };
-  }
   const postRes = await fetch(`${API_REST}/posts`, {
     method: 'POST',
     headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202401' },
@@ -171,27 +81,18 @@ async function postViaRestApi(accessToken, owner, commentary, mediaUrn) {
   return null;
 }
 
-async function postViaUgcApi(accessToken, owner, commentary, mediaUrn) {
-  const shareMediaCategory = mediaUrn && mediaUrn.startsWith('urn:li:digitalmediaAsset:') ? 'IMAGE' : 'NONE';
+async function postViaUgcApi(accessToken, owner, commentary) {
   const postBody = {
     author: owner,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
         shareCommentary: { text: commentary },
-        shareMediaCategory,
+        shareMediaCategory: 'NONE',
       },
     },
     visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
   };
-  if (shareMediaCategory === 'IMAGE') {
-    postBody.specificContent['com.linkedin.ugc.ShareContent'].media = [{
-      status: 'READY',
-      description: { text: 'DevCraft Virtual Internship Program' },
-      media: mediaUrn,
-      title: { text: 'DevCraft Internship' },
-    }];
-  }
   const postRes = await fetch(`${API_V2}/ugcPosts`, {
     method: 'POST',
     headers: { ...authHeaders(accessToken), 'X-Restli-Protocol-Version': '2.0.0' },
@@ -206,23 +107,14 @@ async function postViaUgcApi(accessToken, owner, commentary, mediaUrn) {
   throw new Error(`UGC post failed ${postRes.status}: ${errText.slice(0, 300)}`);
 }
 
-export async function postToLinkedinPage({ content, imageUrl, pageId }) {
+export async function postToLinkedinPage({ content, pageId }) {
   const accessToken = await refreshAccessToken();
   const owner = await discoverOrgUrn(accessToken, pageId);
   console.log(`      ✓ Owner: ${owner}`);
 
-  let mediaUrn = null;
-  if (imageUrl) {
-    console.log('      Registering image upload...');
-    mediaUrn = await uploadImageRestApi(accessToken, owner, imageUrl);
-    if (!mediaUrn) {
-      mediaUrn = await uploadImageLegacyApi(accessToken, owner, imageUrl);
-    }
-  }
-
-  const result = await postViaRestApi(accessToken, owner, content, mediaUrn);
+  const result = await postViaRestApi(accessToken, owner, content);
   if (result) return result;
 
   console.log('      Falling back to UGC API...');
-  return await postViaUgcApi(accessToken, owner, content, mediaUrn);
+  return await postViaUgcApi(accessToken, owner, content);
 }

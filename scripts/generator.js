@@ -93,11 +93,6 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
   "engagement": "...",
   "cta_line": "Apply now \u2192 devcraft.fennark.xyz",
   "hashtags": ["#DevCraft", "#VirtualInternship"],
-  "design_brief": {
-    "tone": "clean | editorial | bold | professional | tech",
-    "primary_color": "#6366f1",
-    "slides": [{"slide_number": 1, "headline": "...", "subtext": "...", "visual_note": "..."}]
-  },
   "variant_label": "A | B"
 }
 
@@ -176,13 +171,8 @@ Generate the post now. Return ONLY the JSON.`;
     throw new Error(violation);
   }
 
-  const designBrief = parsed.design_brief || null;
-
-  const styles = ['brutalist', 'modern-minimal', 'glassmorphism', 'split-panel', 'terminal', 'magazine', 'dark-tech', 'pixel-art', 'corporate-clean', 'bento', 'outline', 'lateral-band'];
-  const imageMeta = { headline: (title || hook).slice(0, 60) || 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'https://devcraft.fennark.xyz/', style: styles[Math.floor(Math.random() * styles.length)] };
-
   console.log(`[GENERATE] ✓ ${postText.length} chars, skills: ${Array.isArray(parsed.skills) ? parsed.skills.length : 0}, variant: ${parsed.variant_label || 'A'}`);
-  return { post: postText, html: null, imageMeta, theme: siteData.theme, designBrief };
+  return { post: postText };
 }
 
 function checkBlockedContent(text) {

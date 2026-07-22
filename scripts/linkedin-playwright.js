@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export async function postToLinkedinPagePlaywright({ content, imagePath, pageUrl }) {
+export async function postToLinkedinPagePlaywright({ content, pageUrl }) {
   const email = process.env.LINKEDIN_EMAIL;
   const password = process.env.LINKEDIN_PASSWORD;
   if (!email || !password) throw new Error('Set LINKEDIN_EMAIL and LINKEDIN_PASSWORD in .env');
@@ -143,42 +143,6 @@ export async function postToLinkedinPagePlaywright({ content, imagePath, pageUrl
       const el = document.querySelector('[role="textbox"][contenteditable="true"]');
       if (el) { el.focus(); document.execCommand('insertText', false, text); }
     }, content);
-    await page.waitForTimeout(1000);
-
-    if (imagePath) {
-      console.log('      Attaching image...');
-      const [fileChooser] = await Promise.all([
-        page.waitForEvent('filechooser', { timeout: 5000 }).catch(() => null),
-        page.evaluate(() => {
-          const addMedia = document.querySelector('button[aria-label*="media"], button[aria-label*="photo"], button[aria-label*="image"], button[aria-label*="Media"], button[aria-label*="Photo"]');
-          if (addMedia) addMedia.click();
-        }).catch(() => {}),
-      ]);
-      if (fileChooser) {
-        await fileChooser.setFiles(imagePath);
-        await page.waitForTimeout(3000);
-        console.log('      ✓ Image attached');
-      } else {
-        const fileInput = page.locator('input[type="file"]').first();
-        if (await fileInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await fileInput.setInputFiles(imagePath);
-          await page.waitForTimeout(3000);
-        } else {
-          const mediaBtn = page.locator('[aria-label*="media"], [aria-label*="photo"], [aria-label*="image"], [aria-label*="Media"], [aria-label*="Photo"]').first();
-          if (await mediaBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await mediaBtn.click();
-            await page.waitForTimeout(2000);
-            const fileI = page.locator('input[type="file"]').first();
-            if (await fileI.isVisible({ timeout: 2000 }).catch(() => false)) {
-              await fileI.setInputFiles(imagePath);
-              await page.waitForTimeout(3000);
-            }
-          }
-        }
-        console.log('      ✓ Image attached');
-      }
-    }
-
     await page.waitForTimeout(2000);
     const submitBtn = page.locator('button:has-text("Post")').last();
     try {

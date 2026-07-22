@@ -1,6 +1,6 @@
 const MCP_URL = 'https://mcp.zapier.com/api/v1/connect';
 
-export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageId }) {
+export async function postToLinkedinPage({ content, zapierToken, pageId }) {
   if (!zapierToken) throw new Error('Missing ZAPIER_TOKEN');
   const pid = pageId || '134233993';
 
@@ -12,9 +12,7 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
         comment: content,
       };
 
-      const instructions = imageUrl
-        ? `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Attach the image from this URL as a link thumbnail: ${imageUrl}. Do NOT ask any questions — all information including the company page ID, the full post text, and the image URL is provided. Proceed and return the post URL.`
-        : `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
+      const instructions = `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
 
       const result = await callZapier(zapierToken, {
         selected_api: 'LinkedInCLIAPI',
@@ -37,10 +35,6 @@ export async function postToLinkedinPage({ content, imageUrl, zapierToken, pageI
     } catch (err) {
       lastErr = err;
       console.log(`[POST] Attempt ${attempt + 1} failed: ${err.message.slice(0, 200)}`);
-      if (attempt < 2 && imageUrl) {
-        console.log('      Retrying without image...');
-        imageUrl = null;
-      }
       if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
     }
   }
