@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { CosmosClient } from '@azure/cosmos';
-import { sendEmail } from '../lib/mailjet.js';
+import { sendEmail } from '../lib/email-provider.js';
 import {
   fbGet, fbPut, fbPatch, fbPush, logEmailSend, hasEmailBeenSent,
   getEmailLogs, analyzeAndStoreEnrollments, getEnrollmentCategories,
@@ -104,71 +104,56 @@ function buildCombinedBody(enrollment, category) {
   const { totalTasks, completedTasks, pendingTasks } = getTaskStats(projects || [], submissions || {});
   const today = todayStr();
   const daysUntilEnd = endDate ? daysBetween(today, endDate) : null;
-  const now = new Date().toISOString();
 
-  let subject, greeting, sections = [];
+  let subject, parts = [];
 
   if (category === 'completed') {
     subject = 'Your DEV/CRAFT Journey – What\'s Next?';
-    greeting = `<h2>Congratulations, ${name || 'Intern'}!</h2>`;
-    sections = [
-      `<p>You've successfully completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''} of your DEV/CRAFT internship. Great work!</p>`,
-      `<p>Your certificate of completion is available. Stay tuned for updates on new opportunities, advanced programs, and referral rewards.</p>`,
-      `<p style="color:#6b7280;font-size:13px">If you'd like to explore a new internship with us, simply re-apply and we'll fast-track your enrollment.</p>`,
+    parts = [
+      `Congratulations, ${name || 'Intern'}!`,
+      '',
+      `You've successfully completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''} of your DEV/CRAFT internship. Great work!`,
+      '',
+      'Your certificate of completion is available. Stay tuned for updates on new opportunities, advanced programs, and referral rewards.',
+      '',
+      'If you'd like to explore a new internship with us, simply re-apply and we\'ll fast-track your enrollment.',
     ];
   } else {
     const prefix = category === 're-enrolled' ? 'Welcome Back' : 'DEV/CRAFT Update';
     subject = `${prefix} – Your Internship Progress`;
-    greeting = `<h2>Hi ${name || 'Intern'}${category === 're-enrolled' ? ', welcome back!' : '!'}</h2>`;
+    parts.push(`Hi ${name || 'Intern'}${category === 're-enrolled' ? ', welcome back!' : '!'}`);
 
     if (category === 're-enrolled') {
-      sections.push(`<p>We're glad to see you again! Your new internship is now active.</p>`);
+      parts.push('', "We're glad to see you again! Your new internship is now active.");
     } else if (internId && !enrollment.mailjet?.welcomeSent) {
-      sections.push(`<p>Welcome to the DEV/CRAFT internship program! We're excited to have you on board.</p>`);
+      parts.push('', "Welcome to the DEV/CRAFT internship program! We're excited to have you on board.");
     }
 
     if (internId && domain) {
-      sections.push(`<h3>Your Internship Details</h3><ul><li><strong>Intern ID:</strong> ${internId}</li><li><strong>Domain:</strong> ${domain}</li></ul>`);
+      parts.push('', `Intern ID: ${internId}`, `Domain: ${domain}`);
     }
 
     if (pendingTasks > 0) {
-      sections.push(`<h3>Task Progress</h3><p>You have <strong>${pendingTasks}</strong> pending task${pendingTasks > 1 ? 's' : ''} out of ${totalTasks} total.</p>`);
-      if (completedTasks > 0) sections.push(`<p>Completed: ${completedTasks} / ${totalTasks}</p>`);
+      parts.push('', `You have ${pendingTasks} pending task${pendingTasks > 1 ? 's' : ''} out of ${totalTasks} total.`);
+      if (completedTasks > 0) parts.push(`Completed: ${completedTasks} / ${totalTasks}`);
       if (daysUntilEnd !== null && daysUntilEnd > 0) {
-        sections.push(`<p><strong>Deadline:</strong> ${daysUntilEnd} day${daysUntilEnd !== 1 ? 's' : ''} remaining (${endDate}).</p>`);
+        parts.push(`Deadline: ${daysUntilEnd} day${daysUntilEnd !== 1 ? 's' : ''} remaining (${endDate}).`);
       }
     } else if (totalTasks > 0) {
-      sections.push(`<h3>Task Progress</h3><p>You've completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''}! Your final review is in progress.</p>`);
+      parts.push('', `You've completed all ${totalTasks} task${totalTasks !== 1 ? 's' : ''}! Your final review is in progress.`);
     }
 
     if (enrollment.paymentStatus === 'completed' && paymentAmount) {
-      sections.push(`<p>Payment received: <strong>${paymentAmount}</strong></p>`);
+      parts.push('', `Payment received: ${paymentAmount}`);
     }
 
-    sections.push(`<p style="color:#6b7280;font-size:13px">Check your dashboard for detailed task status and submissions.</p>`);
+    parts.push('', 'Check your dashboard for detailed task status and submissions.');
   }
 
-  const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;background:#f4f4f4">
-<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<div style="background:#2563eb;padding:20px;text-align:center">
-<h1 style="color:#fff;margin:0;font-size:22px">DEV/CRAFT Internship</h1>
-</div>
-<div style="padding:24px">
-${greeting}
-${sections.join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">')}
-</div>
-<div style="background:#f9fafb;padding:16px 24px;text-align:center;font-size:12px;color:#6b7280">
-<p style="margin:4px 0">DEV/CRAFT Internship Program</p>
-<p style="margin:4px 0">Email: support@fennark.xyz</p>
-</div>
-</div>
-</body>
-</html>`;
+  parts.push('', '---', 'DEV/CRAFT Internship Program', 'support@fennark.xyz');
 
-  return { subject, html };
+  const text = parts.join('\n');
+  return { subject, text };
 }
 
 async function sendCombinedEmails(container, enrollments, stats) {
@@ -202,7 +187,7 @@ async function sendCombinedEmails(container, enrollments, stats) {
       }
 
       const now = new Date().toISOString();
-      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, html: emailContent.html, fromEmail: FROM_EMAIL, fromName: FROM_NAME, headers });
+      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, text: emailContent.text, headers });
       const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
 
       await updateUserState(e.email, { category, lastCombinedSentAt: now });
