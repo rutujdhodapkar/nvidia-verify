@@ -332,7 +332,6 @@ async function main() {
         toName: e.name,
         subject,
         text,
-        headers: { 'X-Category': primaryCat },
       });
 
       await updateUserState(e.email, {

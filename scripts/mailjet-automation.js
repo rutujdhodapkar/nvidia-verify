@@ -179,15 +179,8 @@ async function sendCombinedEmails(container, enrollments, stats) {
       const emailContent = buildCombinedBody(e, category);
       if (!emailContent) { skipped++; continue; }
 
-      const headers = category === 'completed'
-        ? [{ Name: 'Precedence', Value: 'bulk' }, { Name: 'X-Category', Value: 'promo' }]
-        : [];
-      if (category === 're-enrolled') {
-        headers.push({ Name: 'X-Category', Value: 're-enrolled' });
-      }
-
       const now = new Date().toISOString();
-      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, text: emailContent.text, headers });
+      const result = await sendEmail({ to, toName: e.name, subject: emailContent.subject, text: emailContent.text });
       const messageId = result?.Messages?.[0]?.To?.[0]?.MessageID || result?.Messages?.[0]?.MessageID || '';
 
       await updateUserState(e.email, { category, lastCombinedSentAt: now });
