@@ -9,6 +9,10 @@ import { logEmailSend } from '../lib/firebase.js';
 const SITE = 'devcraft.fennark.xyz';
 const HOLD_DAYS = 5;
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
 const templates = {
   welcome: {
     subject: 'Welcome to DEV/CRAFT! Start Your Internship Journey',
@@ -177,27 +181,31 @@ async function getAllWebEmails() {
   const cats = await pfGet('emailCategories');
   if (!cats || typeof cats !== 'object') return [];
   const emails = [];
+  let skipped = 0;
   for (const [category, entries] of Object.entries(cats)) {
     if (!entries || typeof entries !== 'object') continue;
     for (const [encodedKey, entry] of Object.entries(entries)) {
-      const email = (entry.email || entry.name || '').trim() || encodedKey.replace(/_/g, '.');
+      const email = (entry.email || '').trim();
+      if (!isValidEmail(email)) { skipped++; continue; }
       emails.push({ email, name: entry.name || '', category, source: 'web', encodedKey });
     }
   }
+  if (skipped > 0) console.log(`  Skipped ${skipped} invalid email entries in emailCategories.`);
   return emails;
 }
 
 async function getQueueEmails() {
   const data = await pfGet('queue');
   if (!data || typeof data !== 'object') return [];
-  return Object.entries(data).map(([key, item]) => ({
-    email: item.email || key,
-    name: item.name || '',
-    category: 'promo',
-    source: 'queue',
-    queueKey: key,
-    retryCount: item.retryCount || 0,
-  }));
+  const emails = [];
+  let skipped = 0;
+  for (const [key, item] of Object.entries(data)) {
+    const email = (item.email || '').trim();
+    if (!isValidEmail(email)) { skipped++; continue; }
+    emails.push({ email, name: item.name || '', category: 'promo', source: 'queue', queueKey: key, retryCount: item.retryCount || 0 });
+  }
+  if (skipped > 0) console.log(`  Skipped ${skipped} invalid email entries in queue.`);
+  return emails;
 }
 
 async function getSentEmails() {
@@ -291,6 +299,10 @@ async function main() {
   const blockedSet = new Set(blockedEmails.map(e => e.toLowerCase()));
 
   entries = entries.filter(e => {
+    if (!isValidEmail(e.email)) {
+      console.log(`  \u2299 Invalid email: ${e.email}`);
+      return false;
+    }
     if (isBlocked(e.email) || blockedSet.has(e.email.toLowerCase())) {
       console.log(`  \u2299 Blocked: ${e.email}`);
       return false;
