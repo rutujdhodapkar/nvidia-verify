@@ -116,7 +116,7 @@ function buildCombinedBody(enrollment, category) {
       '',
       'Your certificate of completion is available. Stay tuned for updates on new opportunities, advanced programs, and referral rewards.',
       '',
-      'If you'd like to explore a new internship with us, simply re-apply and we\'ll fast-track your enrollment.',
+      `If you'd like to explore a new internship with us, simply re-apply and we'll fast-track your enrollment.`,
     ];
   } else {
     const prefix = category === 're-enrolled' ? 'Welcome Back' : 'DEV/CRAFT Update';
