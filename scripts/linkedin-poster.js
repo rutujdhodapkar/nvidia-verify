@@ -3,7 +3,7 @@ const API_REST = 'https://api.linkedin.com/rest';
 const API_V2 = 'https://api.linkedin.com/v2';
 
 function authHeaders(accessToken) {
-  return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  return { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'X-Restli-Protocol-Version': '2.0.0' };
 }
 
 async function discoverOrgUrn(accessToken, pageId) {
@@ -68,7 +68,7 @@ async function postViaRestApi(accessToken, owner, commentary) {
   };
   const postRes = await fetch(`${API_REST}/posts`, {
     method: 'POST',
-    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202401' },
+    headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202603' },
     body: JSON.stringify(postBody),
   });
   if (postRes.ok) {
@@ -108,7 +108,13 @@ async function postViaUgcApi(accessToken, owner, commentary) {
 }
 
 export async function postToLinkedinPage({ content, pageId }) {
-  const accessToken = await refreshAccessToken();
+  let accessToken;
+  try {
+    accessToken = await refreshAccessToken();
+  } catch (err) {
+    console.log(`      ⚠ Token refresh failed: ${err.message.slice(0, 150)}`);
+    throw err;
+  }
   const owner = await discoverOrgUrn(accessToken, pageId);
   console.log(`      ✓ Owner: ${owner}`);
 

@@ -10,7 +10,6 @@ async function main() {
   const state = await loadState();
   const { NVIDIA_API_KEY, NVIDIA_MODEL, ZAPIER_TOKEN, LINKEDIN_CLIENT_ID, LINKEDIN_REFRESH_TOKEN, LINKEDIN_PAGE_ID = '134233993' } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
-  if (!ZAPIER_TOKEN) { console.error('[!] Missing ZAPIER_TOKEN'); process.exit(1); }
 
   console.log('[1/3] Scraping devcraft.fennark.xyz...');
   const siteData = await scrapeSite();
