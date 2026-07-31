@@ -37,8 +37,8 @@ jobs:
               body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1, params: {} }),
             });
             const txt = await res.text();
-            const tools = [...txt.matchAll(/"name":"([^"]+)","description":"([^"]*)","inputSchema":(\{[^}]*\})/g)].map(m => ({ name: m[1], desc: m[2].slice(0,120), schema: m[3] }));
-            console.log("TOOLS:", JSON.stringify(tools).slice(0, 3000));
+            const idx = txt.indexOf("linkedin_create_company_update");
+            console.log("RAW:", txt.slice(Math.max(0,idx-100), idx+2000));
           '
         env:
           ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
