@@ -7,19 +7,13 @@ export async function postToLinkedinPage({ content, zapierToken, pageId }) {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const params = {
-        company_id: pid,
-        comment: content,
-      };
+      const instructions = `Create a LinkedIn company page update for DevCraft (company_id ${pid}). Post the EXACT comment text provided. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
 
-      const instructions = `Immediately create a LinkedIn company page update on DevCraft (page ID ${pid}). Post the EXACT comment text provided in params.comment. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
-
-      const result = await callZapier(zapierToken, {
-        selected_api: 'LinkedInCLIAPI',
-        action: 'create_company_update',
+      const result = await callZapier(zapierToken, 'linkedin_create_company_update', {
         instructions,
-        output: 'post_url',
-        params,
+        output_hint: 'the URL of the created post',
+        comment: content,
+        company_id: pid,
       });
       if (result?.error) {
         throw new Error(`Zapier action error: ${result.error}${result.hint ? ' — ' + result.hint : ''}`);
@@ -41,11 +35,11 @@ export async function postToLinkedinPage({ content, zapierToken, pageId }) {
   throw new Error(`Post failed after retries: ${lastErr?.message}`);
 }
 
-async function callZapier(token, args) {
+async function callZapier(token, toolName, args) {
   const res = await fetch(MCP_URL + '?token=' + encodeURIComponent(token), {
     method: 'POST',
     headers: { 'Accept': 'application/json, text/event-stream', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', id: 1, params: { name: 'execute_zapier_write_action', arguments: args } }),
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', id: 1, params: { name: toolName, arguments: args } }),
   });
 
   const txt = await res.text();

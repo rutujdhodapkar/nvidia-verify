@@ -27,22 +27,6 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Debug Zapier tools
-        run: |
-          node --input-type=module -e '
-            const token = process.env.ZAPIER_TOKEN;
-            const res = await fetch("https://mcp.zapier.com/api/v1/connect?token=" + encodeURIComponent(token), {
-              method: "POST",
-              headers: { "Accept": "application/json, text/event-stream", "Content-Type": "application/json" },
-              body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1, params: {} }),
-            });
-            const txt = await res.text();
-            const idx = txt.indexOf("linkedin_create_company_update");
-            console.log("RAW:", txt.slice(Math.max(0,idx-100), idx+2000));
-          '
-        env:
-          ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
-
       - name: Generate and post
         run: node scripts/composio-agent.js
         env:

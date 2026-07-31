@@ -12,7 +12,7 @@ export async function postToLinkedinPagePlaywright({ content, pageUrl }) {
   const userDataDir = join(__dirname, '..', '.linkedin-session');
 
   const browser = await chromium.launchPersistentContext(userDataDir, {
-    headless: false,
+    headless: !process.env.DISPLAY && process.env.CI !== 'false' ? true : !!process.env.DISPLAY,
     args: [
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
