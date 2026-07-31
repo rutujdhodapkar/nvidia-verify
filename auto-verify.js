@@ -197,9 +197,9 @@ function buildPrompt(taskTitle, taskDescription, taskNotice, submissionText, sub
       parts.push(`\n--- File: ${file.path || file.name || "unknown"} ---\n${file.content || ""}`);
     }
     parts.push("\n=== END OF CODE ===");
-    parts.push("\nALWAYS approve unless the submission is completely empty or completely unrelated to the task. Bugs, boilerplate, placeholder code, incomplete features — all fine. Missing dataset files are acceptable.");
+    parts.push("\nApprove ONLY if the code genuinely attempts the task described above. A working or mostly-working implementation that solves the task = approve. Minor bugs, small mistakes, unfinished edge cases, or simple styling issues are acceptable — but the submission must actually implement the task. Reject if the code is empty, is just boilerplate/placeholder/todo stubs with no real logic, or does something completely unrelated to the task.");
   } else {
-    parts.push("\nALWAYS approve unless the submission is completely empty or unrelated. If they described anything related to the task, approve it.");
+    parts.push("\nApprove ONLY if the submission text genuinely describes completing the task above (submitted URL, files, or a description of the work done that matches the task). Minor mistakes or brief explanations are acceptable. Reject if the submission is empty, unrelated to the task, or is just random/generic text that does not address the task.");
   }
   parts.push("\nRespond with ONLY valid JSON (no markdown, no extra text): { verified: boolean, confidence: number (0-100), reason: string, message: string }");
   return parts.join("\n");
@@ -216,7 +216,7 @@ async function callNvidiaApi(prompt) {
       messages: [
         {
           role: "system",
-          content: "You are an extremely lenient internship reviewer. ALWAYS approve the submission unless it is completely empty or completely unrelated to the task. The student is learning — bugs, incomplete code, boilerplate, placeholder text, and minor effort are all fine and should be APPROVED. Missing files are acceptable. If they submitted anything at all related to the task, mark verified=true. Respond ONLY with valid JSON: { verified: boolean, confidence: number (0-100), reason: string, message: string }",
+          content: "You are an internship reviewer. Approve the submission ONLY if it genuinely completes the task described (working or mostly-working code, or a submission that clearly addresses the task). Minor bugs, small mistakes, and simple/imperfect implementations are acceptable — the student is learning. Reject (verified=false) if the submission is empty, unrelated to the task, just boilerplate/placeholder/todo stubs with no real work, or does not meaningfully attempt the task. When rejecting, set message to a short, encouraging note telling the student what is missing. Respond ONLY with valid JSON: { verified: boolean, confidence: number (0-100), reason: string, message: string }",
         },
         { role: "user", content: prompt },
       ],
