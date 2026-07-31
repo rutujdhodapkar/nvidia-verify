@@ -28,7 +28,7 @@ export async function postToLinkedinPage({ content, zapierToken, pageId }) {
         throw new Error(`Zapier needs more info: ${result.followUpQuestion.slice(0, 200)}`);
       }
       console.log(`[POST] ✓ Zapier response: ${JSON.stringify(result).slice(0, 300)}`);
-      const postUrl = result?.post_url || result?.url || result?.id || result?.results;
+      const postUrl = result?.post_url || result?.url || result?.id || result?.results?.post_url || result?.results;
       if (!postUrl) throw new Error(`No post URL in response: ${JSON.stringify(result).slice(0, 200)}`);
       console.log(`[POST] ✓ Company page: ${postUrl}`);
       return postUrl;
@@ -49,13 +49,12 @@ async function callZapier(token, args) {
   });
 
   const txt = await res.text();
-  const match = txt.match(/data: (.+)/);
-  if (!match) {
+  const data = parseSse(txt);
+  if (!data) {
     console.log(`[ZAPIER RAW] ${txt.slice(0, 300)}`);
     throw new Error('Zapier API error: ' + txt.slice(0, 200));
   }
 
-  const data = JSON.parse(match[1]);
   if (data.error) throw new Error('Zapier error: ' + JSON.stringify(data.error));
 
   const textContent = data.result?.content?.[0]?.text;
@@ -64,5 +63,29 @@ async function callZapier(token, args) {
     throw new Error('Zapier: empty response');
   }
 
-  return JSON.parse(textContent);
+  const isError = data.result?.isError === true;
+  if (isError || /^MCP error/i.test(textContent) || /^error:/i.test(textContent)) {
+    throw new Error('Zapier MCP error: ' + textContent.slice(0, 500));
+  }
+
+  try {
+    return JSON.parse(textContent);
+  } catch (e) {
+    console.log(`[ZAPIER NON-JSON] ${textContent.slice(0, 300)}`);
+    throw new Error('Zapier returned non-JSON response: ' + textContent.slice(0, 300));
+  }
+}
+
+function parseSse(txt) {
+  let last = null;
+  for (const line of txt.split(/\r?\n/)) {
+    const m = line.match(/^data:\s?(.*)$/);
+    if (!m) continue;
+    const payload = m[1];
+    if (payload === '[DONE]') continue;
+    try {
+      last = JSON.parse(payload);
+    } catch { /* skip non-JSON keepalive/comment lines */ }
+  }
+  return last;
 }

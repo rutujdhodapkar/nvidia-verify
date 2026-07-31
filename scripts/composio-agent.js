@@ -3,6 +3,7 @@ import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
 import { postToLinkedinPage } from './linkedin-poster.js';
 import { postToLinkedinPage as postToLinkedinViaZapier } from './zapier-poster.js';
+import { postToLinkedinPagePlaywright } from './linkedin-playwright.js';
 import { loadState, saveState, hash, isDup } from './state.js';
 
 function cleanPost(text) {
@@ -116,6 +117,20 @@ async function main() {
       posted = true;
     } catch (err) {
       console.log(`      ⚠ Zapier MCP failed: ${err.message.slice(0, 150)}`);
+    }
+  }
+
+  if (!posted && process.env.LINKEDIN_EMAIL && process.env.LINKEDIN_PASSWORD) {
+    console.log('[3/3] Posting to LinkedIn via Playwright (browser)...');
+    try {
+      await postToLinkedinPagePlaywright({
+        content: post,
+        pageUrl: `https://www.linkedin.com/company/${process.env.LINKEDIN_PAGE_ID || '134233993'}/`,
+      });
+      console.log('      ✓ Posted via Playwright');
+      posted = true;
+    } catch (err) {
+      console.log(`      ⚠ Playwright failed: ${err.message.slice(0, 150)}`);
     }
   }
 
