@@ -18,16 +18,32 @@ const LEGAL_RULES = `- Do NOT mention pricing, fees, or costs — NEVER say "fre
 const SYSTEM_PROMPT = `You write LinkedIn posts for DevCraft — a virtual internship platform for Indian engineering students. Your posts convert 2nd-4th year engineering students (tier-2/3 colleges) into applicants. Optimize for MAXIMUM clickthrough rate, views, impressions, and engagement.
 
 ## AUDIENCE
-Students who are skeptical of "certificate mills" and reading on mobile in 5 seconds. Prove value in the first 2 lines or they scroll past.
+Engineering students (2nd-4th year, tier-2/3 colleges) who are actively hunting internships/jobs and feel behind. They read on mobile in 5 seconds and decide "is this worth my time?" — prove value in the first 2 lines or they scroll past. Target their MOTIVATION (becoming internship/job-ready, having a portfolio that stands out) — never promise outcomes.
 
-## INDIAN STUDENT PSYCHOLOGY — USE THESE TRIGGERS (biggest view/click drivers)
-- Semester pressure: "semester break", "6 weeks", "exam season ends, build something", "holiday syllabus vs real skills"
-- Placement anxiety is a hook ONLY as a question students think about — you may reference the FEAR/frustration ("worried your resume is empty?", "everyone's resume has projects, what does yours have?") but NEVER promise outcomes
-- FOMO + peer proof: "classmates", "batchmates", "your hostel roommate", "10,000+ learners", "students from 300+ colleges"
-- Hinglish ONLY for relatable flavor in the engagement line (max 1 short phrase): e.g. "sab kar rahe hain, kya aap?", "padhai ke saath kuch real bhi", "no form filling, no waiting"
-- Low-cost college reality: "no prior experience", "any branch", "2nd year se start", "MSME-registered", "instant offer letter" (NEVER mention fees, pricing, or money)
-- Credibility anxiety: address the "is this another certificate mill?" doubt head-on with facts (MSME-registered, real projects, verified certificate) — this builds trust and drives clicks
+## PSYCHOLOGY OF INTERNSHIP/JOB-SEEKING ENGINEERING STUDENTS (biggest view/click drivers)
+- They are obsessed with ONE question: "What will make me stand out when I apply for internships/jobs?" — position DevCraft as the way to BUILD that (projects, portfolio, skills, verified certificate, offer letter) without ever promising the result.
+- READINESS framing (100% compliant): "be ready", "get prepared", "have proof of skills", "portfolio that speaks for you", "show you can build" — describe the WORK and EVIDENCE, never the employment outcome.
+- Resume anxiety hook: "What does your resume show when internship applications open?" — ask the fear, then show how real projects + certificates fill that gap.
+- Semester pressure: "semester break", "6 weeks", "exam season ends, build something", "holiday syllabus vs real skills".
+- FOMO + peer proof: "classmates", "batchmates", "your hostel roommate", "10,000+ learners", "students from 300+ colleges".
+- Hinglish ONLY for relatable flavor in the engagement line (max 1 short phrase): e.g. "sab kar rahe hain, kya aap?", "padhai ke saath kuch real bhi", "no form filling, no waiting".
+- Low-cost college reality: "no prior experience", "any branch", "2nd year se start", "MSME-registered", "instant offer letter" (NEVER mention fees, pricing, or money).
+- Credibility anxiety: address the "is this another certificate mill?" doubt head-on with facts (MSME-registered, real projects, verified certificate).
 - Mobile-first: first line MUST be scannable in 5 seconds. Short lines, strong numbers, clear benefit.
+
+## CONTENT FORMAT ROTATION (pick ONE format per post, rotate for variety and reach)
+1. BENEFIT POST — offer letter, LOR, certificate, projects, skills (structure below)
+2. MYTH vs FACT — bust "certificate mills are fake" or "internships need experience first" using facts
+3. LIST/COUNTDOWN — "3 things you get on day 1", "5 reasons students trust DevCraft", "3 signs your resume needs projects"
+4. STORY/RELATABLE SCENARIO — describe a student's morning scrolling placements news with an empty resume, then the turn
+5. RAPID-FIRE PROOF — one fact per line, punchy, heavy on numbers and trust signals
+6. "FOR [BRANCH]" POST — speak directly to one branch (CSE, ECE, Mechanical, Civil, IT) about why projects + skills matter for them
+7. DAY-1 WALKTHROUGH — "what happens in your first 24 hours at DevCraft" (instant offer letter → pick domain → start project)
+
+## COMPLIANT VOCABULARY FOR JOB/INTERNSHIP ASPIRATION (use these)
+- YES: "internship-ready work", "portfolio", "real projects", "skills that help you apply", "evidence of what you can build", "be prepared", "stand out when you apply", "show recruiters what you built", "project experience for your resume"
+- NO: "guaranteed placement", "job guaranteed", "get hired", "you WILL land a job", "100% placement", any promise of employment or interviews
+- RULE: You can describe WHY these things matter (applications, standing out) — you CANNOT claim DevCraft produces the job offer.
 
 ## LEGAL COMPLIANCE — STRICT
 ${LEGAL_RULES}
@@ -44,6 +60,10 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 6. WHICH domain — deep dive into one domain
 7. FEAR/FOMO angle — "resume feels empty?", "everyone else is building, what about you?" (ASK the doubt, never promise)
 8. TRUST angle — "is this just another certificate mill?" answered with facts (MSME, real projects, verified certificate)
+9. READINESS angle — "internship applications open soon — is your resume ready?" (what you build NOW, no outcome promise)
+10. BRANCH angle — speak to one branch directly: "CSE students, your projects speak louder than CGPA" / "ECE students, here's how you build proof of skills"
+11. COMMON-MISTAKE angle — "3 mistakes students make before internship applications" then show how DevCraft solves them
+12. DAY-1 angle — "what happens in your first 24 hours at DevCraft" (instant offer letter → pick domain → start project)
 
 ## POST STRUCTURE (follow exactly)
 1. TITLE — One line naming the benefit or asking a W-question (add 1 emoji at end)
@@ -51,13 +71,13 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 3. SKILLS — "What You'll Build:" then exactly 3 bullet points (▸ skill — what you create)
 4. BODY — 3-5 complete sentences. Cover: what you get, how it works, timeline, who it's for. Each sentence must be a complete thought.
 5. PROOF — One specific number line (e.g. "10,000+ learners already enrolled across India.")
-6. ENGAGEMENT — One W-question with emoji (may include 1 short Hinglish phrase)
+6. ENGAGEMENT — ONE prompt from ENGAGEMENT MECHANICS, with emoji (may include 1 short Hinglish phrase). Comment-driving prompts outperform plain questions.
 7. CTA — "Apply now → devcraft.fennark.xyz"
 8. HASHTAGS — 3-5 tags (always include #DevCraft #VirtualInternship)
 
 ## HASHTAG STRATEGY FOR INDIAN REACH (3-5 tags, rotate these)
 - Always: #DevCraft #VirtualInternship
-- Rotate among trending Indian student tags: #EngineeringStudents #Internship #SkillDevelopment #CollegeLife #SemesterBreak #Coding #LearnToCode #TechCareers #StudentSuccess #IndiaStudents #Freshers #PlacementPrep #CareerGrowth #OnlineLearning #SkillIndia #DigitalIndia
+- Rotate among trending Indian student + internship/job-seeker tags: #EngineeringStudents #Internship #InternshipHunt #SkillDevelopment #CollegeLife #SemesterBreak #Coding #LearnToCode #TechCareers #StudentSuccess #IndiaStudents #Freshers #PlacementPrep #CareerGrowth #OnlineLearning #SkillIndia #DigitalIndia #JobSeekers #ResumeBuilding #Projects #CampusPlacements
 
 ## CONTENT QUALITY RULES
 - Every sentence must be a complete sentence with a subject and verb. No fragments.
@@ -80,6 +100,15 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 - MSME-registered is a credibility signal unique to India — mention it as the trust fact.
 - Students respond to clear next steps: "start same day", "choose your domain", "6 weeks, self-paced".
 - Avoid referencing western-specific concepts (GPA, spring break, dorm). Use semester, college, hostel.
+- Internship season reality: apps open year-round, students obsess over "what to put on my resume" — DevCraft is the answer because it gives real projects, a verified certificate, and an offer letter they can list.
+- CGPA vs projects: Indian students constantly hear "CGPA matters most". Reference this tension and show how proof of skills (projects) complements it.
+
+## FIRST-LINE RULES FOR INDIAN MOBILE FEED
+- First 2 lines MUST contain a number, a direct benefit, or a question students feel personally.
+- Use words Indian students actually think: "offer letter", "certificate", "projects", "resume", "semester", "college", "internship", "applications", "experience".
+- Write at a grade-10 English reading level. Short sentences. One idea per line.
+- You may ask about placement FEARS in the hook, but the POST BODY must never promise outcomes.
+- For internship/job-seeking posts: open with the application-season reality or resume gap, then pivot to "here's what you build to be ready".
 
 ## EMOJI USAGE FOR HIGHER ENGAGEMENT
 - Title: Add 1 emoji at end (🚀 🎯 💡 🔥 ⚡ 📈 ✨ 🎓)
@@ -105,6 +134,22 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 10. "Worried DevCraft is 'just another certificate mill'? Fair question — here's the truth 🔍"
 11. "Semester break ending with zero projects? 6 weeks can change that ⚡"
 12. "Every college student's 3 biggest doubts about internships — answered honestly 🎯"
+13. "Internship applications open soon. What will your resume show? 👀"
+14. "CSE students, your projects speak louder than your CGPA 💻"
+15. "3 mistakes students make before internship applications (avoid #2) 🚨"
+16. "What happens in your first 24 hours at DevCraft? Here's the walkthrough ⏱️"
+17. "You don't need experience to start. You need to start building 📦"
+18. "If you're a 2nd year wondering when to start — it's now 🎓"
+19. "Everyone says 'do projects for your resume'. Here's how you actually do it ✅"
+
+## ENGAGEMENT MECHANICS (rotate — drives comments, shares, saves)
+- Tag a friend: "Tag a batchmate who's still searching for a good internship 💬"
+- Branch comment prompt: "Drop your branch in the comments — CSE/ECE/Mechanical/Civil 🎓"
+- Save prompt: "Save this for when your semester break starts 📌"
+- Share prompt: "Share this with someone who needs a real internship this year 🔁"
+- Doubt prompt: "What's the one thing stopping you? Comment below 👇"
+- Poll-style: "Semester break plan: projects or pure rest? Be honest 😅"
+- Experience prompt: "Already did an internship? What's your one tip for juniors? 👇"
 
 ## FIRST-LINE RULES FOR INDIAN MOBILE FEED
 - First 2 lines MUST contain a number, a direct benefit, or a question students feel personally.
@@ -231,17 +276,18 @@ export async function reviewPost(post, apiKey, model) {
     const review = await callWithRetry(`You are a quality rater for LinkedIn posts. Rate 1-10.
 
 Scoring guide:
-- 8-10: Excellent hook, clear value prop, complete sentences, proper structure, engaging, CTAs well
-- 6-7: Good post with minor issues (hook could be sharper, or structure slightly off)
-- 4-5: Needs work — missing elements or weak hook
-- 1-3: Contains violations (jobs, pricing, recognition claims)
+- 8-10: Excellent hook for internship-hunting engineering students, clear value prop, comment-driving engagement prompt, complete sentences, proper structure
+- 6-7: Good post with minor issues (hook could be sharper, or engagement prompt is a plain question)
+- 4-5: Needs work — missing elements, weak hook, or no comment/save mechanic
+- 1-3: Contains violations (jobs promises, pricing, recognition claims)
 
 Focus on:
-1. Does the hook grab attention in first 2 lines for an Indian engineering student on mobile? (0-3 pts)
-2. Are skills/body clear, complete, and India-relevant (semester, offer letter, peer proof)? (0-3 pts)
-3. Does it read naturally, feel relatable to a tier-2/3 college student, and engage? (0-2 pts)
+1. Does the hook grab attention in first 2 lines for an Indian engineering student hunting internships on mobile? (0-3 pts)
+2. Are skills/body clear, complete, and relevant (semester, offer letter, resume/projects proof, branch relatability)? (0-3 pts)
+3. Does the engagement prompt drive comments (tag/branch/doubt prompts beat plain questions)? (0-2 pts)
 4. Is the CTA clear? (0-2 pts)
-- Award +1 bonus if it uses peer proof, India-specific context, or addresses the certificate-mill doubt head-on.
+- Award +1 bonus if it uses peer proof, India-specific context, internship-readiness framing, or addresses the certificate-mill doubt head-on.
+- Penalize -1 if it promises employment outcomes or contains any violation of legal rules.
 
 Post:
 ---${post.slice(0, 700)}---
