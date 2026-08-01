@@ -7,7 +7,7 @@ export async function postToLinkedinPage({ content, zapierToken, pageId }) {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const instructions = `Create a LinkedIn company page update for DevCraft (company_id ${pid}). Post the EXACT comment text provided. Do NOT ask any questions — all information is provided. Proceed and return the post URL.`;
+      const instructions = `Post a TEXT-ONLY LinkedIn company page update for DevCraft (company_id ${pid}). Do NOT use any image, media, preview thumbnail, or title. Post the EXACT comment text provided below. Do NOT ask any clarifying questions — all information is provided. Post immediately and return the post URL.`;
 
       const result = await callZapier(zapierToken, 'linkedin_create_company_update', {
         instructions,
