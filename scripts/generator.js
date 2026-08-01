@@ -31,14 +31,10 @@ Engineering students (2nd-4th year, tier-2/3 colleges) who are actively hunting 
 - Credibility anxiety: address the "is this another certificate mill?" doubt head-on with facts (MSME-registered, real projects, verified certificate).
 - Mobile-first: first line MUST be scannable in 5 seconds. Short lines, strong numbers, clear benefit.
 
-## CONTENT FORMAT ROTATION (pick ONE format per post, rotate for variety and reach)
-1. BENEFIT POST — offer letter, LOR, certificate, projects, skills (structure below)
-2. MYTH vs FACT — bust "certificate mills are fake" or "internships need experience first" using facts
-3. LIST/COUNTDOWN — "3 things you get on day 1", "5 reasons students trust DevCraft", "3 signs your resume needs projects"
-4. STORY/RELATABLE SCENARIO — describe a student's morning scrolling placements news with an empty resume, then the turn
-5. RAPID-FIRE PROOF — one fact per line, punchy, heavy on numbers and trust signals
-6. "FOR [BRANCH]" POST — speak directly to one branch (CSE, ECE, Mechanical, Civil, IT) about why projects + skills matter for them
-7. DAY-1 WALKTHROUGH — "what happens in your first 24 hours at DevCraft" (instant offer letter → pick domain → start project)
+## CONTENT FORMAT — YOU DECIDE (like skills: invent it fresh every post, never repeat the last 3)
+- Choose ONE post format yourself based on what fits best. Do NOT keep reusing the same one.
+- Possible formats (invent new ones too, these are only ideas): BENEFIT POST, MYTH vs FACT, LIST/COUNTDOWN, STORY/RELATABLE SCENARIO, RAPID-FIRE PROOF, "FOR [BRANCH]" POST, DAY-1 WALKTHROUGH, POLL-STYLE, AMA-STYLE, CAUTION/HONEST-TRUTH POST
+- Use the PREVIOUS ANGLES list at the bottom to avoid repeating the same format/angle — every post must feel new.
 
 ## COMPLIANT VOCABULARY FOR JOB/INTERNSHIP ASPIRATION (use these)
 - YES: "internship-ready work", "portfolio", "real projects", "skills that help you apply", "evidence of what you can build", "be prepared", "stand out when you apply", "show recruiters what you built", "project experience for your resume"
@@ -48,22 +44,12 @@ Engineering students (2nd-4th year, tier-2/3 colleges) who are actively hunting 
 ## LEGAL COMPLIANCE — STRICT
 ${LEGAL_RULES}
 
-## DOMAINS (pick 2-3 per post, rotate)
-Web Development, Python Development, Java Development, Data Science, Data Analysis, Machine Learning, Artificial Intelligence, UI/UX Design, App Development, Cloud Computing, Cybersecurity, Full Stack Development, DevOps Engineering, Blockchain Development, Digital Marketing, React & Modern Web Apps, C/C++ Development, Database Management
+## DOMAINS — YOU CHOOSE (2-3 per post, decide fresh each time based on site data)
+- Pick 2-3 domains that best fit the post's angle and rotate. These are common options (invent/combine as needed): Web Development, Python Development, Java Development, Data Science, Data Analysis, Machine Learning, Artificial Intelligence, UI/UX Design, App Development, Cloud Computing, Cybersecurity, Full Stack Development, DevOps Engineering, Blockchain Development, Digital Marketing, React & Modern Web Apps, C/C++ Development, Database Management
 
-## CONTENT ANGLE ROTATION (pick ONE different angle per post)
-1. WHAT you get — offer letter, LOR, certificate, projects, skills
-2. WHY DevCraft — MSME registered, instant onboarding, self-paced
-3. WHEN to start — semester break, fits 6 weeks, start same day
-4. WHERE it leads — portfolio, cert, LOR, stack domains
-5. WHO it's for — 2nd-4th year, any branch, no experience needed
-6. WHICH domain — deep dive into one domain
-7. FEAR/FOMO angle — "resume feels empty?", "everyone else is building, what about you?" (ASK the doubt, never promise)
-8. TRUST angle — "is this just another certificate mill?" answered with facts (MSME, real projects, verified certificate)
-9. READINESS angle — "internship applications open soon — is your resume ready?" (what you build NOW, no outcome promise)
-10. BRANCH angle — speak to one branch directly: "CSE students, your projects speak louder than CGPA" / "ECE students, here's how you build proof of skills"
-11. COMMON-MISTAKE angle — "3 mistakes students make before internship applications" then show how DevCraft solves them
-12. DAY-1 angle — "what happens in your first 24 hours at DevCraft" (instant offer letter → pick domain → start project)
+## CONTENT ANGLE — YOU DECIDE (one fresh angle per post, never repeat the last 3)
+- Invent the best angle yourself each post. Ideas (make your own too): WHAT you get, WHY DevCraft (MSME, instant onboarding), WHEN to start (semester break), WHERE it leads (portfolio, cert, LOR), WHO it's for (2nd-4th year, any branch), WHICH domain deep-dive, FEAR/FOMO (resume feels empty — ask, never promise), TRUST (is it a certificate mill? — answer with facts), READINESS (internship apps opening — is your resume ready?), BRANCH-specific (CSE/ECE/Mechanical/Civil), COMMON-MISTAKE, DAY-1 walkthrough, HONEST-TRUTH, MYTH-BUSTING
+- Use the PREVIOUS ANGLES list at the bottom to pick something different.
 
 ## POST STRUCTURE (follow exactly)
 1. TITLE — One line naming the benefit or asking a W-question (add 1 emoji at end)
@@ -75,9 +61,10 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 7. CTA — "Apply now → devcraft.fennark.xyz"
 8. HASHTAGS — 3-5 tags (always include #DevCraft #VirtualInternship)
 
-## HASHTAG STRATEGY FOR INDIAN REACH (3-5 tags, rotate these)
+## HASHTAGS — YOU INVENT (3-5 tags per post, fresh each time)
 - Always: #DevCraft #VirtualInternship
-- Rotate among trending Indian student + internship/job-seeker tags: #EngineeringStudents #Internship #InternshipHunt #SkillDevelopment #CollegeLife #SemesterBreak #Coding #LearnToCode #TechCareers #StudentSuccess #IndiaStudents #Freshers #PlacementPrep #CareerGrowth #OnlineLearning #SkillIndia #DigitalIndia #JobSeekers #ResumeBuilding #Projects #CampusPlacements
+- Invent the rest yourself to match the post's exact theme (domain, branch, audience, format). Mix broad-reach (#Internship, #EngineeringStudents) with niche-specific ones.
+- Examples only (don't copy blindly): #InternshipHunt #SkillDevelopment #SemesterBreak #LearnToCode #Freshers #PlacementPrep #SkillIndia #Projects #ResumeBuilding #CampusPlacements #DataScience #WebDev #CSE #ECE #MechanicalEngineering
 
 ## CONTENT QUALITY RULES
 - Every sentence must be a complete sentence with a subject and verb. No fragments.
@@ -111,51 +98,23 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 - For internship/job-seeking posts: open with the application-season reality or resume gap, then pivot to "here's what you build to be ready".
 
 ## EMOJI USAGE FOR HIGHER ENGAGEMENT
-- Title: Add 1 emoji at end (🚀 🎯 💡 🔥 ⚡ 📈 ✨ 🎓)
-- Hook: Add 1 emoji naturally in text (🚀 🎯 💡 🔥 ⚡ 📈 ✨ 🎓)
-- Engagement: Add 1 emoji at end (🤔 💭 🎯 🚀 📈)
+- Title: Add 1 emoji at end — you choose the best-fitting emoji (🚀 🎯 💡 🔥 ⚡ 📈 ✨ 🎓 📚 💻 🧠)
+- Hook: Add 1 emoji naturally in text — you choose
+- Engagement: Add 1 emoji at end — you choose
 - Skills bullets: NO emojis
 - Body: NO emojis (keep professional)
 - Proof: NO emojis
 - Hashtags: NO emojis
-- Use these high-CTR emojis: 🚀 🎯 💡 🔥 ⚡ 📈 ✨ 🎓 💪 🎁 🏆
 - Avoid overused: 😊 😁 👍 🙌 😃
 
-## HOOK FORMATS (rotate, never repeat) — each with emoji for CTR boost
-1. "Here's exactly what every DevCraft intern walks away with 🎯"
-2. "What if you could get an offer letter, LOR, and certificate in 6 weeks? 🚀"
-3. "7,000+ students already earned a verified credential. Here's what they got 📈"
-4. "An offer letter. Real projects. A verified certificate. That's what DevCraft gives you 💡"
-5. "What does a virtual internship actually include? Here's the breakdown 🔥"
-6. "3 things you get the moment you join DevCraft (no waiting, no interviews) ✨"
-7. "Who actually qualifies for a DevCraft internship? Almost everyone 🎓"
-8. "Most internships make you wait for an offer letter. DevCraft gives it on day 1 ⚡"
-9. "Your classmates are already building projects. Your resume still says 'currently pursuing' 😅"
-10. "Worried DevCraft is 'just another certificate mill'? Fair question — here's the truth 🔍"
-11. "Semester break ending with zero projects? 6 weeks can change that ⚡"
-12. "Every college student's 3 biggest doubts about internships — answered honestly 🎯"
-13. "Internship applications open soon. What will your resume show? 👀"
-14. "CSE students, your projects speak louder than your CGPA 💻"
-15. "3 mistakes students make before internship applications (avoid #2) 🚨"
-16. "What happens in your first 24 hours at DevCraft? Here's the walkthrough ⏱️"
-17. "You don't need experience to start. You need to start building 📦"
-18. "If you're a 2nd year wondering when to start — it's now 🎓"
-19. "Everyone says 'do projects for your resume'. Here's how you actually do it ✅"
+## HOOK — YOU WRITE IT FRESH (never copy, never repeat your last 3)
+- Write an original hook each post that fits the chosen angle. Use the psychology triggers above (resume gap, semester, peer proof, readiness, trust).
+- Guidelines: lead with a benefit, a number, or a question the student feels personally. Short, punchy, mobile-scannable. Add one emoji.
+- Examples only (do not reuse these exact lines): "Internship apps open soon. What will your resume show? 👀", "CSE students, your projects speak louder than your CGPA 💻", "3 mistakes students make before internship applications 🚨", "You don't need experience to start. You need to start building 📦", "Is DevCraft just another certificate mill? Fair question 🔍"
 
-## ENGAGEMENT MECHANICS (rotate — drives comments, shares, saves)
-- Tag a friend: "Tag a batchmate who's still searching for a good internship 💬"
-- Branch comment prompt: "Drop your branch in the comments — CSE/ECE/Mechanical/Civil 🎓"
-- Save prompt: "Save this for when your semester break starts 📌"
-- Share prompt: "Share this with someone who needs a real internship this year 🔁"
-- Doubt prompt: "What's the one thing stopping you? Comment below 👇"
-- Poll-style: "Semester break plan: projects or pure rest? Be honest 😅"
-- Experience prompt: "Already did an internship? What's your one tip for juniors? 👇"
-
-## FIRST-LINE RULES FOR INDIAN MOBILE FEED
-- First 2 lines MUST contain a number, a direct benefit, or a question students feel personally.
-- Use words Indian students actually think: "offer letter", "certificate", "projects", "resume", "semester", "college", "interview-ready work".
-- Write at a grade-10 English reading level. Short sentences. One idea per line.
-- You may ask about placement FEARS in the hook, but the POST BODY must never promise outcomes.
+## ENGAGEMENT PROMPT — YOU INVENT IT (comment/save/share-driving, fresh each post)
+- Write one original prompt that makes the reader comment, save, or tag someone. Match it to the post's topic.
+- Ideas (make your own): tag a batchmate who needs this, drop your branch/year in comments, save for semester break, share with someone searching for an internship, "what's stopping you? comment below", "which domain would you pick?", "be honest — projects or rest this break?"
 
 ## CRITICAL — NEVER INCLUDE THESE (ZERO TOLERANCE)
 - NEVER mention jobs, placement, employment, hiring, career, recruit, interview, salary, package
@@ -163,8 +122,10 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
 - NEVER say "free", "100% free", "no cost", "paid", "fee", or any pricing
 - NEVER say "industry-recognized", "globally recognized", "employer-accepted"
 
-## OUTPUT FORMAT — Return ONLY valid JSON:
+## OUTPUT FORMAT — Return ONLY valid JSON. YOU decide every field (format, angle, domains, hook, hashtags, engagement, emoji):
 {
+  "format": "what post format you chose (e.g. MYTH vs FACT, LIST, BRANCH, STORY...)",
+  "angle": "the angle you chose (e.g. READINESS, TRUST, FEAR/FOMO...)",
   "title": "...",
   "hook": "...",
   "skills": [{"name": "...", "desc": "..."}],
@@ -172,7 +133,7 @@ Web Development, Python Development, Java Development, Data Science, Data Analys
   "proof": "...",
   "engagement": "...",
   "cta_line": "Apply now \u2192 devcraft.fennark.xyz",
-  "hashtags": ["#DevCraft", "#VirtualInternship"],
+  "hashtags": ["#DevCraft", "#VirtualInternship", "...your choice..."],
   "variant_label": "A | B"
 }
 
@@ -251,7 +212,7 @@ Generate the post now. Return ONLY the JSON.`;
     throw new Error(violation);
   }
 
-  console.log(`[GENERATE] ✓ ${postText.length} chars, skills: ${Array.isArray(parsed.skills) ? parsed.skills.length : 0}, variant: ${parsed.variant_label || 'A'}`);
+  console.log(`[GENERATE] ✓ ${postText.length} chars, format: ${parsed.format || 'auto'}, angle: ${parsed.angle || 'auto'}, skills: ${Array.isArray(parsed.skills) ? parsed.skills.length : 0}, variant: ${parsed.variant_label || 'A'}`);
   return { post: postText };
 }
 
