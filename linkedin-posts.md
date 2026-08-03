@@ -2,6 +2,14 @@
 
 ---
 
+## HOW TO SELL A PRODUCT — P+E+U METHOD
+
+Prepare the product, package it with emotion and make it feel like it's urgent — that's it; that's how you can sell anything. I call it the P+E+U method (preparation, emotion, urgency).
+
+Why would somebody buy from you? If you want to sell, you need to understand your buyer. People buy things because they need them. Why would they want to buy from you? Because you have something they need.
+
+---
+
 ## 1. Web Development
 
 Your offer letter lands the second you enroll. No interview. No waiting.
