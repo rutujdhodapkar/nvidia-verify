@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { sendEmail, getProviderStatus } from '../lib/email-provider.js';
-import { isBlocked } from '../lib/blocklist.js';
+import { isBlocked, BLOCKED_EMAILS } from '../lib/blocklist.js';
 import {
   pfGet, pfPut, pfPatch, pfDelete, encodeKey, removeBlockedEmails,
 } from '../lib/portfolio-firebase.js';
@@ -226,7 +226,7 @@ async function updateUserState(email, updates) {
 async function shouldSkipDueToHold(email, type = 'web') {
   const state = await getUserState(email);
   const field = type === 'promo' ? 'lastPromoSentAt' : 'lastSentAt';
-  const val = state[field];
+  const val = state[field] || state.lastSentAt;
   if (!val) return false;
   return daysBetween(val, todayStr()) < HOLD_DAYS;
 }
@@ -240,6 +240,15 @@ async function main() {
   if (meta.lastRunDate !== today) {
     meta.templateCounter = meta.templateCounter || 0;
     meta.lastRunDate = today;
+  }
+
+  // Purge blocked emails (incl. owner/admin) from all recipient pools so they
+  // are never re-processed or re-queued by the daily campaign.
+  try {
+    const purged = await removeBlockedEmails(Array.from(BLOCKED_EMAILS));
+    if (purged > 0) console.log(`Purged ${purged} blocked entries from queue/sent/emailCategories.`);
+  } catch (e) {
+    console.warn('[send-bulk] Failed to purge blocked emails:', e.message);
   }
 
   const status = await getProviderStatus();
@@ -315,13 +324,23 @@ async function main() {
   const toSend = [];
   for (const e of entries) {
     const isPromo = e.categories.includes('promo');
-    if (!isPromo && await shouldSkipDueToHold(e.email, 'web')) {
+    // Hold gate applies to BOTH web and promo so a user never receives more
+    // than one automated email per HOLD_DAYS (5). Previously promo had no hold,
+    // so every re-targeted user got a promo blast on every 6-hour cron run.
+    if (await shouldSkipDueToHold(e.email, isPromo ? 'promo' : 'web')) {
       const state = await getUserState(e.email);
-      console.log(`  \u25c7 Skipped ${e.email} (web, last sent ${state.lastSentAt?.slice(0, 10)})`);
+      console.log(`  \u25c7 Skipped ${e.email} (${isPromo ? 'promo' : 'web'}, last sent ${(state.lastPromoSentAt || state.lastSentAt)?.slice(0, 10)})`);
       continue;
     }
     toSend.push(e);
   }
+
+  // Send web/transactional emails first, then promos (as requested).
+  toSend.sort((a, b) => {
+    const ap = a.categories.includes('promo') ? 1 : 0;
+    const bp = b.categories.includes('promo') ? 1 : 0;
+    return ap - bp;
+  });
   console.log(`Ready to send: ${toSend.length}\n`);
 
   const totalRemaining = status.mailjet.remaining + status.brevo.remaining;
@@ -366,7 +385,7 @@ async function main() {
       if (!isPromo && (primaryCat === 'internship_application' || sentEmailSet.has(e.email.toLowerCase()))) {
         const queueKey = encodeKey(e.email);
         const existingQueue = await pfGet(`queue/${queueKey}`);
-        if (!existingQueue) {
+        if (!existingQueue && !isBlocked(e.email)) {
           await pfPut(`queue/${queueKey}`, { email: e.email, name: e.name, addedAt: new Date().toISOString(), source: `auto_from_${primaryCat}` });
           console.log(`  \u2192 Added ${e.email} to promo queue (auto from ${primaryCat})`);
         }
