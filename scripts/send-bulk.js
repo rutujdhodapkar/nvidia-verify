@@ -4,7 +4,7 @@ import { isBlocked, BLOCKED_EMAILS } from '../lib/blocklist.js';
 import {
   pfGet, pfPut, pfPatch, pfDelete, encodeKey, removeBlockedEmails,
 } from '../lib/portfolio-firebase.js';
-import { logEmailSend } from '../lib/firebase.js';
+import { logEmailSend, fbGet } from '../lib/firebase.js';
 
 const SITE = 'devcraft.fennark.xyz';
 const HOLD_DAYS = 5;
@@ -209,7 +209,7 @@ async function getQueueEmails() {
 }
 
 async function getSentEmails() {
-  const data = await pfGet('sent');
+  const data = await fbGet('mailjet/logs');
   if (!data || typeof data !== 'object') return [];
   return Object.values(data).filter(e => e.email);
 }
@@ -223,12 +223,16 @@ async function updateUserState(email, updates) {
   await pfPatch(`user-state/${encodeKey(email)}`, updates);
 }
 
-async function shouldSkipDueToHold(email, type = 'web') {
+function lastSendTime(state) {
+  return [state.lastSentAt, state.lastPromoSentAt].filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a))[0];
+}
+
+async function shouldSkipDueToHold(email) {
   const state = await getUserState(email);
-  const field = type === 'promo' ? 'lastPromoSentAt' : 'lastSentAt';
-  const val = state[field] || state.lastSentAt;
-  if (!val) return false;
-  return daysBetween(val, todayStr()) < HOLD_DAYS;
+  const last = lastSendTime(state);
+  if (!last) return false;
+  return daysBetween(last, todayStr()) < HOLD_DAYS;
 }
 
 async function main() {
@@ -264,8 +268,14 @@ async function main() {
 
   console.log('Processing sent emails for promo re-targeting...');
   const sentEmails = await getSentEmails();
-  const sentEmailSet = new Set(sentEmails.map(e => e.email?.toLowerCase().trim()).filter(Boolean));
-  console.log(`Found ${sentEmails.length} sent entries, will re-target as promo.\n`);
+  const sentEmailMap = new Map();
+  for (const e of sentEmails) {
+    const email = (e.email || '').toLowerCase().trim();
+    if (!email) continue;
+    if (!sentEmailMap.has(email)) sentEmailMap.set(email, e.name || '');
+  }
+  const sentEmailSet = new Set(sentEmailMap.keys());
+  console.log(`Found ${sentEmailMap.size} unique sent entries, will re-target as promo.\n`);
 
   let templateCounter = meta.templateCounter || 0;
 
@@ -295,10 +305,11 @@ async function main() {
   for (const email of sentEmailSet) {
     const key = email.toLowerCase().trim();
     if (!dedupMap.has(key)) {
-      dedupMap.set(key, { email, name: '', categories: ['promo'], source: 'promo' });
+      dedupMap.set(key, { email, name: sentEmailMap.get(key) || '', categories: ['promo'], source: 'promo' });
     } else {
       const entry = dedupMap.get(key);
       if (!entry.categories.includes('promo')) entry.categories.push('promo');
+      if (!entry.name) entry.name = sentEmailMap.get(key) || '';
     }
   }
 
@@ -325,11 +336,12 @@ async function main() {
   for (const e of entries) {
     const isPromo = e.categories.includes('promo');
     // Hold gate applies to BOTH web and promo so a user never receives more
-    // than one automated email per HOLD_DAYS (5). Previously promo had no hold,
-    // so every re-targeted user got a promo blast on every 6-hour cron run.
-    if (await shouldSkipDueToHold(e.email, isPromo ? 'promo' : 'web')) {
+    // than one automated email per HOLD_DAYS (5). The check uses the most
+    // recent of lastSentAt/lastPromoSentAt so a fresh web mail also blocks
+    // an immediate promo re-target (and vice versa).
+    if (await shouldSkipDueToHold(e.email)) {
       const state = await getUserState(e.email);
-      console.log(`  \u25c7 Skipped ${e.email} (${isPromo ? 'promo' : 'web'}, last sent ${(state.lastPromoSentAt || state.lastSentAt)?.slice(0, 10)})`);
+      console.log(`  \u25c7 Skipped ${e.email} (${isPromo ? 'promo' : 'web'}, last sent ${lastSendTime(state)?.slice(0, 10)})`);
       continue;
     }
     toSend.push(e);
