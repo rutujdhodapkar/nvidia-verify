@@ -8,6 +8,20 @@ import { logEmailSend, fbGet } from '../lib/firebase.js';
 
 const SITE = 'devcraft.fennark.xyz';
 const HOLD_DAYS = 5;
+const DAILY_CAP = 300;
+const SEND_DELAY_MS = 2000;
+
+const DRY_RUN = process.argv.includes('--dry-run');
+
+const WEB_CATEGORY_ORDER = [
+  'welcome',
+  'login',
+  'internship_application',
+  'payment_success',
+  'task_completed',
+  'all_tasks_done_no_payment',
+  'internship_expired',
+];
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
@@ -71,6 +85,19 @@ Go to dashboard: https://${SITE}
 Best,
 The DEV/CRAFT Team`,
   },
+  task_completed: {
+    subject: 'Task Completed — Keep Going',
+    body: (name) => `Hi ${name || 'there'},
+
+Good progress! A task in your DEV/CRAFT internship has been verified and marked complete.
+
+Keep the momentum going — check your dashboard to see what's next and stay on track to finish all your projects.
+
+View dashboard: https://${SITE}
+
+Best,
+The DEV/CRAFT Team`,
+  },
   all_done_with_payment: {
     subject: 'Congratulations! Your Internship is Complete',
     body: (name) => `Hi ${name || 'there'},
@@ -108,44 +135,52 @@ The DEV/CRAFT Team`,
   },
   promo: [
     {
-      subject: 'Your virtual internship is waiting',
+      subject: 'A virtual internship you can start this week',
       body: (name) => `Hi ${name || 'there'},
 
-DEV/CRAFT is now accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.
+DEV/CRAFT is accepting applications for virtual internships across 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, and more.
 
-When you apply and enroll, you get an instant offer letter. Then you spend 6 weeks building real, production-grade projects that go straight into your portfolio.
+When you apply and enroll, you get an offer letter right away, then spend 6 weeks building real projects that go straight into your portfolio.
 
-It takes 2 minutes to apply. No interviews. No waiting.
+It takes about 2 minutes to apply. No interviews, no waiting.
 
-Apply now: https://${SITE}
+Apply here: https://${SITE}
+
+If you're not interested, just reply "unsubscribe" and we won't write again.
 
 Best,
 The DEV/CRAFT Team`,
     },
     {
-      subject: 'Your offer letter is ready — just apply',
+      subject: 'Your offer letter can be ready today',
       body: (name) => `Hi ${name || 'there'},
 
-At DEV/CRAFT, the offer letter arrives the moment you enroll. No screening rounds. No waiting for approvals.
+At DEV/CRAFT the offer letter arrives the moment you enroll. No screening rounds, no waiting for approvals.
 
-Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach you real skills.
+Choose from 20+ domains — Web Development, Data Science, Cyber Security, Full Stack, UI/UX, Data Analytics, and more. Each program is 6 weeks, self-paced, and built around projects that teach real skills.
 
 Your certificate comes with a live verification link employers can check in seconds.
 
-Enroll now: https://${SITE}
+Enroll here: https://${SITE}
+
+If you're not interested, just reply "unsubscribe" and we won't write again.
 
 Best,
 The DEV/CRAFT Team`,
     },
     {
-      subject: 'Get certified in just 6 weeks — free to start',
+      subject: 'Real projects for your portfolio',
       body: (name) => `Hi ${name || 'there'},
 
-Start your DEV/CRAFT virtual internship today. Complete 6 weeks of real projects and earn a certificate with live verification.
+A DEV/CRAFT virtual internship is a straightforward way to get real, portfolio-ready work on your resume.
 
-20+ domains available. Self-paced. No experience required.
+Complete 6 weeks of projects in your chosen domain and earn a certificate with live verification. Self-paced, no experience required.
 
-Start free: https://${SITE}
+20+ domains to choose from:
+
+See the programs here: https://${SITE}
+
+If you're not interested, just reply "unsubscribe" and we won't write again.
 
 Best,
 The DEV/CRAFT Team`,
@@ -159,6 +194,17 @@ function daysBetween(d1, d2) {
   const a = new Date(d1);
   const b = new Date(d2);
   return Math.floor((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function categoryPriority(cat) {
+  const idx = WEB_CATEGORY_ORDER.indexOf(cat);
+  return idx === -1 ? WEB_CATEGORY_ORDER.length : idx;
+}
+
+function primaryCategory(entry) {
+  return entry.categories
+    .filter(c => c !== 'promo')
+    .sort((a, b) => categoryPriority(a) - categoryPriority(b))[0];
 }
 
 function pickTemplate(category, counter = 0) {
@@ -184,10 +230,16 @@ async function getAllWebEmails() {
   let skipped = 0;
   for (const [category, entries] of Object.entries(cats)) {
     if (!entries || typeof entries !== 'object') continue;
+    const seenInCat = new Set();
     for (const [encodedKey, entry] of Object.entries(entries)) {
-      const email = (entry.email || '').trim();
+      const ud = entry.userData || {};
+      const email = (entry.email || ud.email || '').trim();
+      const name = entry.name || ud.name || '';
       if (!isValidEmail(email)) { skipped++; continue; }
-      emails.push({ email, name: entry.name || '', category, source: 'web', encodedKey });
+      const key = email.toLowerCase().trim();
+      if (seenInCat.has(key)) continue;
+      seenInCat.add(key);
+      emails.push({ email, name, category, source: 'web', encodedKey });
     }
   }
   if (skipped > 0) console.log(`  Skipped ${skipped} invalid email entries in emailCategories.`);
@@ -235,8 +287,13 @@ async function shouldSkipDueToHold(email) {
   return daysBetween(last, todayStr()) < HOLD_DAYS;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   console.log(`\n=== Unified Email Campaign: ${new Date().toISOString()} ===\n`);
+  if (DRY_RUN) console.log('  \u{1F7E1} DRY RUN \u2014 no emails sent\n');
 
   const meta = await getMeta();
   const today = todayStr();
@@ -256,14 +313,15 @@ async function main() {
   }
 
   const status = await getProviderStatus();
-  console.log(`Daily capacity: Mailjet ${status.mailjet.remaining}/${status.mailjet.limit}, Brevo ${status.brevo.remaining}/${status.brevo.limit}`);
+  const remaining = Math.min(DAILY_CAP, status.mailjet.remaining + status.brevo.remaining);
+  console.log(`Daily budget: ${DAILY_CAP} (using ${remaining} remaining today)`);
 
   console.log('\nFetching web emails from emailCategories...');
-  let webEmails = await getAllWebEmails();
+  const webEmails = await getAllWebEmails();
   console.log(`Found ${webEmails.length} web email entries.\n`);
 
   console.log('Fetching promo emails from queue...');
-  let promoEmails = await getQueueEmails();
+  const promoEmails = await getQueueEmails();
   console.log(`Found ${promoEmails.length} promo email entries in queue.\n`);
 
   console.log('Processing sent emails for promo re-targeting...');
@@ -277,8 +335,6 @@ async function main() {
   const sentEmailSet = new Set(sentEmailMap.keys());
   console.log(`Found ${sentEmailMap.size} unique sent entries, will re-target as promo.\n`);
 
-  let templateCounter = meta.templateCounter || 0;
-
   const dedupMap = new Map();
 
   for (const e of webEmails) {
@@ -286,7 +342,8 @@ async function main() {
     if (!dedupMap.has(key)) {
       dedupMap.set(key, { email: e.email, name: e.name, categories: [], source: 'web' });
     }
-    dedupMap.get(key).categories.push(e.category);
+    const entry = dedupMap.get(key);
+    if (!entry.categories.includes(e.category)) entry.categories.push(e.category);
   }
 
   for (const e of promoEmails) {
@@ -313,12 +370,10 @@ async function main() {
     }
   }
 
-  let entries = Array.from(dedupMap.values());
-
   const blockedEmails = ['vibhuteonkar588@gmail.com', 'harshadyadav2122005@gmail.com', 'atharvajangam159@gmail.com'];
   const blockedSet = new Set(blockedEmails.map(e => e.toLowerCase()));
 
-  entries = entries.filter(e => {
+  let entries = Array.from(dedupMap.values()).filter(e => {
     if (!isValidEmail(e.email)) {
       console.log(`  \u2299 Invalid email: ${e.email}`);
       return false;
@@ -332,9 +387,37 @@ async function main() {
 
   console.log(`\nTotal unique recipients after dedup: ${entries.length}\n`);
 
-  const toSend = [];
+  const webEntries = [];
+  const promoEntries = [];
   for (const e of entries) {
-    const isPromo = e.categories.includes('promo');
+    if (e.categories.includes('promo') && !primaryCategory(e)) promoEntries.push(e);
+    else webEntries.push(e);
+  }
+
+  webEntries.sort((a, b) => {
+    const pa = categoryPriority(primaryCategory(a));
+    const pb = categoryPriority(primaryCategory(b));
+    if (pa !== pb) return pa - pb;
+    return (a.email || '').localeCompare(b.email || '');
+  });
+
+  const counts = {};
+  for (const e of webEntries) {
+    const cat = primaryCategory(e);
+    counts[cat] = (counts[cat] || 0) + 1;
+  }
+  console.log('[Web emails — priority order]');
+  for (const cat of WEB_CATEGORY_ORDER) {
+    if (counts[cat]) console.log(`  ${cat.padEnd(30)} ${counts[cat]}`);
+  }
+  console.log(`  ${'promo'.padEnd(30)} ${promoEntries.length} (sent after all web emails)`);
+  console.log();
+
+  const ordered = [...webEntries, ...promoEntries];
+
+  const toSend = [];
+  for (const e of ordered) {
+    const isPromo = e.categories.includes('promo') && !primaryCategory(e);
     // Hold gate applies to BOTH web and promo so a user never receives more
     // than one automated email per HOLD_DAYS (5). The check uses the most
     // recent of lastSentAt/lastPromoSentAt so a fresh web mail also blocks
@@ -346,48 +429,55 @@ async function main() {
     }
     toSend.push(e);
   }
+  console.log(`Ready to send: ${toSend.length} (web ${webEntries.length}, promo ${promoEntries.length})\n`);
 
-  // Send web/transactional emails first, then promos (as requested).
-  toSend.sort((a, b) => {
-    const ap = a.categories.includes('promo') ? 1 : 0;
-    const bp = b.categories.includes('promo') ? 1 : 0;
-    return ap - bp;
-  });
-  console.log(`Ready to send: ${toSend.length}\n`);
+  const batch = toSend.slice(0, remaining);
 
-  const totalRemaining = status.mailjet.remaining + status.brevo.remaining;
-  const batch = toSend.slice(0, totalRemaining);
+  console.log(`Sending up to ${batch.length} emails — web first, then promo (${SEND_DELAY_MS}ms throttle)...\n`);
 
-  console.log(`Sending up to ${batch.length} emails via unified provider (fallback on failure)...\n`);
-
-  let sent = 0, errors = 0;
+  let sent = 0, errors = 0, sentPromo = 0;
+  let templateCounter = meta.templateCounter || 0;
 
   for (const e of batch) {
     try {
-      const isPromo = e.categories.includes('promo');
-      const primaryCat = isPromo ? 'promo' : (e.categories.find(c => c !== 'promo') || e.categories[0]);
-      const tpl = pickTemplate(primaryCat, templateCounter);
+      const isPromo = e.categories.includes('promo') && !primaryCategory(e);
+      const primaryCat = isPromo ? 'promo' : primaryCategory(e);
+      const tpl = pickTemplate(primaryCat, isPromo ? templateCounter : 0);
       const subject = typeof tpl.subject === 'function' ? tpl.subject(e.name) : tpl.subject;
       const text = typeof tpl.body === 'function' ? tpl.body(e.name) : '';
+
+      if (DRY_RUN) {
+        console.log(`  \u25c7 ${e.email} [${primaryCat}] — "${subject}" (dry-run)`);
+        sent++;
+        if (isPromo) sentPromo++;
+        continue;
+      }
 
       const result = await sendEmail({
         to: e.email,
         toName: e.name,
         subject,
         text,
+        headers: isPromo ? {
+          'List-Unsubscribe': '<mailto:unsubscribe@fennark.xyz?subject=unsubscribe>',
+          'X-Mailer': 'DEV/CRAFT-Bulk/1.0',
+        } : undefined,
       });
 
-      await updateUserState(e.email, {
-        lastSentAt: new Date().toISOString(),
-        lastCategory: primaryCat,
-        lastSource: result.provider,
-      });
+      const stateUpdates = { lastCategory: primaryCat, lastSource: result.provider };
+      if (isPromo) stateUpdates.lastPromoSentAt = new Date().toISOString();
+      else stateUpdates.lastSentAt = new Date().toISOString();
+      await updateUserState(e.email, stateUpdates);
+
       await logEmailSend({
         email: e.email, name: e.name, type: primaryCat, subject, status: 'sent', messageId: result.messageId || '',
       });
 
       sent++;
-      templateCounter++;
+      if (isPromo) {
+        sentPromo++;
+        templateCounter++;
+      }
       console.log(`  \u2713 ${e.email} [${primaryCat}] via ${result.provider}`);
 
       if (isPromo && e.queueKey) {
@@ -402,6 +492,8 @@ async function main() {
           console.log(`  \u2192 Added ${e.email} to promo queue (auto from ${primaryCat})`);
         }
       }
+
+      if (SEND_DELAY_MS > 0 && sent < batch.length) await sleep(SEND_DELAY_MS);
     } catch (err) {
       errors++;
       console.error(`  \u2717 ${e.email}: ${err.message}`);
@@ -411,7 +503,7 @@ async function main() {
   meta.templateCounter = templateCounter;
   await saveMeta(meta);
 
-  console.log(`\n=== Done: ${sent} sent, ${errors} errors ===\n`);
+  console.log(`\n=== Done: ${sent} sent (${sentPromo} promo), ${errors} errors ===\n`);
 }
 
 main().catch(err => { console.error('[FATAL]', err); process.exit(1); });
