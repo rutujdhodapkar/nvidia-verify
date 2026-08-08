@@ -2,7 +2,9 @@ name: NVIDIA Verify
 
 on:
   schedule:
-    - cron: '35 19 * * *'
+    - cron: '0 3 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '0 14 * * *'
       timezone: 'Asia/Kolkata'
   workflow_dispatch:
 
