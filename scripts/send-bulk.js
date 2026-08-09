@@ -4,7 +4,7 @@ import { isBlocked, BLOCKED_EMAILS } from '../lib/blocklist.js';
 import {
   pfGet, pfPut, pfPatch, pfDelete, encodeKey, removeBlockedEmails,
 } from '../lib/portfolio-firebase.js';
-import { logEmailSend, fbGet } from '../lib/firebase.js';
+import { logEmailSend } from '../lib/firebase.js';
 
 const SITE = 'devcraft.fennark.xyz';
 const HOLD_DAYS = 5;
@@ -260,12 +260,6 @@ async function getQueueEmails() {
   return emails;
 }
 
-async function getSentEmails() {
-  const data = await fbGet('mailjet/logs');
-  if (!data || typeof data !== 'object') return [];
-  return Object.values(data).filter(e => e.email);
-}
-
 async function getUserState(email) {
   const data = await pfGet(`user-state/${encodeKey(email)}`);
   return data || {};
@@ -282,9 +276,8 @@ function lastSendTime(state) {
 
 async function shouldSkipDueToHold(email) {
   const state = await getUserState(email);
-  const last = lastSendTime(state);
-  if (!last) return false;
-  return daysBetween(last, todayStr()) < HOLD_DAYS;
+  if (!state.lastSentAt) return false;
+  return daysBetween(state.lastSentAt, todayStr()) < HOLD_DAYS;
 }
 
 function sleep(ms) {
@@ -324,17 +317,6 @@ async function main() {
   const promoEmails = await getQueueEmails();
   console.log(`Found ${promoEmails.length} promo email entries in queue.\n`);
 
-  console.log('Processing sent emails for promo re-targeting...');
-  const sentEmails = await getSentEmails();
-  const sentEmailMap = new Map();
-  for (const e of sentEmails) {
-    const email = (e.email || '').toLowerCase().trim();
-    if (!email) continue;
-    if (!sentEmailMap.has(email)) sentEmailMap.set(email, e.name || '');
-  }
-  const sentEmailSet = new Set(sentEmailMap.keys());
-  console.log(`Found ${sentEmailMap.size} unique sent entries, will re-target as promo.\n`);
-
   const dedupMap = new Map();
 
   for (const e of webEmails) {
@@ -356,17 +338,6 @@ async function main() {
       entry.source = 'both';
       entry.queueKey = entry.queueKey || e.queueKey;
       entry.retryCount = Math.max(entry.retryCount || 0, e.retryCount || 0);
-    }
-  }
-
-  for (const email of sentEmailSet) {
-    const key = email.toLowerCase().trim();
-    if (!dedupMap.has(key)) {
-      dedupMap.set(key, { email, name: sentEmailMap.get(key) || '', categories: ['promo'], source: 'promo' });
-    } else {
-      const entry = dedupMap.get(key);
-      if (!entry.categories.includes('promo')) entry.categories.push('promo');
-      if (!entry.name) entry.name = sentEmailMap.get(key) || '';
     }
   }
 
@@ -418,13 +389,10 @@ async function main() {
   const toSend = [];
   for (const e of ordered) {
     const isPromo = e.categories.includes('promo') && !primaryCategory(e);
-    // Hold gate applies to BOTH web and promo so a user never receives more
-    // than one automated email per HOLD_DAYS (5). The check uses the most
-    // recent of lastSentAt/lastPromoSentAt so a fresh web mail also blocks
-    // an immediate promo re-target (and vice versa).
-    if (await shouldSkipDueToHold(e.email)) {
+    // 5-day hold applies ONLY to web emails. Promo (from queue) is always sent.
+    if (!isPromo && await shouldSkipDueToHold(e.email)) {
       const state = await getUserState(e.email);
-      console.log(`  \u25c7 Skipped ${e.email} (${isPromo ? 'promo' : 'web'}, last sent ${lastSendTime(state)?.slice(0, 10)})`);
+      console.log(`  \u25c7 Skipped ${e.email} (web, last sent ${lastSendTime(state)?.slice(0, 10)})`);
       continue;
     }
     toSend.push(e);
@@ -481,10 +449,19 @@ async function main() {
       console.log(`  \u2713 ${e.email} [${primaryCat}] via ${result.provider}`);
 
       if (isPromo && e.queueKey) {
+        // Move to `sent` category so it is never picked up for promo again.
+        await pfPut(`sent/${encodeKey(e.queueKey)}`, {
+          name: e.name,
+          email: e.email,
+          sentAt: new Date().toISOString(),
+          messageId: result.messageId || '',
+          type: 'promo',
+          source: e.source || 'queue',
+        });
         await pfDelete(`queue/${encodeKey(e.queueKey)}`);
       }
 
-      if (!isPromo && (primaryCat === 'internship_application' || sentEmailSet.has(e.email.toLowerCase()))) {
+      if (!isPromo && primaryCat === 'internship_application') {
         const queueKey = encodeKey(e.email);
         const existingQueue = await pfGet(`queue/${queueKey}`);
         if (!existingQueue && !isBlocked(e.email)) {
