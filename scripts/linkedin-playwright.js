@@ -12,7 +12,7 @@ export async function postToLinkedinPagePlaywright({ content, pageUrl }) {
   const userDataDir = join(__dirname, '..', '.linkedin-session');
 
   const browser = await chromium.launchPersistentContext(userDataDir, {
-    headless: !process.env.DISPLAY && process.env.CI !== 'false' ? true : !!process.env.DISPLAY,
+    headless: !process.env.DISPLAY,
     args: [
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
@@ -31,37 +31,30 @@ export async function postToLinkedinPagePlaywright({ content, pageUrl }) {
     await page.waitForTimeout(5000);
 
     let url = page.url();
-    if (url.includes('feed') || !url.includes('login')) {
+    if (url.includes('feed') || !url.includes('/login')) {
       console.log('      ✓ Already logged in (session found)');
     } else {
       console.log('      Filling login form...');
-      await page.evaluate((val) => {
-        const el = document.querySelector('input[autocomplete="username"]');
-        if (el) { el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); }
-      }, email);
-      await page.evaluate((val) => {
-        const el = document.querySelector('input[autocomplete="current-password"]');
-        if (el) { el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); }
-      }, password);
-      await page.waitForTimeout(1000);
-      await page.evaluate(() => {
-        const btn = document.querySelector('button[type="submit"]');
-        if (btn) btn.click();
-      });
+      const emailInput = page.locator('#session_key, input[autocomplete="username"], input[name="session_key"]').first();
+      const passInput = page.locator('#session_password, input[autocomplete="current-password"], input[name="session_password"]').first();
+      await emailInput.waitFor({ state: 'visible', timeout: 15000 });
+      await emailInput.fill(email);
+      await passInput.fill(password);
+      await page.locator('button[type="submit"]').first().click();
+
       await page.waitForTimeout(3000);
-      let tries = 0;
-      while (tries < 30) {
-        const u = page.url();
-        if (u.includes('/feed') || u.includes('/checkpoint/challengesV2')) break;
-        if (!u.includes('/login') && !u.includes('/checkpoint')) break;
-        await page.waitForTimeout(2000);
-        tries++;
-      }
-      if (page.url().includes('/checkpoint/challengesV2')) {
+      const afterUrl = page.url();
+      if (afterUrl.includes('/checkpoint/challengesV2')) {
         console.log('      [!] Challenge page — solve it in the browser window');
         await page.waitForURL(u => u.includes('/feed'), { timeout: 120000 }).catch(() => {});
+        if (page.url().includes('/checkpoint')) {
+          throw new Error('LinkedIn challenge not solved — cannot post headless');
+        }
+      } else if (afterUrl.includes('/login')) {
+        throw new Error('LinkedIn login failed — check LINKEDIN_EMAIL and LINKEDIN_PASSWORD');
+      } else {
+        console.log('      ✓ Logged in');
       }
-      console.log('      ✓ Logged in');
     }
 
     console.log('      Going to LinkedIn feed to find company page...');
