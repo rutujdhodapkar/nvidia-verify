@@ -35,24 +35,36 @@ export async function postToLinkedinPagePlaywright({ content, pageUrl }) {
       console.log('      ✓ Already logged in (session found)');
     } else {
       console.log('      Filling login form...');
-      const emailInput = page.locator('#session_key, input[autocomplete="username"], input[name="session_key"]').first();
-      const passInput = page.locator('#session_password, input[autocomplete="current-password"], input[name="session_password"]').first();
-      await emailInput.waitFor({ state: 'visible', timeout: 15000 });
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForSelector('input[type="email"]:visible', { state: 'visible', timeout: 30000 }).catch(async () => {
+        await page.screenshot({ path: join(__dirname, '..', 'linkedin-login-debug.png'), fullPage: true }).catch(() => {});
+        throw new Error(`LinkedIn login form not found (url: ${page.url()})`);
+      });
+      const emailInput = page.locator('input[type="email"]:visible').first();
+      const passInput = page.locator('input[type="password"]:visible').first();
       await emailInput.fill(email);
       await passInput.fill(password);
-      await page.locator('button[type="submit"]').first().click();
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
       await page.waitForTimeout(3000);
-      const afterUrl = page.url();
-      if (afterUrl.includes('/checkpoint/challengesV2')) {
+      let afterUrl = page.url();
+      if (afterUrl.includes('/checkpoint')) {
         console.log('      [!] Challenge page — solve it in the browser window');
         await page.waitForURL(u => u.includes('/feed'), { timeout: 120000 }).catch(() => {});
         if (page.url().includes('/checkpoint')) {
           throw new Error('LinkedIn challenge not solved — cannot post headless');
         }
-      } else if (afterUrl.includes('/login')) {
-        throw new Error('LinkedIn login failed — check LINKEDIN_EMAIL and LINKEDIN_PASSWORD');
       } else {
+        let tries = 0;
+        while (afterUrl.includes('/login') && tries < 15) {
+          await page.waitForTimeout(2000);
+          afterUrl = page.url();
+          tries++;
+        }
+        if (afterUrl.includes('/login')) {
+          await page.screenshot({ path: join(__dirname, '..', 'linkedin-login-failed.png'), fullPage: true }).catch(() => {});
+          throw new Error('LinkedIn login failed — check LINKEDIN_EMAIL and LINKEDIN_PASSWORD');
+        }
         console.log('      ✓ Logged in');
       }
     }
