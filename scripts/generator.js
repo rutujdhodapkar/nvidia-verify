@@ -277,14 +277,14 @@ function buildContext(siteData, previousPosts) {
   return { siteCtx, dupGuard };
 }
 
-export async function callWithRetry(prompt, apiKey, model, maxTokens, jsonMode = false) {
+export async function callWithRetry(prompt, apiKey, model, maxTokens, jsonMode = false, options = {}) {
   const modelsToTry = [...new Set([model, ...FALLBACK_MODELS])];
   let lastErr;
   for (const m of modelsToTry) {
     for (let attempt = 0; attempt < 3; attempt++) {
       let status;
       try {
-        const body = { model: m, messages: [{ role: 'user', content: prompt }], temperature: 0.9, max_tokens: maxTokens };
+        const body = { model: m, messages: [{ role: 'user', content: prompt }], temperature: options.temperature ?? 0.9, max_tokens: maxTokens };
         if (jsonMode) body.response_format = { type: 'json_object' };
         const res = await fetch(NVIDIA_CHAT_URL, {
           method: 'POST',

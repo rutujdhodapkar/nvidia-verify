@@ -3,18 +3,18 @@ import { chromium } from 'playwright';
 const HF_API = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev';
 
 const BG_PROMPTS = [
-  'Professional modern tech workspace with purple neon lighting, laptop with code on screen, dark aesthetic, cinematic lighting, depth of field',
-  'Abstract purple and blue technology background with geometric shapes, glowing grid lines, futuristic data visualization, dark mode',
+  'Professional modern tech workspace with teal and cyan neon lighting, laptop with code on screen, dark aesthetic, cinematic lighting, depth of field',
+  'Abstract teal and navy technology background with geometric shapes, glowing grid lines, futuristic data visualization, dark mode',
   'Modern open office space with young diverse professionals collaborating, warm lighting, tech startup vibe, large windows with city view',
   'Close-up of hands typing on mechanical keyboard with RGB backlight, coding screen in background, bokeh effect, night atmosphere',
-  'Futuristic digital classroom with holographic displays showing code, purple and blue ambient lighting, sleek modern furniture',
-  'Award certificate on wooden desk with laptop, purple branding elements, professional office background, soft natural lighting',
-  'Abstract technology network visualization with connected nodes, glowing purple data streams, dark background, matrix-like aesthetic',
+  'Futuristic digital classroom with holographic displays showing code, teal and cyan ambient lighting, sleek modern furniture',
+  'Award certificate on wooden desk with laptop, teal branding elements, professional office background, soft natural lighting',
+  'Abstract technology network visualization with connected nodes, glowing cyan data streams, dark background, matrix-like aesthetic',
   'Modern campus building entrance with glass facade, students walking, sunny day, clean architecture, aspirational atmosphere',
-  'Stylized 3D abstract shapes in purple and indigo, floating geometric forms, soft gradients, modern design aesthetic, clean composition',
-  'Night city skyline viewed from modern office window, neon purple accents, laptop silhouette on desk, ambient glow',
+  'Stylized 3D abstract shapes in teal and cyan, floating geometric forms, soft gradients, modern design aesthetic, clean composition',
+  'Night city skyline viewed from modern office window, warm amber city lights, laptop silhouette on desk, ambient glow',
   'Diverse group of students working on laptops at modern co-working space, warm lighting, plants, collaborative atmosphere',
-  'Digital brain or neural network visualization with purple glowing synapses, dark background, technological aesthetic, abstract intelligence',
+  'Digital neural network visualization with glowing cyan synapses, dark background, technological aesthetic, abstract intelligence',
 ];
 
 async function generateHfBackground(post, headline, hfToken) {
@@ -264,15 +264,15 @@ async function generateFluxBackground({ post, meta, apiKey, format = 'landscape'
 function buildFluxPrompt(post, meta, portrait = false) {
   const hotTake = (post || '').split('\n').find(l => l.trim().length > 40) || meta.subtext;
   const tail = portrait
-    ? ', vertical 4:5 portrait composition, photorealistic, cinematic lighting, deep depth of field, vibrant indigo and violet accents, professional marketing photography, no text, no letters, no watermark'
-    : ', photorealistic, cinematic lighting, deep depth of field, vibrant indigo and violet accents, high quality 1200x630 banner, professional marketing photography, no text, no letters, no watermark';
+    ? ', vertical 4:5 portrait composition, photorealistic, cinematic lighting, deep depth of field, vibrant teal, cyan and warm amber accents, professional marketing photography, no text, no letters, no watermark'
+    : ', photorealistic, cinematic lighting, deep depth of field, vibrant teal, cyan and warm amber accents, high quality 1200x630 banner, professional marketing photography, no text, no letters, no watermark';
   const scene = [
-    'modern startup office at dusk, young engineers collaborating around laptops and a large code dashboard on glowing screens, indigo ambient light',
-    'tier-2 Indian engineering college campus, confident final-year students walking with laptops, warm evening light, aspirational mood',
-    'close-up of a data-science student building a dashboard on a laptop, holographic charts floating above the screen, violet glow',
-    'futuristic virtual internship briefing room, big holographic project roadmap, Indian mentors pointing at a roadmap wall, neon purple',
-    'night campus library bench, laptop showing code, coffee cup, quiet focused student, indigo city glow through window',
-    'developer celebrating a deployed project, confetti on monitor, sleek desk setup, purple keyboard backlight, joyful',
+    'modern startup office at dusk, young engineers collaborating around laptops and a large code dashboard on glowing screens, teal and amber ambient light',
+    'tier-2 Indian engineering college campus, confident final-year students walking with laptops, warm golden evening light, aspirational mood',
+    'close-up of a data-science student building a dashboard on a laptop, holographic charts floating above the screen, cyan glow',
+    'futuristic virtual internship briefing room, big holographic project roadmap, Indian mentors pointing at a roadmap wall, cyan and orange holograms',
+    'night campus library bench, laptop showing code, coffee cup, quiet focused student, warm city glow through window',
+    'developer celebrating a deployed project, confetti on monitor, sleek desk setup, warm amber keyboard backlight, joyful',
   ];
   const seed = [...(meta.headline || 'devcraft')].reduce((a, c) => a + c.charCodeAt(0), 0);
   const prompt = `${scene[seed % scene.length]}, ${tail}`;
@@ -290,8 +290,8 @@ function buildPortraitFluxHtml(fluxBase64, meta) {
     { t: 'MSME-registered program', s: '10,000+ learners' },
   ];
   const benefitRow = benefits.map((b, i) => `
-    <div style="display:flex;align-items:flex-start;gap:20px;padding:16px 0;border-top:1px solid rgba(255,255,255,0.14);">
-      <div style="width:44px;height:44px;min-width:44px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">${i + 1}</div>
+    <div style="display:flex;align-items:flex-start;gap:20px;padding:16px 0;border-top:1px solid rgba(255,255,255,0.12);">
+      <div style="width:44px;height:44px;min-width:44px;border-radius:50%;background:linear-gradient(135deg,#14b8a6,#38bdf8);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;box-shadow:0 4px 12px rgba(56,189,248,0.4);">${i + 1}</div>
       <div>
         <div style="font-size:22px;font-weight:700;color:#fff;">${b.t}</div>
         <div style="font-size:14px;color:rgba(255,255,255,0.6);font-weight:400;">${b.s}</div>
@@ -303,22 +303,23 @@ function buildPortraitFluxHtml(fluxBase64, meta) {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1080px;height:1350px;overflow:hidden;font-family:'Inter',sans-serif}
-.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat;filter:brightness(0.75)}
-.scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.15) 22%,rgba(0,0,0,0.62) 55%,rgba(10,8,32,0.97) 100%)}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat;filter:brightness(0.78)}
+.scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,10,18,0.6) 0%,rgba(4,10,18,0.18) 22%,rgba(4,10,18,0.66) 55%,rgba(5,9,16,0.97) 100%)}
 .top{position:absolute;top:0;left:0;right:0;padding:30px 50px;display:flex;align-items:center;justify-content:space-between}
-.brand{background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(4px);padding:10px 22px;border-radius:10px;font-size:20px;font-weight:800;color:#fff;letter-spacing:3px}
-.brand em{font-style:normal;color:#8b5cf6}
-.flag{font-size:12px;font-weight:600;color:#fff;background:#ef4444;padding:8px 14px;border-radius:6px;letter-spacing:1px}
+.brand{background:rgba(5,10,18,0.72);border:1px solid rgba(255,255,255,0.22);backdrop-filter:blur(4px);padding:10px 22px;border-radius:10px;font-size:20px;font-weight:800;color:#fff;letter-spacing:3px}
+.brand em{font-style:normal;color:#2dd4bf}
+.flag{font-size:12px;font-weight:600;color:#fff;background:#f97316;padding:8px 14px;border-radius:6px;letter-spacing:1px}
 .content{position:absolute;inset:0;padding:150px 54px 44px;display:flex;flex-direction:column;justify-content:flex-end}
-.eyebrow{font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#a78bfa;margin-bottom:18px}
+.eyebrow{font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#5eead4;margin-bottom:18px}
 .headline{font-size:62px;font-weight:900;color:#fff;line-height:1.06;margin-bottom:24px;text-shadow:0 4px 30px rgba(0,0,0,0.6);letter-spacing:-0.5px}
-.subtext{font-size:23px;color:rgba(255,255,255,0.82);line-height:1.5;margin-bottom:30px;max-width:94%;font-weight:400}
-.checks{border-bottom:1px solid rgba(255,255,255,0.14);margin-bottom:26px}
-.cta{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:24px 28px;box-shadow:0 10px 40px rgba(99,102,241,0.45)}
-.cta .label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.5px}
+.subtext{font-size:23px;color:rgba(255,255,255,0.84);line-height:1.5;margin-bottom:30px;max-width:94%;font-weight:400}
+.checks{border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:26px}
+.cta{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f97316,#f59e0b);border-radius:16px;padding:24px 28px;box-shadow:0 10px 40px rgba(249,115,22,0.4)}
+.cta .label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:1.5px}
 .cta .url{font-size:25px;font-weight:800;color:#fff;letter-spacing:0.3px}
-.cta .arrow{font-size:30px;color:#fff}
-.social{margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.6);font-weight:500}
+.cta .arrow{width:46px;height:46px;min-width:46px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff}
+.social{margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.62);font-weight:500}
+.social b{color:#2dd4bf;font-weight:700}
 </style></head><body>
 <div class="bg"></div>
 <div class="scrim"></div>
@@ -333,7 +334,7 @@ body{width:1080px;height:1350px;overflow:hidden;font-family:'Inter',sans-serif}
     <span class="url">${site}</span>
     <span class="arrow">&rarr;</span>
   </div>
-  <div class="social"><span>10,000+ learners &bull; 300+ colleges</span><span>MSME-registered</span></div>
+  <div class="social"><span><b>10,000+ learners</b> &bull; 300+ colleges</span><span><b>MSME</b>-registered</span></div>
 </div>
 </body></html>`;
 }
@@ -680,33 +681,33 @@ function portraitCard(m) {
   ];
   const benefitRow = benefits.map((b, i) => `
     <div style="display:flex;align-items:flex-start;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.14);">
-      <div style="width:46px;height:46px;min-width:46px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">${i + 1}</div>
+      <div style="width:46px;height:46px;min-width:46px;border-radius:50%;background:linear-gradient(135deg,#14b8a6,#38bdf8);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;box-shadow:0 4px 12px rgba(56,189,248,0.4);">${i + 1}</div>
       <div>
         <div style="font-size:23px;font-weight:700;color:#fff;">${b.t}</div>
         <div style="font-size:14px;color:rgba(255,255,255,0.6);font-weight:400;">${b.s}</div>
       </div>
     </div>`).join('');
 
-  return `<div style="width:1080px;height:1350px;background:linear-gradient(180deg,#120f2e 0%,#1a1440 55%,#0c0a20 100%);font-family:'Inter',sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column;">
-    <div style="position:absolute;top:-160px;right:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,0.35),transparent 70%);"></div>
-    <div style="position:absolute;bottom:-120px;left:-120px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.28),transparent 70%);"></div>
+  return `<div style="width:1080px;height:1350px;background:linear-gradient(180deg,#081220 0%,#0c1a2e 55%,#050b14 100%);font-family:'Inter',sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="position:absolute;top:-160px;right:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,0.28),transparent 70%);"></div>
+    <div style="position:absolute;bottom:-120px;left:-120px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,0.2),transparent 70%);"></div>
     <div style="position:relative;padding:42px 48px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:24px;font-weight:800;color:#fff;letter-spacing:3px;">DEV<em style="font-style:normal;color:#8b5cf6;">/</em>CRAFT</span>
-      <span style="font-size:12px;font-weight:600;color:#fff;background:#ef4444;padding:8px 14px;border-radius:6px;letter-spacing:1px;">APPLY NOW</span>
+      <span style="font-size:24px;font-weight:800;color:#fff;letter-spacing:3px;">DEV<em style="font-style:normal;color:#2dd4bf;">/</em>CRAFT</span>
+      <span style="font-size:12px;font-weight:600;color:#fff;background:#f97316;padding:8px 14px;border-radius:6px;letter-spacing:1px;">APPLY NOW</span>
     </div>
     <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px 54px;">
-      <div style="font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#a78bfa;margin-bottom:20px;">VIRTUAL INTERNSHIP &bull; 2026</div>
+      <div style="font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#5eead4;margin-bottom:20px;">VIRTUAL INTERNSHIP &bull; 2026</div>
       <div style="font-size:64px;font-weight:900;color:#fff;line-height:1.06;margin-bottom:26px;letter-spacing:-0.5px;">${m.headline}</div>
-      <div style="width:80px;height:6px;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:3px;margin-bottom:26px;"></div>
-      <div style="font-size:24px;color:rgba(255,255,255,0.82);line-height:1.5;max-width:92%;font-weight:400;margin-bottom:34px;">${m.subtext}</div>
+      <div style="width:80px;height:6px;background:linear-gradient(90deg,#14b8a6,#38bdf8);border-radius:3px;margin-bottom:26px;"></div>
+      <div style="font-size:24px;color:rgba(255,255,255,0.84);line-height:1.5;max-width:92%;font-weight:400;margin-bottom:34px;">${m.subtext}</div>
       <div style="border-bottom:1px solid rgba(255,255,255,0.14);margin-bottom:26px;">${benefitRow}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:24px 28px;box-shadow:0 10px 40px rgba(99,102,241,0.45);">
-        <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.5px;">Apply at</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f97316,#f59e0b);border-radius:16px;padding:22px 26px;box-shadow:0 10px 40px rgba(249,115,22,0.4);">
+        <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:1.5px;">Apply at</span>
         <span style="font-size:25px;font-weight:800;color:#fff;">${site}</span>
-        <span style="font-size:30px;color:#fff;">&rarr;</span>
+        <span style="width:46px;height:46px;min-width:46px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;">&rarr;</span>
       </div>
-      <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.6);font-weight:500;">
-        <span>10,000+ learners &bull; 300+ colleges</span><span>MSME-registered</span>
+      <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.62);font-weight:500;">
+        <span style="color:#2dd4bf;font-weight:700;">10,000+ learners</span><span style="color:#2dd4bf;font-weight:700;">MSME-registered</span>
       </div>
     </div>
   </div>`;

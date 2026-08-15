@@ -34,7 +34,7 @@ function extractSubtext(post) {
   return lines.find(l => !l.startsWith('#') && l !== extractHeadline(post)) || 'Industry projects. Mentorship. A portfolio that proves you can build.';
 }
 
-const IG_CAPTION_PROMPT = `You write short, scannable Instagram captions for DEV/CRAFT — a virtual internship platform for Indian engineering students (MSME-registered, 10,000+ learners, from devcraft.fennark.xyz).
+const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions for DEV/CRAFT — a virtual internship platform for Indian engineering students (MSME-registered, 10,000+ learners, from devcraft.fennark.xyz).
 
 ## HARD RULES — breaking any fails
 - NEVER mention: jobs, placement, hiring, recruiters, employment, interviews, salaries, packages, career outcomes.
@@ -46,18 +46,28 @@ const IG_CAPTION_PROMPT = `You write short, scannable Instagram captions for DEV
 - NO engagement bait ("comment YES", "share if you agree").
 - MAX 1 short Hinglish phrase max (English letters).
 
+## STRUCTURE (4 short blocks, blank line between)
+- HOOK: First line under 30 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
+- STORY: One concrete student moment (hostel Wi-Fi, empty resume fear, the first PR, a proud parent call). Credible, sensory, real.
+- VALUE: "What you get" in 3 short bullet-ish lines, plain text: real industry projects, instant offer letter, verified certificate, mentorship.
+- ASK: ends with "Apply now → devcraft.fennark.xyz"
+
 ## STYLE
-- 80-130 words. Short punchy lines, blank line between groups. Sounds human, sharp, senior-student tone.
-- Always answer "What do I get by joining?" — real industry projects, instant offer letter, verified certificate, portfolio, mentorship.
-- Every caption ends with: "Apply now → devcraft.fennark.xyz"
-- Use faith-based hooks like "The hostel Wi-Fi finally cooperated...", project specifics, or a real student fear (empty resume, certificate-mill doubt). Be specific and credible — no generic filler.
+- 90-140 words total (aim ~110). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam (max 1 emoji).
+- Rotate angle each time: exams/college pressure, parental pride, hostel scene, cert-mill doubt, college-fest hype, budget-conscious student — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
+- Be specific and credible — name a concrete project type or skill. No generic filler like "amazing opportunity".
 
 ## RESPONSE FORMAT
-Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. The very first character of your reply must be "{" followed by "caption". Example: {"caption":"text here"}`;
+Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Use \\n\\n to separate the 4 blocks inside the value. Write an ORIGINAL caption in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
 
 async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
-  const siteFacts = JSON.stringify(siteData?.domainList || siteData?.pages?.domainList || siteData).slice(0, 2500);
+  const home = siteData?.pages?.['/'];
+  const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
+  const homeText = (home?.textContent || '').slice(0, 1600);
+  const siteFacts = `Title: ${siteData?.summary?.title || ''}
+Key phrases: ${phrases || 'virtual internship, real projects'}
+Home page: ${homeText}`;
   const prompt = `${IG_CAPTION_PROMPT}
 
 SITE FACTS:
@@ -67,19 +77,31 @@ Prior posts (avoid repeating angles): ${(previousPosts || []).slice(-3).join(' |
 
 Write the caption now. Return ONLY the JSON.`;
 
-  const raw = await callWithRetry(prompt, apiKey, model, 2048, true);
+  const raw = await callWithRetry(prompt, apiKey, model, 8192, true, { temperature: 0.4 });
   if (!raw) throw new Error('Caption generation failed');
   let cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
   let parsed;
   try { parsed = JSON.parse(cleaned); }
   catch {
-    const objMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!objMatch) throw new Error(`Invalid JSON from AI: ${cleaned.slice(0, 300)}`);
-    try { parsed = JSON.parse(objMatch[0]); }
-    catch { throw new Error(`Invalid JSON from AI: ${cleaned.slice(0, 300)}`); }
+    // Model often reasons out loud before JSON — pull the LAST {key:...} block containing "caption".
+    const lastIdx = cleaned.lastIndexOf('"caption"');
+    if (lastIdx > -1) {
+      const open = cleaned.lastIndexOf('{', lastIdx);
+      let close = -1;
+      for (let i = lastIdx; i < cleaned.length; i++) {
+        if (cleaned[i] === '}') { close = i; break; }
+      }
+      if (open > -1 && close > open) {
+        try { parsed = JSON.parse(cleaned.slice(open, close + 1)); }
+        catch { parsed = null; }
+      }
+    }
+    if (!parsed) throw new Error(`Invalid JSON from AI: ${cleaned.slice(0, 300)}`);
   }
   const caption = (parsed.caption || '').trim();
   if (!caption || caption.length < 30) throw new Error('Caption too short');
+  if (caption.split(/\s+/).length < 80) throw new Error('Caption under 80 words');
+  if (/\bHOOK line\b|\bStory line\b|\bValue lines\b/.test(caption)) throw new Error('Caption echoed example placeholders');
   return caption;
 }
 
