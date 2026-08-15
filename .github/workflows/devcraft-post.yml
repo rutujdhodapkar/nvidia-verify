@@ -2,9 +2,12 @@ name: DEV/CRAFT LinkedIn Post
 
 on:
   schedule:
-    # 3 LinkedIn posts/day at India peak scroll times:
-    #   06:30 UTC = 12:00 IST, 12:30 UTC = 18:00 IST, 14:30 UTC = 20:00 IST
-    - cron: '30 6,12,14 * * *'
+    # 3 LinkedIn posts/day at the best India (IST) times per 2026 India data:
+    #   03:00 UTC = 08:30 IST (morning peak), 06:30 UTC = 12:00 IST (lunch),
+    #   14:00 UTC = 19:30 IST (evening wind-down peak)
+    - cron: '0 3 * * *'
+    - cron: '30 6 * * *'
+    - cron: '0 14 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [trigger-devcraft-post]
@@ -43,4 +46,4 @@ jobs:
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
           ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          POST_AT_PEAK: '1'
+          POST_AT_PEAK: '0'
