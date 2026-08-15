@@ -56,7 +56,13 @@ async function refreshAccessToken() {
     }),
   });
   if (!tokenRes.ok) throw new Error(`Token refresh failed ${tokenRes.status}`);
-  return (await tokenRes.json()).access_token;
+  const tokenData = await tokenRes.json();
+  if (tokenData.refresh_token && tokenData.refresh_token !== LINKEDIN_REFRESH_TOKEN) {
+    process.env.LINKEDIN_REFRESH_TOKEN = tokenData.refresh_token;
+    const { persistRefreshToken } = await import('./token-store.js');
+    await persistRefreshToken(tokenData.refresh_token);
+  }
+  return tokenData.access_token;
 }
 
 async function getComments(accessToken, postUrn) {

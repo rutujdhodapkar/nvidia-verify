@@ -49,6 +49,11 @@ async function refreshAccessToken() {
   const tokenData = await tokenRes.json();
   const accessToken = tokenData.access_token;
   if (!accessToken) throw new Error('No access_token in response');
+  if (tokenData.refresh_token && tokenData.refresh_token !== LINKEDIN_REFRESH_TOKEN) {
+    process.env.LINKEDIN_REFRESH_TOKEN = tokenData.refresh_token;
+    const { persistRefreshToken } = await import('./token-store.js');
+    await persistRefreshToken(tokenData.refresh_token);
+  }
   console.log('      ✓ Token refreshed');
   return accessToken;
 }
