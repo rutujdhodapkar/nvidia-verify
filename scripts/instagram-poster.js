@@ -81,10 +81,26 @@ export async function uploadImageToGithub(imageBuffer) {
   return rawUrl;
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 export async function postToInstagram({ imageUrl, caption }) {
   const igUserId = process.env.INSTAGRAM_USER_ID || await getInstagramUserId();
   const creationId = await createMediaContainer({ igUserId, imageUrl, caption });
-  return publishPost({ igUserId, creationId });
+
+  // Instagram needs a few seconds to process the container before it can be published.
+  // Retry with backoff for the transient "media not ready" (9007) race.
+  const delays = [6000, 8000, 12000, 20000, 30000];
+  for (let attempt = 0; ; attempt++) {
+    if (attempt > 0) await sleep(delays[attempt - 1] || 30000);
+    try {
+      return await publishPost({ igUserId, creationId });
+    } catch (err) {
+      const msg = String(err?.message || err);
+      const isNotReady = /not ready|not available|9007|not_ready|still processing/i.test(msg);
+      if (attempt >= delays.length - 1 || !isNotReady) throw err;
+      console.log(`[IG] Media not ready yet — retrying publish in ${delays[attempt]}s (${attempt + 1}/${delays.length})`);
+    }
+  }
 }
 
 export async function generateImageAndPost({ post, imageMeta, caption, apiKey }) {
