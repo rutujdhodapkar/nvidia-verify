@@ -264,56 +264,84 @@ async function generateFluxBackground({ post, meta, apiKey, format = 'landscape'
 function buildFluxPrompt(post, meta, portrait = false) {
   const hotTake = (post || '').split('\n').find(l => l.trim().length > 40) || meta.subtext;
   const tail = portrait
-    ? ', vertical portrait composition, 1024x1280, no text or letters in the image, no words, no watermark'
-    : ', high quality, 1200x630 banner, no text or letters in the image, no words, no watermark';
-  return `Professional tech internship marketing background, dark purple and indigo neon atmosphere, ${hotTake.slice(0, 120)}${tail}`;
+    ? ', vertical 4:5 portrait composition, photorealistic, cinematic lighting, deep depth of field, vibrant indigo and violet accents, professional marketing photography, no text, no letters, no watermark'
+    : ', photorealistic, cinematic lighting, deep depth of field, vibrant indigo and violet accents, high quality 1200x630 banner, professional marketing photography, no text, no letters, no watermark';
+  const scene = [
+    'modern startup office at dusk, young engineers collaborating around laptops and a large code dashboard on glowing screens, indigo ambient light',
+    'tier-2 Indian engineering college campus, confident final-year students walking with laptops, warm evening light, aspirational mood',
+    'close-up of a data-science student building a dashboard on a laptop, holographic charts floating above the screen, violet glow',
+    'futuristic virtual internship briefing room, big holographic project roadmap, Indian mentors pointing at a roadmap wall, neon purple',
+    'night campus library bench, laptop showing code, coffee cup, quiet focused student, indigo city glow through window',
+    'developer celebrating a deployed project, confetti on monitor, sleek desk setup, purple keyboard backlight, joyful',
+  ];
+  const seed = [...(meta.headline || 'devcraft')].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const prompt = `${scene[seed % scene.length]}, ${tail}`;
+  return prompt;
 }
 
 function buildPortraitFluxHtml(fluxBase64, meta) {
   const b64 = fluxBase64.replace(/^data:image\/\w+;base64,/, '');
   const bgDataUri = `data:image/jpeg;base64,${b64}`;
+  const site = meta.site || 'devcraft.fennark.xyz';
+  const benefits = [
+    { t: 'Real industry projects', s: 'Python · DSA · Web · AI/ML' },
+    { t: 'Offer letter + verified certificate', s: 'Instant, live-verified' },
+    { t: 'Mentorship from engineers', s: 'Portfolio you can show' },
+    { t: 'MSME-registered program', s: '10,000+ learners' },
+  ];
+  const benefitRow = benefits.map((b, i) => `
+    <div style="display:flex;align-items:flex-start;gap:20px;padding:16px 0;border-top:1px solid rgba(255,255,255,0.14);">
+      <div style="width:44px;height:44px;min-width:44px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">${i + 1}</div>
+      <div>
+        <div style="font-size:22px;font-weight:700;color:#fff;">${b.t}</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.6);font-weight:400;">${b.s}</div>
+      </div>
+    </div>`).join('');
+
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1080px;height:1350px;overflow:hidden;font-family:'Inter',sans-serif}
-.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
-.overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.35) 45%,rgba(0,0,0,0.15) 70%,rgba(0,0,0,0.55) 100%)}
-.top{position:absolute;top:0;left:0;right:0;background:#000;padding:36px 56px;display:flex;align-items:center;justify-content:space-between}
-.top .brand{font-size:20px;font-weight:800;color:#fff;letter-spacing:3px;text-transform:uppercase}
-.top .sub{font-size:12px;color:#aaa;font-weight:500}
-.content{position:absolute;inset:0;padding:210px 70px 120px;display:flex;flex-direction:column;justify-content:flex-end}
-.tag{display:inline-block;background:#6366f1;color:#fff;padding:14px 34px;font-size:16px;font-weight:700;border-radius:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:36px;width:fit-content}
-.headline{font-size:70px;font-weight:900;color:#fff;line-height:1.08;margin-bottom:28px;text-shadow:0 4px 30px rgba(0,0,0,0.5)}
-.subtext{font-size:26px;color:rgba(255,255,255,0.85);line-height:1.55;max-width:90%;margin-bottom:38px;font-weight:400}
-.badges{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:44px}
-.badge{padding:12px 26px;border:1px solid rgba(255,255,255,0.25);border-radius:24px;font-size:15px;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.35);font-weight:500}
-.bottom{position:absolute;bottom:0;left:0;right:0;background:#000;padding:36px 56px;display:flex;align-items:center;justify-content:space-between}
-.bottom .learners{font-size:15px;color:#aaa;font-weight:500}
-.bottom .cta{font-size:16px;color:#fff;font-weight:700}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat;filter:brightness(0.75)}
+.scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.15) 22%,rgba(0,0,0,0.62) 55%,rgba(10,8,32,0.97) 100%)}
+.top{position:absolute;top:0;left:0;right:0;padding:30px 50px;display:flex;align-items:center;justify-content:space-between}
+.brand{background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(4px);padding:10px 22px;border-radius:10px;font-size:20px;font-weight:800;color:#fff;letter-spacing:3px}
+.brand em{font-style:normal;color:#8b5cf6}
+.flag{font-size:12px;font-weight:600;color:#fff;background:#ef4444;padding:8px 14px;border-radius:6px;letter-spacing:1px}
+.content{position:absolute;inset:0;padding:150px 54px 44px;display:flex;flex-direction:column;justify-content:flex-end}
+.eyebrow{font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#a78bfa;margin-bottom:18px}
+.headline{font-size:62px;font-weight:900;color:#fff;line-height:1.06;margin-bottom:24px;text-shadow:0 4px 30px rgba(0,0,0,0.6);letter-spacing:-0.5px}
+.subtext{font-size:23px;color:rgba(255,255,255,0.82);line-height:1.5;margin-bottom:30px;max-width:94%;font-weight:400}
+.checks{border-bottom:1px solid rgba(255,255,255,0.14);margin-bottom:26px}
+.cta{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:24px 28px;box-shadow:0 10px 40px rgba(99,102,241,0.45)}
+.cta .label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.5px}
+.cta .url{font-size:25px;font-weight:800;color:#fff;letter-spacing:0.3px}
+.cta .arrow{font-size:30px;color:#fff}
+.social{margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.6);font-weight:500}
 </style></head><body>
 <div class="bg"></div>
-<div class="overlay"></div>
-<div class="top"><span class="brand">DEV/CRAFT</span><span class="sub">VIRTUAL INTERNSHIP</span></div>
+<div class="scrim"></div>
+<div class="top"><span class="brand">DEV<em>/</em>CRAFT</span><span class="flag">APPLY NOW</span></div>
 <div class="content">
-  <span class="tag">Industry Projects</span>
+  <div class="eyebrow">VIRTUAL INTERNSHIP &bull; 2026</div>
   <div class="headline">${meta.headline}</div>
   <div class="subtext">${meta.subtext}</div>
-  <div class="badges">
-    <span class="badge">Python</span>
-    <span class="badge">DSA</span>
-    <span class="badge">Web Dev</span>
-    <span class="badge">AI/ML</span>
+  <div class="checks">${benefitRow}</div>
+  <div class="cta">
+    <span class="label">Apply at</span>
+    <span class="url">${site}</span>
+    <span class="arrow">&rarr;</span>
   </div>
+  <div class="social"><span>10,000+ learners &bull; 300+ colleges</span><span>MSME-registered</span></div>
 </div>
-<div class="bottom"><span class="learners">10,000+ learners · 17 domains · MSME</span><span class="cta">devcraft.fennark.xyz &rarr;</span></div>
 </body></html>`;
 }
 
 async function generateFluxPortrait({ post, meta, apiKey }) {
   const flux = await generateFluxBackground({ post, meta, apiKey, format: 'portrait' });
   const b64 = flux.toString('base64');
-  const html = buildPortraitFluxHtml(b64, meta);
+  const html = buildPortraitFluxHtml(b64, { site: 'devcraft.fennark.xyz', ...meta });
   const buf = await renderHtml(html, 'portrait');
   console.log(`[IMAGE] FLUX portrait composite: ${buf.length} bytes`);
   return buf;
@@ -643,25 +671,43 @@ function lateralBand(m) {
 }
 
 function portraitCard(m) {
-  return `<div style="width:1080px;height:1350px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;position:relative;overflow:hidden;">
-    <div style="background:#000;padding:40px 60px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</span>
-      <span style="font-size:13px;color:#aaa;font-weight:500;">VIRTUAL INTERNSHIP</span>
-    </div>
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 70px;">
-      <span style="display:inline-block;background:#6366f1;color:#fff;padding:14px 34px;font-size:16px;font-weight:700;border-radius:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;width:fit-content;">Industry Projects</span>
-      <div style="font-size:72px;font-weight:900;color:#000;line-height:1.08;margin-bottom:30px;">${m.headline}</div>
-      <div style="width:80px;height:6px;background:#000;border-radius:3px;margin-bottom:30px;"></div>
-      <div style="font-size:26px;color:#555;line-height:1.55;font-weight:400;max-width:90%;">${m.subtext}</div>
-      <div style="margin-top:45px;display:flex;flex-wrap:wrap;gap:16px;">
-        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">Python</span>
-        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">Web Dev</span>
-        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">AI/ML</span>
+  const site = m.site || 'devcraft.fennark.xyz';
+  const benefits = [
+    { t: 'Real industry projects', s: 'Python · DSA · Web · AI/ML' },
+    { t: 'Offer letter + verified certificate', s: 'Instant, live-verified' },
+    { t: 'Mentorship from engineers', s: 'Portfolio you can show' },
+    { t: 'MSME-registered program', s: '10,000+ learners' },
+  ];
+  const benefitRow = benefits.map((b, i) => `
+    <div style="display:flex;align-items:flex-start;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.14);">
+      <div style="width:46px;height:46px;min-width:46px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">${i + 1}</div>
+      <div>
+        <div style="font-size:23px;font-weight:700;color:#fff;">${b.t}</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.6);font-weight:400;">${b.s}</div>
       </div>
+    </div>`).join('');
+
+  return `<div style="width:1080px;height:1350px;background:linear-gradient(180deg,#120f2e 0%,#1a1440 55%,#0c0a20 100%);font-family:'Inter',sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="position:absolute;top:-160px;right:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,0.35),transparent 70%);"></div>
+    <div style="position:absolute;bottom:-120px;left:-120px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.28),transparent 70%);"></div>
+    <div style="position:relative;padding:42px 48px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:24px;font-weight:800;color:#fff;letter-spacing:3px;">DEV<em style="font-style:normal;color:#8b5cf6;">/</em>CRAFT</span>
+      <span style="font-size:12px;font-weight:600;color:#fff;background:#ef4444;padding:8px 14px;border-radius:6px;letter-spacing:1px;">APPLY NOW</span>
     </div>
-    <div style="background:#000;padding:40px 60px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:16px;color:#aaa;font-weight:500;">10,000+ learners · 17 domains · MSME</span>
-      <span style="font-size:15px;color:#fff;font-weight:700;">devcraft.fennark.xyz &rarr;</span>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px 54px;">
+      <div style="font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#a78bfa;margin-bottom:20px;">VIRTUAL INTERNSHIP &bull; 2026</div>
+      <div style="font-size:64px;font-weight:900;color:#fff;line-height:1.06;margin-bottom:26px;letter-spacing:-0.5px;">${m.headline}</div>
+      <div style="width:80px;height:6px;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:3px;margin-bottom:26px;"></div>
+      <div style="font-size:24px;color:rgba(255,255,255,0.82);line-height:1.5;max-width:92%;font-weight:400;margin-bottom:34px;">${m.subtext}</div>
+      <div style="border-bottom:1px solid rgba(255,255,255,0.14);margin-bottom:26px;">${benefitRow}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:24px 28px;box-shadow:0 10px 40px rgba(99,102,241,0.45);">
+        <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.5px;">Apply at</span>
+        <span style="font-size:25px;font-weight:800;color:#fff;">${site}</span>
+        <span style="font-size:30px;color:#fff;">&rarr;</span>
+      </div>
+      <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.6);font-weight:500;">
+        <span>10,000+ learners &bull; 300+ colleges</span><span>MSME-registered</span>
+      </div>
     </div>
   </div>`;
 }
