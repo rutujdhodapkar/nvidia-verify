@@ -2,7 +2,9 @@ name: DEV/CRAFT LinkedIn Post
 
 on:
   schedule:
-    - cron: '0 9 * * *'
+    # 3 LinkedIn posts/day at India peak scroll times:
+    #   06:30 UTC = 12:00 IST, 12:30 UTC = 18:00 IST, 14:30 UTC = 20:00 IST
+    - cron: '30 6,12,14 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [trigger-devcraft-post]
