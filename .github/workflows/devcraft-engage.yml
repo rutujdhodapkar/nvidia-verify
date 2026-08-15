@@ -1,17 +1,15 @@
-name: DEV/CRAFT LinkedIn Post
+name: DEV/CRAFT LinkedIn Engage
 
 on:
   schedule:
-    - cron: '0 9 * * *'
+    # Runs shortly after posting and again a few hours later to keep the post hot
+    # by replying to every new comment (comment depth = #1 ranking signal).
+    - cron: '30 11 * * *'   # 17:00 IST
+    - cron: '30 14 * * *'   # 20:00 IST
   workflow_dispatch:
-  repository_dispatch:
-    types: [trigger-devcraft-post]
-
-permissions:
-  contents: write
 
 jobs:
-  generate-and-post:
+  reply-to-comments:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +22,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
-
-      - name: Generate and post
-        run: node scripts/composio-agent.js
+      - name: Reply to new comments
+        run: node scripts/engage.js
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
@@ -36,9 +31,3 @@ jobs:
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
           LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
           LINKEDIN_PAGE_ID: ${{ secrets.LINKEDIN_PAGE_ID }}
-          LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
-          LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
-          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
-          ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          POST_AT_PEAK: '1'

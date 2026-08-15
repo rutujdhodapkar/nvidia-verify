@@ -79,9 +79,7 @@ async function postViaRestApi(accessToken, owner, commentary) {
   const errText = await postRes.text().catch(() => '');
   console.log(`      /rest/posts failed (${postRes.status}): ${errText.slice(0, 300)}`);
   return null;
-}
-
-async function postViaUgcApi(accessToken, owner, commentary) {
+}async function postViaUgcApi(accessToken, owner, commentary) {
   const postBody = {
     author: owner,
     lifecycleState: 'PUBLISHED',
@@ -108,6 +106,12 @@ async function postViaUgcApi(accessToken, owner, commentary) {
 }
 
 export async function postToLinkedinPage({ content, pageId }) {
+  return await postToLinkedinPageWithComment({ content, pageId });
+}
+
+// Posts the main content, then drops the signup link as the FIRST comment.
+// Keeping links out of the post body preserves reach (attached link cards cost ~50%).
+export async function postToLinkedinPageWithComment({ content, firstComment, pageId }) {
   let accessToken;
   try {
     accessToken = await refreshAccessToken();
@@ -119,8 +123,66 @@ export async function postToLinkedinPage({ content, pageId }) {
   console.log(`      ✓ Owner: ${owner}`);
 
   const result = await postViaRestApi(accessToken, owner, content);
-  if (result) return result;
+  let postId = result;
+  let commentAdded = false;
+
+  if (result && firstComment) {
+    const postUrn = normalizePostUrn(result);
+    if (postUrn) {
+      try {
+        await addFirstComment(accessToken, owner, postUrn, firstComment);
+        console.log(`[COMMENT] ✓ First comment added (link lives in comments, not the post)`);
+        commentAdded = true;
+        postId = postUrn;
+      } catch (err) {
+        console.log(`      ⚠ First comment failed (non-fatal): ${err.message.slice(0, 200)}`);
+      }
+    }
+  }
+
+  if (result) return { postId, commentAdded };
 
   console.log('      Falling back to UGC API...');
-  return await postViaUgcApi(accessToken, owner, content);
+  const ugcResult = await postViaUgcApi(accessToken, owner, content);
+  return { postId: ugcResult, commentAdded: false };
+}
+
+function normalizePostUrn(raw) {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('urn:li:')) return trimmed;
+  const m = trimmed.match(/posts\/(\d+)/);
+  if (m) return `urn:li:share:${m[1]}`;
+  if (/^\d+$/.test(trimmed)) return `urn:li:share:${trimmed}`;
+  return trimmed || null;
+}
+
+// POST /rest/socialActions/{postUrn}/comments — needs w_organization_social (already in scope).
+async function addFirstComment(accessToken, owner, postUrn, commentText) {
+  const variants = [];
+  if (postUrn.startsWith('urn:li:share:')) {
+    const id = postUrn.split(':').pop();
+    variants.push(postUrn, `urn:li:activity:${id}`);
+  } else {
+    variants.push(postUrn);
+  }
+
+  let lastErr;
+  for (const variant of variants) {
+    try {
+      const res = await fetch(`${API_REST}/socialActions/${encodeURIComponent(variant)}/comments`, {
+        method: 'POST',
+        headers: { ...authHeaders(accessToken), 'LinkedIn-Version': '202603' },
+        body: JSON.stringify({ actor: owner, object: variant, message: { text: commentText } }),
+      });
+      if (res.ok) {
+        return res.headers.get('x-restli-id') || 'ok';
+      }
+      const errText = await res.text().catch(() => '');
+      lastErr = new Error(`Comment failed ${res.status}: ${errText.slice(0, 200)}`);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Comment failed');
 }

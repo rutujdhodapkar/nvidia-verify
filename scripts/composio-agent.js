@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { generatePost, reviewPost } from './generator.js';
-import { postToLinkedinPage } from './linkedin-poster.js';
+import { postToLinkedinPageWithComment } from './linkedin-poster.js';
 import { postToLinkedinPage as postToLinkedinViaZapier } from './zapier-poster.js';
 import { postToLinkedinPagePlaywright } from './linkedin-playwright.js';
 import { loadState, saveState, hash, isDup } from './state.js';
+import { maybeWaitForPeakIST } from './timing.js';
 
 function cleanPost(text) {
   let t = text.trim();
@@ -33,7 +34,8 @@ function extractHashtags(text) {
 }
 
 async function main() {
-  console.log(`\n═══ DEV/CRAFT Agent ═══\n${new Date().toISOString()}\n`);
+  console.log(`\n═══ DEV/CRAFT Agent (Max-Impressions) ═══\n${new Date().toISOString()}\n`);
+  await maybeWaitForPeakIST();
 
   const state = await loadState();
   const { NVIDIA_API_KEY, NVIDIA_MODEL } = process.env;
@@ -44,6 +46,7 @@ async function main() {
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
   let post;
+  let firstComment = '';
   let postOk = false;
   let bestPost = null, bestScore = 0;
   let feedback = '';
@@ -52,6 +55,7 @@ async function main() {
     try {
       const r = await generatePost(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
       post = r.post;
+      firstComment = r.firstComment;
     } catch (err) {
       feedback = 'violation: ' + err.message.slice(0, 100);
       console.log(`      ${err.message}`);
@@ -87,17 +91,21 @@ async function main() {
   if (!post || post.length < 10) { console.error('[!] Invalid content.'); process.exit(1); }
   console.log(`      ✓ Content (${post.length} chars)\n`);
 
-  // Try LinkedIn REST API first, fall back to Zapier
+  // Try LinkedIn REST API first (link auto-posted as first comment), fall back to Zapier
   let posted = false;
+  let postId = null;
+  const cleanFirstComment = (firstComment || '').replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
 
   if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_REFRESH_TOKEN) {
     console.log('[3/3] Posting via LinkedIn REST API...');
     try {
-      const result = await postToLinkedinPage({
+      const result = await postToLinkedinPageWithComment({
         content: post,
+        firstComment: cleanFirstComment,
         pageId: process.env.LINKEDIN_PAGE_ID,
       });
-      console.log(`      ✓ Posted via LinkedIn API: ${result}`);
+      console.log(`      ✓ Posted via LinkedIn API: ${result.postId} (first comment: ${result.commentAdded ? 'yes' : 'no'})`);
+      postId = typeof result.postId === 'string' ? result.postId : null;
       posted = true;
     } catch (err) {
       console.log(`      ⚠ LinkedIn API failed: ${err.message.slice(0, 150)}`);
@@ -114,6 +122,7 @@ async function main() {
         pageId: process.env.LINKEDIN_PAGE_ID,
       });
       console.log(`      ✓ Posted via Zapier MCP: ${result}`);
+      postId = typeof result === 'string' && result.includes('urn:li:') ? result : null;
       posted = true;
     } catch (err) {
       console.log(`      ⚠ Zapier MCP failed: ${err.message.slice(0, 150)}`);
@@ -144,9 +153,11 @@ async function main() {
   state.previousPosts.push(post);
   state.postHashes.push(hash(post.slice(0, 100)));
   if (state.previousPosts.length > 50) { state.previousPosts.shift(); state.postHashes.shift(); }
+  if (postId && /urn:li:/.test(postId)) state.lastPostUrn = postId;
+  state.repliedComments = state.repliedComments || {};
   state.lastRun = new Date().toISOString();
   await saveState(state);
-  console.log(`\n═══ ✓ Done ═══`);
+  console.log(`\n═══ ✓ Done — run "npm run engage" in a few hours to reply to comments and extend reach ═══`);
 }
 
 main().catch(err => { console.error('[FATAL]', err); process.exit(1); });

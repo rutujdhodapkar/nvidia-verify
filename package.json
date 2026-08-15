@@ -6,6 +6,7 @@
   "scripts": {
     "seed-offer-letter": "node scripts/seed-offer-letter-task.js",
     "agent": "node scripts/agent.js",
+    "engage": "node scripts/engage.js",
     "scrape": "node scripts/scraper.js",
     "generate": "node scripts/generator.js",
     "post": "node scripts/poster.js",

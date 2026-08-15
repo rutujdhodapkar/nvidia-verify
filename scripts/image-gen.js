@@ -204,11 +204,12 @@ async function compositeTextOverImage(fluxBuffer, meta) {
   return buf;
 }
 
-async function renderHtml(html) {
+async function renderHtml(html, format = 'landscape') {
+  const size = format === 'portrait' ? { width: 1080, height: 1350 } : { width: 1200, height: 630 };
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1 });
   const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&family=DM+Sans:wght@500;700;800&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}body{width:1200px;height:630px;overflow:hidden;}</style></head><body>${html}</body></html>`;
+*{margin:0;padding:0;box-sizing:border-box}body{width:${size.width}px;height:${size.height}px;overflow:hidden;}</style></head><body>${html}</body></html>`;
   await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
   await page.waitForTimeout(500);
   const buf = await page.screenshot({ type: 'png' });
@@ -234,7 +235,91 @@ function pickTemplate(meta) {
   return (templates[meta.style] || brutalist)(meta);
 }
 
-export async function generateImage({ html, post, imageMeta, designBrief, apiKey, hfToken }) {
+async function generateFluxBackground({ post, meta, apiKey, format = 'landscape' }) {
+  const portrait = format === 'portrait';
+  const seed = [...(meta.headline || 'devcraft')].reduce((a, c) => a + c.charCodeAt(0), 0) % 1000000;
+  const prompt = buildFluxPrompt(post, meta, portrait);
+  const width = portrait ? 1024 : 1200;
+  const height = portrait ? 1280 : 630;
+  const body = { prompt, mode: 'base', cfg_scale: 5, width, height, seed, steps: 24 };
+
+  const res = await fetch('https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-dev', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120000),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`FLUX ${res.status}: ${err.slice(0, 120)}`);
+  }
+  const json = await res.json();
+  const b64 = json?.artifacts?.[0]?.base64;
+  if (!b64) throw new Error('FLUX returned no image');
+  const buf = Buffer.from(b64, 'base64');
+  console.log(`[IMAGE] FLUX background (${width}x${height}): ${buf.length} bytes`);
+  return buf;
+}
+
+function buildFluxPrompt(post, meta, portrait = false) {
+  const hotTake = (post || '').split('\n').find(l => l.trim().length > 40) || meta.subtext;
+  const tail = portrait
+    ? ', vertical portrait composition, 1024x1280, no text or letters in the image, no words, no watermark'
+    : ', high quality, 1200x630 banner, no text or letters in the image, no words, no watermark';
+  return `Professional tech internship marketing background, dark purple and indigo neon atmosphere, ${hotTake.slice(0, 120)}${tail}`;
+}
+
+function buildPortraitFluxHtml(fluxBase64, meta) {
+  const b64 = fluxBase64.replace(/^data:image\/\w+;base64,/, '');
+  const bgDataUri = `data:image/jpeg;base64,${b64}`;
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1350px;overflow:hidden;font-family:'Inter',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat}
+.overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.35) 45%,rgba(0,0,0,0.15) 70%,rgba(0,0,0,0.55) 100%)}
+.top{position:absolute;top:0;left:0;right:0;background:#000;padding:36px 56px;display:flex;align-items:center;justify-content:space-between}
+.top .brand{font-size:20px;font-weight:800;color:#fff;letter-spacing:3px;text-transform:uppercase}
+.top .sub{font-size:12px;color:#aaa;font-weight:500}
+.content{position:absolute;inset:0;padding:210px 70px 120px;display:flex;flex-direction:column;justify-content:flex-end}
+.tag{display:inline-block;background:#6366f1;color:#fff;padding:14px 34px;font-size:16px;font-weight:700;border-radius:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:36px;width:fit-content}
+.headline{font-size:70px;font-weight:900;color:#fff;line-height:1.08;margin-bottom:28px;text-shadow:0 4px 30px rgba(0,0,0,0.5)}
+.subtext{font-size:26px;color:rgba(255,255,255,0.85);line-height:1.55;max-width:90%;margin-bottom:38px;font-weight:400}
+.badges{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:44px}
+.badge{padding:12px 26px;border:1px solid rgba(255,255,255,0.25);border-radius:24px;font-size:15px;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.35);font-weight:500}
+.bottom{position:absolute;bottom:0;left:0;right:0;background:#000;padding:36px 56px;display:flex;align-items:center;justify-content:space-between}
+.bottom .learners{font-size:15px;color:#aaa;font-weight:500}
+.bottom .cta{font-size:16px;color:#fff;font-weight:700}
+</style></head><body>
+<div class="bg"></div>
+<div class="overlay"></div>
+<div class="top"><span class="brand">DEV/CRAFT</span><span class="sub">VIRTUAL INTERNSHIP</span></div>
+<div class="content">
+  <span class="tag">Industry Projects</span>
+  <div class="headline">${meta.headline}</div>
+  <div class="subtext">${meta.subtext}</div>
+  <div class="badges">
+    <span class="badge">Python</span>
+    <span class="badge">DSA</span>
+    <span class="badge">Web Dev</span>
+    <span class="badge">AI/ML</span>
+  </div>
+</div>
+<div class="bottom"><span class="learners">10,000+ learners · 17 domains · MSME</span><span class="cta">devcraft.fennark.xyz &rarr;</span></div>
+</body></html>`;
+}
+
+async function generateFluxPortrait({ post, meta, apiKey }) {
+  const flux = await generateFluxBackground({ post, meta, apiKey, format: 'portrait' });
+  const b64 = flux.toString('base64');
+  const html = buildPortraitFluxHtml(b64, meta);
+  const buf = await renderHtml(html, 'portrait');
+  console.log(`[IMAGE] FLUX portrait composite: ${buf.length} bytes`);
+  return buf;
+}
+
+export async function generateImage({ html, post, imageMeta, designBrief, apiKey, hfToken, format = 'landscape' }) {
   const meta = { headline: 'DEV/CRAFT Virtual Internship', subtext: 'Build real engineering skills. Industry projects. Mentorship.', cta: 'devcraft.fennark.xyz', style: 'brutalist', ...(imageMeta || {}) };
 
   // Pick template style from design brief
@@ -252,10 +337,20 @@ export async function generateImage({ html, post, imageMeta, designBrief, apiKey
     console.log(`[IMAGE] Style "${meta.style}" from design brief tone "${designBrief.tone}"`);
   }
 
-  // Primary: render a code-based modern template (fast, reliable, no API dependency)
-  const templateHtml = pickTemplate(meta);
-  const buf = await renderHtml(templateHtml);
-  console.log(`[IMAGE] Template card (${meta.style}): ${buf.length} bytes`);
+  // Portrait: prefer FLUX AI background + composite (uses NVIDIA_API_KEY)
+  if (format === 'portrait' && apiKey) {
+    try {
+      const fluxBuf = await generateFluxPortrait({ post, meta, apiKey });
+      if (fluxBuf && fluxBuf.length > 500) return fluxBuf;
+    } catch (err) {
+      console.log(`[IMAGE] FLUX portrait failed, falling back to template: ${err.message}`);
+    }
+  }
+
+  // Fallback: render a code-based modern template (fast, reliable, no API dependency)
+  const templateHtml = format === 'portrait' ? portraitCard(meta) : pickTemplate(meta);
+  const buf = await renderHtml(templateHtml, format);
+  console.log(`[IMAGE] Template card (${meta.style}, ${format}): ${buf.length} bytes`);
   if (buf && buf.length > 500) return buf;
 
   throw new Error('Template rendering produced no output');
@@ -543,6 +638,30 @@ function lateralBand(m) {
           <div style="font-size:11px;color:#888;font-weight:400;">Hands-on Projects</div>
         </div>
       </div>
+    </div>
+  </div>`;
+}
+
+function portraitCard(m) {
+  return `<div style="width:1080px;height:1350px;background:#fff;display:flex;flex-direction:column;font-family:'Inter',sans-serif;position:relative;overflow:hidden;">
+    <div style="background:#000;padding:40px 60px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:3px;text-transform:uppercase;">DEV/CRAFT</span>
+      <span style="font-size:13px;color:#aaa;font-weight:500;">VIRTUAL INTERNSHIP</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 70px;">
+      <span style="display:inline-block;background:#6366f1;color:#fff;padding:14px 34px;font-size:16px;font-weight:700;border-radius:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;width:fit-content;">Industry Projects</span>
+      <div style="font-size:72px;font-weight:900;color:#000;line-height:1.08;margin-bottom:30px;">${m.headline}</div>
+      <div style="width:80px;height:6px;background:#000;border-radius:3px;margin-bottom:30px;"></div>
+      <div style="font-size:26px;color:#555;line-height:1.55;font-weight:400;max-width:90%;">${m.subtext}</div>
+      <div style="margin-top:45px;display:flex;flex-wrap:wrap;gap:16px;">
+        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">Python</span>
+        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">Web Dev</span>
+        <span style="padding:14px 30px;border:1px solid #ccc;border-radius:24px;font-size:16px;color:#666;font-weight:500;">AI/ML</span>
+      </div>
+    </div>
+    <div style="background:#000;padding:40px 60px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:16px;color:#aaa;font-weight:500;">10,000+ learners · 17 domains · MSME</span>
+      <span style="font-size:15px;color:#fff;font-weight:700;">devcraft.fennark.xyz &rarr;</span>
     </div>
   </div>`;
 }
