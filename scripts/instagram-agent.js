@@ -57,8 +57,14 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - Rotate angle each time: exams/college pressure, parental pride, hostel scene, cert-mill doubt, college-fest hype, budget-conscious student — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
 - Be specific and credible — name a concrete project type or skill. No generic filler like "amazing opportunity".
 
+## CARD HEADLINE (separate from caption)
+- A bold poster title for the image card: 4-8 words, punchy, specific, high-impact.
+- Statement, not a question. No hashtags, no emoji, no period at the end. Say "Build a Portfolio That Wins" or "Ship Real Projects, Not Tutorials" — never a greeting or generic tagline.
+- Must make a student stop scrolling on the feed at a glance.
+- NEVER reference jobs, hiring, placement, careers, salaries, or job outcomes.
+
 ## RESPONSE FORMAT
-Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Use \\n\\n to separate the 4 blocks inside the value. Write an ORIGINAL caption in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
+Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 4 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
 
 async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
@@ -75,7 +81,7 @@ ${siteFacts}${feedbackHint}
 
 Prior posts (avoid repeating angles): ${(previousPosts || []).slice(-3).join(' || ').slice(0, 800)}
 
-Write the caption now. Return ONLY the JSON.`;
+Write the headline + caption now. Return ONLY the JSON.`;
 
   const raw = await callWithRetry(prompt, apiKey, model, 8192, true, { temperature: 0.4 });
   if (!raw) throw new Error('Caption generation failed');
@@ -102,7 +108,10 @@ Write the caption now. Return ONLY the JSON.`;
   if (!caption || caption.length < 30) throw new Error('Caption too short');
   if (caption.split(/\s+/).length < 80) throw new Error('Caption under 80 words');
   if (/\bHOOK line\b|\bStory line\b|\bValue lines\b/.test(caption)) throw new Error('Caption echoed example placeholders');
-  return caption;
+  const headline = (parsed.headline || '').trim().replace(/\.$/, '');
+  if (!headline || headline.split(/\s+/).length < 3 || headline.split(/\s+/).length > 9) throw new Error('Headline wrong length');
+  if (/job|place|hire|recruit|employ|interview|salary|package|recogniz|free|paid|cost/i.test(headline)) throw new Error('Headline has banned word');
+  return { caption, headline };
 }
 
 function ensureLink(text) {
@@ -137,13 +146,15 @@ async function main() {
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
   let caption;
+  let headline = '';
   let postOk = false;
   let feedback = '';
   for (let i = 0; i < 5; i++) {
-    console.log(`[2/3] Generating caption (attempt ${i + 1})...`);
+    console.log(`[2/3] Generating caption + headline (attempt ${i + 1})...`);
     try {
-      caption = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
-      caption = buildCaption(caption);
+      const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
+      caption = buildCaption(r.caption);
+      headline = r.headline;
     } catch (err) {
       feedback = 'violation: ' + err.message.slice(0, 100);
       console.log(`      ${err.message}`);
@@ -159,12 +170,13 @@ async function main() {
   }
   if (!postOk) { console.error('[!] No caption after 5 attempts'); process.exit(1); }
 
+  console.log(`HEADLINE: ${headline}\n`);
   console.log(`\n${caption}\n`);
 
   console.log('[3/3] Generating card + posting to Instagram...');
   const mediaId = await generateImageAndPost({
     post: caption,
-    imageMeta: { headline: extractHeadline(caption), subtext: extractSubtext(caption), site: 'devcraft.fennark.xyz' },
+    imageMeta: { headline: headline || extractHeadline(caption), subtext: extractSubtext(caption), site: 'devcraft.fennark.xyz' },
     caption,
     apiKey: NVIDIA_API_KEY,
   });
