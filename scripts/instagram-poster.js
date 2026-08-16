@@ -81,18 +81,28 @@ export async function uploadToGithub(buffer, ext, contentType, index = 0) {
   const filename = `ig-${new Date().toISOString().slice(0, 10)}-${Date.now()}-${index}.${ext}`;
   const apiPath = `${IG_IMAGE_PATH}/${filename}`;
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
-    body: JSON.stringify({
-      message: `ci: instagram card ${filename}`,
-      content: buffer.toString('base64'),
-      branch: IG_IMAGE_BRANCH,
-    }),
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!res.ok) {
+
+  // Sequential commits to the same branch can race on the ref SHA — retry on 409.
+  const delays = [3000, 6000, 10000];
+  let res;
+  for (let attempt = 0; ; attempt++) {
+    if (attempt > 0) await sleep(delays[attempt - 1] || 10000);
+    res = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
+      body: JSON.stringify({
+        message: `ci: instagram card ${filename}`,
+        content: buffer.toString('base64'),
+        branch: IG_IMAGE_BRANCH,
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (res.ok) break;
     const text = await res.text().catch(() => '');
+    if (res.status === 409 && attempt < delays.length - 1) {
+      console.log(`[IG] GitHub ref race (${text.slice(0, 60)}...) — retrying upload in ${delays[attempt]}s`);
+      continue;
+    }
     throw new Error(`GitHub upload ${res.status}: ${text.slice(0, 200)}`);
   }
   const rawUrl = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${IG_IMAGE_BRANCH}/${apiPath}`;

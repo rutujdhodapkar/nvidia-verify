@@ -461,7 +461,18 @@ body{width:1080px;height:1920px;overflow:hidden;font-family:'Sora',sans-serif}
 }
 
 async function generateReelFluxCard({ post, meta, apiKey, index }) {
-  const flux = await generateFluxBackground({ post, meta, apiKey, format: 'portrait', index });
+  let flux;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      flux = await generateFluxBackground({ post, meta, apiKey, format: 'portrait', index });
+      break;
+    } catch (err) {
+      const transient = /500|429|502|503|504|timeout/i.test(String(err?.message || err));
+      if (!transient || attempt >= 1) throw err;
+      console.log(`[IMAGE] FLUX transient error (${err.message.slice(0, 60)}) — retrying...`);
+      await new Promise(r => setTimeout(r, 5000 * (attempt + 1)));
+    }
+  }
   const b64 = flux.toString('base64');
   const html = buildReelFluxHtml(b64, { site: 'devcraft.fennark.xyz', ...meta }, index);
   const buf = await renderHtml(html, 'reel');

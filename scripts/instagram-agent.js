@@ -240,9 +240,11 @@ async function main() {
   const cards = await generateReelCards({ post: caption, meta: imageMeta, apiKey: NVIDIA_API_KEY, count: 3 });
 
   let mediaId;
-  const uploadCard = (buf, i) => uploadToGithub(buf, 'png', 'image/png', i);
   try {
-    const imageUrls = await Promise.all(cards.map(uploadCard));
+    const imageUrls = [];
+    for (let i = 0; i < cards.length; i++) {
+      imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
+    }
     mediaId = await postToInstagramCarousel({ imageUrls, caption });
     console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
   } catch (err) {
