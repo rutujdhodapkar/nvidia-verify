@@ -118,13 +118,11 @@ function ensureLink(text) {
   const site = 'devcraft.fennark.xyz';
   const trimmed = (text || '').trim();
   if (new RegExp(site.replace(/\./g, '\\.')).test(trimmed)) return trimmed;
-  return trimmed ? `${trimmed}\n\nApply now: ${site}` : `Apply now: ${site}`;
+  return trimmed ? `${trimmed}\n\nApply now: https://devcraft.fennark.xyz` : `Apply now: https://devcraft.fennark.xyz`;
 }
 
 function buildCaption(post) {
-  const site = 'devcraft.fennark.xyz';
   let caption = (post || '')
-    .replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, site)
     .slice(0, 2100);
   let hashtags = '';
   const m = caption.match(/(#\S+(\s+#\S+){0,4})$/);

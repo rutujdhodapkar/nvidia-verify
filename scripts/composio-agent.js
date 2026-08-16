@@ -23,8 +23,6 @@ function cleanPost(text) {
   t = t.replace(/```/g, '').trim();
   // Strip hashtags from body (sent separately via API)
   t = t.replace(/\n?#\w+/g, '').trim();
-  // Strip raw URL from post text
-  t = t.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz').trim();
   return t;
 }
 
@@ -94,7 +92,7 @@ async function main() {
   // Try LinkedIn REST API first (link auto-posted as first comment), fall back to Zapier
   let posted = false;
   let postId = null;
-  const cleanFirstComment = (firstComment || '').replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
+  const cleanFirstComment = (firstComment || '');
 
   if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_REFRESH_TOKEN) {
     console.log('[3/3] Posting via LinkedIn REST API...');

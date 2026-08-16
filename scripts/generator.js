@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = `You are a world-class LinkedIn growth copywriter for DevC
 
 ## THE 2026 LINKEDIN ALGORITHM — NON-NEGOTIABLE RULES
 1. LONG-FORM WINS. Posts of 300+ words earn up to +147% more engagement than short posts. Dwell time is the single strongest ranking signal — write 250-320 words of dense, specific, useful content that keeps a student reading past 30 seconds.
-2. NO EXTERNAL LINK PREVIEW IN THE BODY. Attached link cards lose roughly half your reach. A plain-text URL mention (no preview, no www prefix formatting that LinkedIn can convert) is acceptable but goes ONLY at the very end of the CTA.
+2. NO EXTERNAL LINK PREVIEW IN THE BODY. Attached link cards lose roughly half your reach. Put the FULL clickable URL (https://devcraft.fennark.xyz) as plain text ONLY at the very end of the CTA — never as a separate link card.
 3. MAXIMUM 2-3 HASHTAGS. Six hashtags lose ~53% reach. Use exactly 2-3 relevant ones.
 4. COMMENTS ARE THE #1 RANKING SIGNAL. The post MUST end with an engagement mechanic that makes commenting the natural, low-effort next move. Pick ONE proven format from the ENGAGEMENT MECHANICS list — never a generic "any tips?" or "share your thoughts" (weak questions get ~0 comments). NEVER use pure engagement bait ("comment YES", "like if you agree", "share to your batchmates") — the algorithm now detects and penalizes it.
 5. SAVES carry ~5x the weight of a like. Structure content so a student wants to bookmark it: named projects, clear steps, checklists, or reference material they'll return to during the semester break.
@@ -59,7 +59,7 @@ Tier-2/3 engineering students in India (2nd-4th year, any branch: CSE, IT, ECE, 
 1. HOOK — 1-2 lines. A bold, OPINIONATED statement with a specific number or a stark truth about internship season, resumes, or CGPA that someone would want to argue with. NOT a question. Max ~140 characters. This is the only part most people see — make it impossible to scroll past.
 2. BODY — 250-320 words total, written as 6-10 SHORT paragraphs. One paragraph = 1-2 sentences. Blank line between every paragraph (whitespace = readability + dwell). Build tension first (name the exact fear/annoyance), then pivot to what DevCraft actually gives: real projects, instant offer letter, verified certificate, internship-ready work. Name exact project deliverables for the chosen domain(s). Include at least one scale number (10,000+ learners, 7,000+ certificates issued, 300+ colleges) and the MSME-registered fact as trust proof. Include ONE hyper-specific detail (rule 9).
 3. ENGAGEMENT — EXACTLY ONE mechanic from the ENGAGEMENT MECHANICS list, as the final line of the post. Written for a sub-10-second answer. You may include ONE short Hinglish phrase here.
-4. CTA — comment-gated, then a plain-text URL at the very end. Pattern: "Comment your branch + domain and I'll send the signup link. Or apply directly here → devcraft.fennark.xyz". Fold the mechanic into this line if they naturally merge.
+4. CTA — comment-gated, then the FULL clickable URL (https://devcraft.fennark.xyz) as plain text at the very end. Pattern: "Comment your branch + domain and I'll send the signup link. Or apply directly here → https://devcraft.fennark.xyz". Fold the mechanic into this line if they naturally merge.
 5. FIRST COMMENT (separate field) — a substantive value-add comment that ALSO carries the signup link naturally, as if adding helpful context. It must read human, like a founder adding a useful note — NOT like a link drop.
 6. HASHTAGS — exactly 2-3. Mix niche + broad (e.g. #VirtualInternship #CSE #InternshipIndia).
 
@@ -91,8 +91,8 @@ Invent the best angle each post. Ideas: WHAT you get, WHY DevCraft (MSME, instan
   "hook": "1-2 lines, bold statement with a number, not a question",
   "body": "250-320 words, 6-10 short paragraphs separated by blank lines",
   "engagement": "EXACTLY ONE engagement mechanic from the list — a specific, sub-10-second comment prompt tied to their situation, never a generic question",
-  "cta_line": "Comment your branch + domain and I'll send the signup link. Or apply directly here \u2192 devcraft.fennark.xyz",
-  "first_comment": "substantive value-add comment that naturally includes devcraft.fennark.xyz",
+  "cta_line": "Comment your branch + domain and I'll send the signup link. Or apply directly here \u2192 https://devcraft.fennark.xyz",
+  "first_comment": "substantive value-add comment that naturally includes https://devcraft.fennark.xyz",
   "hashtags": ["#...", "#...", "#..."]
 }
 
@@ -151,13 +151,12 @@ Generate the post now. Return ONLY the JSON.`;
   let body = (parsed.body || '').trim();
   body = body.endsWith('.') || body.endsWith('!') || body.endsWith('?') || !body ? body : body + '.';
   const engagement = (parsed.engagement || '').trim();
-  const ctaLine = (parsed.cta_line || 'Comment your branch + domain and I\'ll send the signup link → devcraft.fennark.xyz').trim();
+  const ctaLine = (parsed.cta_line || 'Comment your branch + domain and I\'ll send the signup link → https://devcraft.fennark.xyz').trim();
   const firstComment = (parsed.first_comment || parsed.firstComment || '').trim();
   const hashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags.filter(Boolean).slice(0, 3).join('\n') : '';
 
   const postParts = [hook, '', body, '', engagement, '', ctaLine, '', hashtags];
   let postText = postParts.filter(Boolean).join('\n');
-  postText = postText.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
 
   const violation = hasViolations(postText);
   if (violation) {
@@ -206,7 +205,7 @@ Focus on:
 1. Is the hook a bold OPINIONATED statement with a specific number (NOT a question) that someone would comment on or argue with, targeting a specific student type? (0-3 pts)
 2. Is the body long-form (250+ words) with short paragraphs and blank-line breaks, dense with specific deliverables, India context, and at least one hyper-specific detail? (0-3 pts)
 3. Does the FINAL LINE use a proven engagement mechanic (branch+domain gate, pick-a-side, confession, voted list, share-a-win) that a reader could answer in under 10 seconds — NOT generic "any tips?" phrasing? (0-3 pts)
-4. Are there max 3 hashtags and is the CTA comment-gated with the URL only as plain text at the end? (0-1 pts)
+4. Are there max 3 hashtags and does the CTA end with the full clickable URL https://devcraft.fennark.xyz? (0-1 pts)
 - Award +1 bonus if the mechanic exchanges real value (personal reply, honest data, topic pick, proof) or it names exact project deliverables / uses peer proof / addresses the certificate-mill doubt head-on.
 - Penalize -1 if it promises employment outcomes, contains any legal violation, sounds AI-written, uses a question hook, or has a weak/generic engagement question.
 
@@ -234,7 +233,7 @@ Rules:
 - Lengthen the body toward 250+ words with short paragraphs separated by blank lines
 - Make the engagement question specific and honest — no engagement bait
 - Keep max 3 hashtags
-- Ensure CTA is comment-gated and references devcraft.fennark.xyz as a plain-text mention (no raw URL, no preview)
+- Ensure the CTA ends with the full clickable link https://devcraft.fennark.xyz (plain text, no link card)
 - Remove any pricing language — no "free", no fees mentioned
 - Remove any banned words (leverage, synergy, passionate, game-changer, etc.)
 - Stay compliant: no employment/placement guarantees, no placed students, no job outcomes, no claims of industry recognition

@@ -52,11 +52,11 @@ async function main() {
   if (!post || post.length < 10) { console.error('[!] Invalid content. Aborting.'); process.exit(1); }
   console.log(`      ✓ Content (${post.length} chars)\n`);
 
-  // Step 3: Post to LinkedIn company page (link goes in the first comment)
+  // Step 3: Post to LinkedIn company page (full link stays in the post body + first comment)
   let posted = false;
   let postId = null;
-  const cleanPost = post.replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
-  const cleanFirstComment = (firstComment || '').replace(/https?:\/\/devcraft\.fennark\.xyz\/?/g, 'devcraft.fennark.xyz');
+  const cleanPost = post;
+  const cleanFirstComment = (firstComment || '');
 
   if (LINKEDIN_CLIENT_ID && LINKEDIN_REFRESH_TOKEN) {
     console.log('[3/4] Posting via LinkedIn REST API...');
