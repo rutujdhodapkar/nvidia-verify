@@ -235,10 +235,10 @@ function pickTemplate(meta) {
   return (templates[meta.style] || brutalist)(meta);
 }
 
-async function generateFluxBackground({ post, meta, apiKey, format = 'landscape' }) {
+async function generateFluxBackground({ post, meta, apiKey, format = 'landscape', index = 0 }) {
   const portrait = format === 'portrait';
   const seed = [...(meta.headline || 'devcraft')].reduce((a, c) => a + c.charCodeAt(0), 0) % 1000000;
-  const prompt = buildFluxPrompt(post, meta, portrait);
+  const prompt = buildFluxPrompt(post, meta, portrait, index);
   const width = portrait ? 1024 : 1200;
   const height = portrait ? 1280 : 630;
   const body = { prompt, mode: 'base', cfg_scale: 5, width, height, seed, steps: 24 };
@@ -261,21 +261,32 @@ async function generateFluxBackground({ post, meta, apiKey, format = 'landscape'
   return buf;
 }
 
-function buildFluxPrompt(post, meta, portrait = false) {
+function buildFluxPrompt(post, meta, portrait = false, index = 0) {
   const hotTake = (post || '').split('\n').find(l => l.trim().length > 40) || meta.subtext;
   const tail = portrait
-    ? ', vertical 4:5 portrait composition, photorealistic, cinematic lighting, deep depth of field, vibrant teal, cyan and warm amber accents, professional marketing photography, no text, no letters, no watermark'
+    ? ', vertical 9:16 portrait composition, photorealistic, cinematic lighting, deep depth of field, moody dark tones, professional architectural or nature photography, high detail, no text, no letters, no watermark'
     : ', photorealistic, cinematic lighting, deep depth of field, vibrant teal, cyan and warm amber accents, high quality 1200x630 banner, professional marketing photography, no text, no letters, no watermark';
-  const scene = [
-    'modern startup office at dusk, young engineers collaborating around laptops and a large code dashboard on glowing screens, teal and amber ambient light',
-    'tier-2 Indian engineering college campus, confident final-year students walking with laptops, warm golden evening light, aspirational mood',
-    'close-up of a data-science student building a dashboard on a laptop, holographic charts floating above the screen, cyan glow',
-    'futuristic virtual internship briefing room, big holographic project roadmap, Indian mentors pointing at a roadmap wall, cyan and orange holograms',
-    'night campus library bench, laptop showing code, coffee cup, quiet focused student, warm city glow through window',
-    'developer celebrating a deployed project, confetti on monitor, sleek desk setup, warm amber keyboard backlight, joyful',
-  ];
+  const scene = portrait
+    ? [
+        'minimalist brutalist concrete architecture at dusk, dramatic long shadows, dark moody sky, warm light glowing from a single window, cinematic photography',
+        'lush dark green forest with low morning fog and soft god rays breaking through the canopy, deep shadows, cinematic nature photography',
+        'modern glass skyscraper facade photographed straight up at night, mirror reflections, teal and navy city lights, architectural photography',
+        'mountain peaks at blue hour under a deep navy sky, faint stars, cinematic moody landscape photography',
+        'geometric concrete spiral staircase, dramatic low-key lighting, dark brutalist architecture, long exposure',
+        'calm dark ocean at night under moonlight, deep navy and black tones, long exposure, minimal and serene',
+        'grand historic library reading hall, perfect symmetry, warm lamp light, dark wood, moody architectural interior photography',
+        'minimalist courtyard with a single tree and clean concrete walls, evening light, dark green and amber tones, architectural design photography',
+      ]
+    : [
+        'modern startup office at dusk, young engineers collaborating around laptops and a large code dashboard on glowing screens, teal and amber ambient light',
+        'tier-2 Indian engineering college campus, confident final-year students walking with laptops, warm golden evening light, aspirational mood',
+        'close-up of a data-science student building a dashboard on a laptop, holographic charts floating above the screen, cyan glow',
+        'futuristic virtual internship briefing room, big holographic project roadmap, Indian mentors pointing at a roadmap wall, cyan and orange holograms',
+        'night campus library bench, laptop showing code, coffee cup, quiet focused student, warm city glow through window',
+        'developer celebrating a deployed project, confetti on monitor, sleek desk setup, warm amber keyboard backlight, joyful',
+      ];
   const seed = [...(meta.headline || 'devcraft')].reduce((a, c) => a + c.charCodeAt(0), 0);
-  const prompt = `${scene[seed % scene.length]}, ${tail}`;
+  const prompt = `${scene[(seed + index) % scene.length]}, ${tail}`;
   return prompt;
 }
 
@@ -346,6 +357,129 @@ async function generateFluxPortrait({ post, meta, apiKey }) {
   const buf = await renderHtml(html, 'portrait');
   console.log(`[IMAGE] FLUX portrait composite: ${buf.length} bytes`);
   return buf;
+}
+
+export function buildReelFluxHtml(fluxBase64, m, index) {
+  const b64 = fluxBase64.replace(/^data:image\/\w+;base64,/, '');
+  const bgDataUri = `data:image/jpeg;base64,${b64}`;
+  const site = m.site || 'devcraft.fennark.xyz';
+  const song = m.song || 'Now playing — trending right now';
+  const accentSets = [
+    ['#22d3ee', '#a855f7'],
+    ['#f97316', '#f59e0b'],
+    ['#06b6d4', '#22d3ee'],
+  ];
+  const [a1, a2] = accentSets[index % accentSets.length];
+
+  const benefits = [
+    { t: 'Real industry projects', s: 'Python · DSA · Web · AI/ML' },
+    { t: 'Offer letter + verified certificate', s: 'Instant, live-verified' },
+    { t: 'Mentorship from engineers', s: 'Portfolio you can show' },
+    { t: 'MSME-registered program', s: '10,000+ learners' },
+  ];
+  const benefitRow = benefits.map((b, i) => `
+    <div style="display:flex;align-items:center;gap:26px;padding:26px 30px;border-radius:22px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(12px);box-shadow:0 10px 34px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);">
+      <div style="width:60px;height:60px;min-width:60px;border-radius:18px;background:linear-gradient(135deg,${a1},${a2});display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;box-shadow:0 10px 26px rgba(0,0,0,0.45);">${i + 1}</div>
+      <div>
+        <div style="font-size:28px;font-weight:700;color:#fff;">${b.t}</div>
+        <div style="font-size:18px;color:rgba(255,255,255,0.58);font-weight:400;margin-top:3px;">${b.s}</div>
+      </div>
+    </div>`).join('');
+
+  const ctaStrip = `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,${a1},${a2});border-radius:24px;padding:28px 32px;box-shadow:0 20px 54px rgba(0,0,0,0.55),0 6px 24px rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);">
+      <span style="font-size:16px;font-weight:700;color:rgba(255,255,255,0.95);text-transform:uppercase;letter-spacing:2px;">Apply at</span>
+      <span style="font-size:32px;font-weight:800;color:#fff;letter-spacing:0.3px;">${site}</span>
+      <span style="width:62px;height:62px;min-width:62px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">&rarr;</span>
+    </div>`;
+
+  const songPill = `
+    <div style="display:flex;align-items:center;gap:14px;justify-content:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:18px 30px;backdrop-filter:blur(10px);">
+      <span style="font-size:26px;">&#127925;</span><span style="font-size:21px;color:rgba(255,255,255,0.85);font-weight:600;">${song}</span>
+    </div>`;
+
+  const socialRow = `
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:18px;color:rgba(255,255,255,0.55);font-weight:500;">
+      <span style="color:#22d3ee;font-weight:700;">10,000+ learners</span><span style="color:#22d3ee;font-weight:700;">MSME-registered</span>
+    </div>`;
+
+  const header = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px;">
+      <span style="font-size:30px;font-weight:800;color:#fff;letter-spacing:2px;">DEV<span style="color:#22d3ee;">/</span>CRAFT</span>
+      <span style="font-size:15px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f97316,#f59e0b);padding:13px 28px;border-radius:999px;box-shadow:0 10px 28px rgba(249,115,22,0.5);letter-spacing:1px;">APPLY NOW</span>
+    </div>`;
+
+  const coverBody = `
+    <div style="display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:17px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#5eead4;margin-bottom:28px;">Virtual Internship &bull; 2026</div>
+      <div style="font-size:84px;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-1.5px;text-shadow:0 10px 44px rgba(0,0,0,0.6);">${m.headline}</div>
+      <div style="width:150px;height:8px;border-radius:4px;background:linear-gradient(90deg,${a1},${a2});margin:32px 0;box-shadow:0 4px 18px rgba(0,0,0,0.5);"></div>
+      <div style="font-size:28px;color:rgba(255,255,255,0.84);line-height:1.5;max-width:96%;font-weight:400;">${m.subtext}</div>
+    </div>
+    <div style="margin-top:30px;">${ctaStrip}</div>`;
+
+  const benefitsBody = `
+    <div style="margin-bottom:26px;">
+      <div style="font-size:17px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#5eead4;margin-bottom:18px;">What You Get</div>
+      <div style="font-size:56px;font-weight:800;color:#fff;line-height:1.08;letter-spacing:-1px;text-shadow:0 8px 34px rgba(0,0,0,0.55);">${m.headline}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:30px;">${benefitRow}</div>
+    ${ctaStrip}`;
+
+  const proofBody = `
+    <div style="margin-bottom:26px;">
+      <div style="font-size:17px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#5eead4;margin-bottom:18px;">Proof, Not Promises</div>
+      <div style="font-size:56px;font-weight:800;color:#fff;line-height:1.08;letter-spacing:-1px;text-shadow:0 8px 34px rgba(0,0,0,0.55);">${m.headline}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:30px;">
+      ${[['10,000+', 'learners'], ['300+', 'colleges'], ['4.8★', 'learner rating'], ['MSME', 'registered']].map(([n, l]) => `
+      <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:22px;padding:30px 20px;text-align:center;backdrop-filter:blur(12px);box-shadow:0 10px 34px rgba(0,0,0,0.3);">
+        <div style="font-size:52px;font-weight:800;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,0.5);">${n}</div>
+        <div style="font-size:20px;color:rgba(255,255,255,0.62);font-weight:500;margin-top:6px;">${l}</div>
+      </div>`).join('')}
+    </div>
+    ${songPill}
+    <div style="margin-top:22px;">${ctaStrip}</div>`;
+
+  const body = index % 3 === 1 ? benefitsBody : index % 3 === 2 ? proofBody : coverBody;
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Sora',sans-serif}
+.bg{position:absolute;inset:0;background:url('${bgDataUri}') center/cover no-repeat;filter:brightness(0.7)}
+.scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,8,18,0.82) 0%,rgba(4,8,18,0.38) 30%,rgba(4,8,18,0.55) 55%,rgba(3,6,14,0.97) 100%)}
+</style></head><body>
+<div class="bg"></div>
+<div class="scrim"></div>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:64px 56px 48px;">
+  ${header}
+  <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;">${body}</div>
+</div>
+</body></html>`;
+}
+
+async function generateReelFluxCard({ post, meta, apiKey, index }) {
+  const flux = await generateFluxBackground({ post, meta, apiKey, format: 'portrait', index });
+  const b64 = flux.toString('base64');
+  const html = buildReelFluxHtml(b64, { site: 'devcraft.fennark.xyz', ...meta }, index);
+  const buf = await renderHtml(html, 'reel');
+  console.log(`[IMAGE] FLUX reel card #${index}: ${buf.length} bytes`);
+  return buf;
+}
+
+export async function generateReelCards({ post, meta, apiKey, count = 3 }) {
+  const cards = [];
+  for (let i = 0; i < count; i++) {
+    try {
+      cards.push(await generateReelFluxCard({ post, meta, apiKey, index: i }));
+    } catch (err) {
+      console.log(`[IMAGE] FLUX reel card #${i} failed, using template fallback: ${err.message}`);
+      cards.push(await renderHtml(premiumReelCard(meta), 'reel'));
+    }
+  }
+  return cards;
 }
 
 export async function generateImage({ html, post, imageMeta, designBrief, apiKey, hfToken, format = 'landscape' }) {

@@ -75,10 +75,10 @@ export async function uploadImageToGithub(imageBuffer) {
   return uploadToGithub(imageBuffer, 'png', 'image/png');
 }
 
-export async function uploadToGithub(buffer, ext, contentType) {
+export async function uploadToGithub(buffer, ext, contentType, index = 0) {
   const token = process.env.GITHUB_TOKEN;
   if (!token) throw new Error('GITHUB_TOKEN not set — needed to host the IG media publicly');
-  const filename = `ig-${new Date().toISOString().slice(0, 10)}-${Date.now()}.${ext}`;
+  const filename = `ig-${new Date().toISOString().slice(0, 10)}-${Date.now()}-${index}.${ext}`;
   const apiPath = `${IG_IMAGE_PATH}/${filename}`;
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
   const res = await fetch(url, {
@@ -137,6 +137,53 @@ export async function postToInstagramReel({ videoUrl, caption, coverUrl }) {
       const isNotReady = /not ready|not available|9007|not_ready|still processing/i.test(msg);
       if (attempt >= delays.length - 1 || !isNotReady) throw err;
       console.log(`[IG] Reel not ready yet — retrying publish in ${delays[attempt]}s (${attempt + 1}/${delays.length})`);
+    }
+  }
+}
+
+export async function createCarouselItemContainer({ igUserId, imageUrl }) {
+  const data = await callComposio('INSTAGRAM_CREATE_MEDIA_CONTAINER', {
+    ig_user_id: igUserId,
+    image_url: imageUrl,
+    content_type: 'carousel_item',
+  });
+  const creationId = data?.id || data?.creation_id || data?.data?.id;
+  if (!creationId) throw new Error('No carousel item container id returned: ' + JSON.stringify(data).slice(0, 200));
+  console.log(`[IG] Carousel item container created: ${creationId}`);
+  return String(creationId);
+}
+
+export async function createCarouselContainer({ igUserId, children, caption }) {
+  const data = await callComposio('INSTAGRAM_CREATE_CAROUSEL_CONTAINER', {
+    ig_user_id: igUserId,
+    children,
+    caption,
+  });
+  const creationId = data?.id || data?.creation_id || data?.data?.id;
+  if (!creationId) throw new Error('No carousel container id returned: ' + JSON.stringify(data).slice(0, 200));
+  console.log(`[IG] Carousel container created: ${creationId}`);
+  return String(creationId);
+}
+
+export async function postToInstagramCarousel({ imageUrls, caption }) {
+  const igUserId = process.env.INSTAGRAM_USER_ID || await getInstagramUserId();
+  const children = [];
+  for (const url of imageUrls) {
+    children.push(await createCarouselItemContainer({ igUserId, imageUrl: url }));
+  }
+  const creationId = await createCarouselContainer({ igUserId, children, caption });
+
+  // Carousels need all items processed before publish — use a generous backoff window.
+  const delays = [10000, 15000, 20000, 30000, 45000];
+  for (let attempt = 0; ; attempt++) {
+    if (attempt > 0) await sleep(delays[attempt - 1] || 30000);
+    try {
+      return await publishPost({ igUserId, creationId });
+    } catch (err) {
+      const msg = String(err?.message || err);
+      const isNotReady = /not ready|not available|9007|not_ready|still processing/i.test(msg);
+      if (attempt >= delays.length - 1 || !isNotReady) throw err;
+      console.log(`[IG] Carousel not ready yet — retrying publish in ${delays[attempt]}s (${attempt + 1}/${delays.length})`);
     }
   }
 }

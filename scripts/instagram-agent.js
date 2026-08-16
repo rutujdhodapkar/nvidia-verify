@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { callWithRetry } from './generator.js';
-import { uploadToGithub, postToInstagram, postToInstagramReel } from './instagram-poster.js';
+import { uploadToGithub, postToInstagram, postToInstagramCarousel } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
@@ -27,54 +27,6 @@ async function fetchLatestEnglishSong() {
   } catch (err) {
     console.warn(`      ⚠ Could not fetch latest song chart: ${err.message}`);
     return null;
-  }
-}
-
-async function fetchSongPreviewUrl(title, artist) {
-  try {
-    const query = encodeURIComponent(`${title} ${artist}`.trim());
-    const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`, { signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error(`itunes ${res.status}`);
-    const data = await res.json();
-    const track = data?.results?.[0];
-    if (!track?.previewUrl) return null;
-    return track.previewUrl;
-  } catch (err) {
-    console.warn(`      ⚠ Could not fetch song preview: ${err.message}`);
-    return null;
-  }
-}
-
-async function buildReelVideo(imageBuffer, audioUrl) {
-  const os = await import('os');
-  const path = await import('path');
-  const fs = await import('fs');
-  const { execFile } = await import('child_process');
-  const { promisify } = await import('util');
-  const execFileAsync = promisify(execFile);
-
-  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ig-reel-'));
-  const imgPath = path.join(tmpDir, 'card.png');
-  const audioPath = path.join(tmpDir, 'song.m4a');
-  const videoPath = path.join(tmpDir, 'reel.mp4');
-  try {
-    await fs.promises.writeFile(imgPath, imageBuffer);
-    const audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(30000) });
-    if (!audioRes.ok) throw new Error(`audio ${audioRes.status}`);
-    await fs.promises.writeFile(audioPath, Buffer.from(await audioRes.arrayBuffer()));
-    console.log('      Rendering reel (image + song audio) with ffmpeg...');
-    await execFileAsync('ffmpeg', [
-      '-y', '-loop', '1', '-i', imgPath, '-i', audioPath,
-      '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
-      '-c:v', 'libx264', '-preset', 'medium', '-tune', 'stillimage',
-      '-c:a', 'aac', '-b:a', '192k', '-r', '30',
-      '-pix_fmt', 'yuv420p', '-shortest', '-movflags', '+faststart', videoPath,
-    ], { timeout: 60000 });
-    const buf = await fs.promises.readFile(videoPath);
-    console.log(`      ✓ Reel video rendered (${(buf.length / 1024 / 1024).toFixed(1)} MB)`);
-    return buf;
-  } finally {
-    await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
@@ -107,18 +59,19 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER promise or imply job outcomes or third-party internships.
 - NEVER write "industry-recognized".
 - MAX 3 hashtags (#DevCraft #VirtualInternship + 1 relevant).
-- NO engagement bait ("comment YES", "share if you agree").
-- MAX 1 short Hinglish phrase max (English letters).
+- MAX 2 short Hinglish phrases max (English letters), kept light and natural.
+- Exactly 2 emoji max (one in the hook, one on the SONG line).
 
-## STRUCTURE (5 short blocks, blank line between)
-- HOOK: First line under 30 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
+## STRUCTURE (6 short blocks, blank line between)
+- HOOK: First line under 25 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
+- LINK: IMMEDIATELY after the hook, put the full URL on its own line: "Apply now → https://devcraft.fennark.xyz" — so it's visible in the feed preview without tapping "more".
 - STORY: One concrete student moment (hostel Wi-Fi, empty resume fear, the first PR, a proud parent call). Credible, sensory, real.
 - VALUE: "What you get" in 3 short bullet-ish lines, plain text: real industry projects, instant offer letter, verified certificate, mentorship.
 - SONG: One line with the LATEST trending English song (title — artist) given in SITE FACTS, written naturally like "🎵 {song} — the hit of the season, press play and build". Max 1 line, no explicit content.
-- ASK: ends with "Apply now → https://devcraft.fennark.xyz"
+- ASK + SHARE: ends with one short line that nudges sharing naturally (not bait): e.g. "Send this to your hostel group chat — they're stuck on the same thing." or "Forward it to the friend who keeps asking what you're building." then "Apply now → https://devcraft.fennark.xyz"
 
 ## STYLE
-- 90-140 words total (aim ~110). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam (max 2 emoji — one in the hook, one on the SONG line).
+- 70-120 words total (aim ~95). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam.
 - Rotate angle each time: exams/college pressure, parental pride, hostel scene, cert-mill doubt, college-fest hype, budget-conscious student — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
 - Be specific and credible — name a concrete project type or skill. No generic filler like "amazing opportunity".
 
@@ -129,7 +82,7 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER reference jobs, hiring, placement, careers, salaries, or job outcomes.
 
 ## RESPONSE FORMAT
-Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 5 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
+Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 6 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
 
 async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback, song) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
@@ -174,12 +127,37 @@ Write the headline + caption now. Return ONLY the JSON.`;
   }
   const caption = (parsed.caption || '').trim();
   if (!caption || caption.length < 30) throw new Error('Caption too short');
-  if (caption.split(/\s+/).length < 80) throw new Error('Caption under 80 words');
+  if (caption.split(/\s+/).length < 50) throw new Error('Caption under 50 words');
   if (/\bHOOK line\b|\bStory line\b|\bValue lines\b/.test(caption)) throw new Error('Caption echoed example placeholders');
   const headline = (parsed.headline || '').trim().replace(/\.$/, '');
   if (!headline || headline.split(/\s+/).length < 3 || headline.split(/\s+/).length > 9) throw new Error('Headline wrong length');
-  if (/job|place|hire|recruit|employ|interview|salary|package|recogniz|free|paid|cost/i.test(headline)) throw new Error('Headline has banned word');
+  if (hasBannedWords(headline)) throw new Error('Headline has banned word');
   return { caption, headline };
+}
+
+const BANNED_WORDS = /\b(placement|placements|recruit(er|ers|ing|ment)?s?|employ(er|ers|ee|ees|ment|ing|ed)?\b|hir(ing|ed|es|e)|job(s)?|interview(s|ed|ing)?|salar(y|ies)|package(s)?|recogni(s|z)ed|free|paid|cost(s|ing)?)\b/i;
+
+function hasBannedWords(text) {
+  return BANNED_WORDS.test((text || '').toLowerCase());
+}
+
+function buildFallbackCaption(siteData, latestSong) {
+  const safePhrases = (siteData?.summary?.keyPhrases || []).filter(p => !hasBannedWords(p)).slice(0, 3).join(', ');
+  const story = 'A final-year student finished a real project in 6 weeks and finally had something to show for all the late nights.';
+  const song = latestSong ? `\n\n🎵 ${latestSong.title} — ${latestSong.artist} — the hit of the season, press play and build.` : '';
+  return buildCaption(`Stop scrolling past this one.
+
+Apply now → https://devcraft.fennark.xyz
+
+${story}
+
+Real industry projects. Instant offer letter. Verified certificate. Mentorship from engineers. ${safePhrases}.
+
+${song}
+
+Send this to your hostel group chat — they're stuck on the same thing.
+
+Apply now → https://devcraft.fennark.xyz`);
 }
 
 function ensureLink(text) {
@@ -214,17 +192,12 @@ async function main() {
   console.log('      Fetching latest English song...');
   const latestSong = await fetchLatestEnglishSong();
   if (latestSong) console.log(`      ✓ Song: ${latestSong.title} — ${latestSong.artist}`);
-  let songPreviewUrl = null;
-  if (latestSong) {
-    songPreviewUrl = await fetchSongPreviewUrl(latestSong.title, latestSong.artist);
-    if (songPreviewUrl) console.log('      ✓ Song audio preview found');
-  }
 
   let caption;
   let headline = '';
   let postOk = false;
   let feedback = '';
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 7; i++) {
     console.log(`[2/3] Generating caption + headline (attempt ${i + 1})...`);
     try {
       const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback, latestSong);
@@ -233,53 +206,50 @@ async function main() {
     } catch (err) {
       feedback = 'violation: ' + err.message.slice(0, 100);
       console.log(`      ${err.message}`);
-      if (i < 4) console.log('      Retrying...\n');
+      if (i < 6) console.log('      Retrying...\n');
       continue;
     }
     if (isDup(caption, state)) { console.log('      Duplicate, retry...\n'); continue; }
     if (caption.length < 10) { feedback = 'caption too short'; continue; }
-    const lowered = caption.toLowerCase();
-    if (/job|place|hire|recruit|employ|interview|salary|package|recogniz/i.test(lowered)) { feedback = 'banned word in caption'; continue; }
+    if (hasBannedWords(caption)) { feedback = 'banned word in caption'; continue; }
     postOk = true;
     break;
   }
-  if (!postOk) { console.error('[!] No caption after 5 attempts'); process.exit(1); }
+  if (!postOk) {
+    caption = buildFallbackCaption(siteData, latestSong);
+    headline = extractHeadline(caption);
+    if (isDup(caption, state)) {
+      caption = buildCaption(`Real projects beat 100 tutorials. Apply now → https://devcraft.fennark.xyz\n\n6-week virtual internship. Offer letter + verified certificate. Mentorship. ${latestSong ? `\n\n🎵 ${latestSong.title} — ${latestSong.artist}, press play and build.` : ''}\n\nSend this to a friend stuck on tutorials.`);
+      headline = 'Ship Real Projects, Not Tutorials';
+    }
+    postOk = true;
+    console.log('      ✓ Using fallback caption (model kept failing)');
+  }
 
   console.log(`HEADLINE: ${headline}\n`);
   console.log(`\n${caption}\n`);
 
-  console.log('[3/3] Generating card + posting to Instagram...');
-  const { generateImage } = await import('./image-gen.js');
-  const imgBuf = await generateImage({
-    post: caption,
-    imageMeta: {
-      headline: headline || extractHeadline(caption),
-      subtext: extractSubtext(caption),
-      site: 'devcraft.fennark.xyz',
-      song: latestSong ? `${latestSong.title} — ${latestSong.artist}` : null,
-    },
-    apiKey: NVIDIA_API_KEY,
-    format: 'reel',
-  });
+  console.log('[3/3] Generating cards + posting to Instagram...');
+  const { generateReelCards } = await import('./image-gen.js');
+  const imageMeta = {
+    headline: headline || extractHeadline(caption),
+    subtext: extractSubtext(caption),
+    site: 'devcraft.fennark.xyz',
+    song: latestSong ? `${latestSong.title} — ${latestSong.artist}` : null,
+  };
+  const cards = await generateReelCards({ post: caption, meta: imageMeta, apiKey: NVIDIA_API_KEY, count: 3 });
 
   let mediaId;
-  if (songPreviewUrl) {
-    try {
-      const videoBuf = await buildReelVideo(imgBuf, songPreviewUrl);
-      const videoUrl = await uploadToGithub(videoBuf, 'mp4', 'video/mp4');
-      const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
-      mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl: imageUrl });
-      console.log(`      ✓ Reel published with song audio: ${mediaId}`);
-    } catch (err) {
-      console.log(`      ⚠ Reel with song failed (${err.message.slice(0, 150)}) — falling back to photo`);
-      const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
-      mediaId = await postToInstagram({ imageUrl, caption });
-      console.log(`      ✓ Photo published: ${mediaId}`);
-    }
-  } else {
-    const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
+  const uploadCard = (buf, i) => uploadToGithub(buf, 'png', 'image/png', i);
+  try {
+    const imageUrls = await Promise.all(cards.map(uploadCard));
+    mediaId = await postToInstagramCarousel({ imageUrls, caption });
+    console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
+  } catch (err) {
+    console.log(`      ⚠ Carousel failed (${err.message.slice(0, 150)}) — falling back to photo`);
+    const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
     mediaId = await postToInstagram({ imageUrl, caption });
-    console.log(`      ✓ Photo published (no song audio available): ${mediaId}`);
+    console.log(`      ✓ Photo published: ${mediaId}`);
   }
 
   state.previousPosts.push(caption);
