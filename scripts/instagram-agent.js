@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { callWithRetry } from './generator.js';
-import { generateImageAndPost } from './instagram-poster.js';
+import { uploadToGithub, postToInstagram, postToInstagramReel } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
@@ -23,10 +23,56 @@ async function fetchLatestEnglishSong() {
     const results = data?.feed?.results || [];
     const top = results.find(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit') || results.find(r => r.kind === 'songs') || results[0];
     if (!top?.name) return null;
-    return `${top.name} — ${top.artistName}`;
+    return { title: top.name, artist: top.artistName };
   } catch (err) {
     console.warn(`      ⚠ Could not fetch latest song chart: ${err.message}`);
     return null;
+  }
+}
+
+async function fetchSongPreviewUrl(title, artist) {
+  try {
+    const query = encodeURIComponent(`${title} ${artist}`.trim());
+    const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`itunes ${res.status}`);
+    const data = await res.json();
+    const track = data?.results?.[0];
+    if (!track?.previewUrl) return null;
+    return track.previewUrl;
+  } catch (err) {
+    console.warn(`      ⚠ Could not fetch song preview: ${err.message}`);
+    return null;
+  }
+}
+
+async function buildReelVideo(imageBuffer, audioUrl) {
+  const os = await import('os');
+  const path = await import('path');
+  const fs = await import('fs');
+  const { execFile } = await import('child_process');
+  const { promisify } = await import('util');
+  const execFileAsync = promisify(execFile);
+
+  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ig-reel-'));
+  const imgPath = path.join(tmpDir, 'card.png');
+  const audioPath = path.join(tmpDir, 'song.m4a');
+  const videoPath = path.join(tmpDir, 'reel.mp4');
+  try {
+    await fs.promises.writeFile(imgPath, imageBuffer);
+    const audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(30000) });
+    if (!audioRes.ok) throw new Error(`audio ${audioRes.status}`);
+    await fs.promises.writeFile(audioPath, Buffer.from(await audioRes.arrayBuffer()));
+    console.log('      Rendering reel (image + song audio) with ffmpeg...');
+    await execFileAsync('ffmpeg', [
+      '-y', '-loop', '1', '-i', imgPath, '-i', audioPath,
+      '-c:v', 'libx264', '-tune', 'stillimage', '-c:a', 'aac', '-b:a', '192k',
+      '-pix_fmt', 'yuv420p', '-shortest', '-movflags', '+faststart', videoPath,
+    ], { timeout: 60000 });
+    const buf = await fs.promises.readFile(videoPath);
+    console.log(`      ✓ Reel video rendered (${(buf.length / 1024 / 1024).toFixed(1)} MB)`);
+    return buf;
+  } finally {
+    await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
@@ -88,7 +134,9 @@ async function generateIgCaption(siteData, previousPosts, apiKey, model, feedbac
   const home = siteData?.pages?.['/'];
   const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
   const homeText = (home?.textContent || '').slice(0, 1600);
-  const songHint = song ? `\nLatest trending English song for the SONG line: ${song}\n` : '\n(No chart available — invent a believable, current-sounding English song title.)\n';
+  const songHint = song
+    ? `\nLatest trending English song for the SONG line: ${song.title} — ${song.artist}\n`
+    : '\n(No chart available — invent a believable, current-sounding English song title.)\n';
   const siteFacts = `Title: ${siteData?.summary?.title || ''}
 Key phrases: ${phrases || 'virtual internship, real projects'}
 Home page: ${homeText}${songHint}`;
@@ -163,7 +211,12 @@ async function main() {
 
   console.log('      Fetching latest English song...');
   const latestSong = await fetchLatestEnglishSong();
-  if (latestSong) console.log(`      ✓ Song: ${latestSong}`);
+  if (latestSong) console.log(`      ✓ Song: ${latestSong.title} — ${latestSong.artist}`);
+  let songPreviewUrl = null;
+  if (latestSong) {
+    songPreviewUrl = await fetchSongPreviewUrl(latestSong.title, latestSong.artist);
+    if (songPreviewUrl) console.log('      ✓ Song audio preview found');
+  }
 
   let caption;
   let headline = '';
@@ -194,13 +247,33 @@ async function main() {
   console.log(`\n${caption}\n`);
 
   console.log('[3/3] Generating card + posting to Instagram...');
-  const mediaId = await generateImageAndPost({
+  const { generateImage } = await import('./image-gen.js');
+  const imgBuf = await generateImage({
     post: caption,
     imageMeta: { headline: headline || extractHeadline(caption), subtext: extractSubtext(caption), site: 'devcraft.fennark.xyz' },
-    caption,
     apiKey: NVIDIA_API_KEY,
+    format: 'portrait',
   });
-  console.log(`      ✓ Published: ${mediaId}`);
+
+  let mediaId;
+  if (songPreviewUrl) {
+    try {
+      const videoBuf = await buildReelVideo(imgBuf, songPreviewUrl);
+      const videoUrl = await uploadToGithub(videoBuf, 'mp4', 'video/mp4');
+      const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
+      mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl: imageUrl });
+      console.log(`      ✓ Reel published with song audio: ${mediaId}`);
+    } catch (err) {
+      console.log(`      ⚠ Reel with song failed (${err.message.slice(0, 150)}) — falling back to photo`);
+      const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
+      mediaId = await postToInstagram({ imageUrl, caption });
+      console.log(`      ✓ Photo published: ${mediaId}`);
+    }
+  } else {
+    const imageUrl = await uploadToGithub(imgBuf, 'png', 'image/png');
+    mediaId = await postToInstagram({ imageUrl, caption });
+    console.log(`      ✓ Photo published (no song audio available): ${mediaId}`);
+  }
 
   state.previousPosts.push(caption);
   state.postHashes.push(hash(caption.slice(0, 100)));

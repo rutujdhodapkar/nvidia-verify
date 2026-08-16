@@ -46,6 +46,21 @@ export async function createMediaContainer({ igUserId, imageUrl, caption }) {
   return String(creationId);
 }
 
+export async function createReelContainer({ igUserId, videoUrl, caption, coverUrl }) {
+  const data = await callComposio('INSTAGRAM_CREATE_MEDIA_CONTAINER', {
+    ig_user_id: igUserId,
+    video_url: videoUrl,
+    caption: caption,
+    cover_url: coverUrl || undefined,
+    media_type: 'REELS',
+    content_type: 'reel',
+  });
+  const creationId = data?.id || data?.creation_id || data?.data?.id;
+  if (!creationId) throw new Error('No reel container id returned: ' + JSON.stringify(data).slice(0, 200));
+  console.log(`[IG] Reel container created: ${creationId}`);
+  return String(creationId);
+}
+
 export async function publishPost({ igUserId, creationId }) {
   const data = await callComposio('INSTAGRAM_CREATE_POST', {
     ig_user_id: igUserId,
@@ -57,9 +72,13 @@ export async function publishPost({ igUserId, creationId }) {
 }
 
 export async function uploadImageToGithub(imageBuffer) {
+  return uploadToGithub(imageBuffer, 'png', 'image/png');
+}
+
+export async function uploadToGithub(buffer, ext, contentType) {
   const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error('GITHUB_TOKEN not set — needed to host the IG image publicly');
-  const filename = `ig-${new Date().toISOString().slice(0, 10)}-${Date.now()}.png`;
+  if (!token) throw new Error('GITHUB_TOKEN not set — needed to host the IG media publicly');
+  const filename = `ig-${new Date().toISOString().slice(0, 10)}-${Date.now()}.${ext}`;
   const apiPath = `${IG_IMAGE_PATH}/${filename}`;
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
   const res = await fetch(url, {
@@ -67,7 +86,7 @@ export async function uploadImageToGithub(imageBuffer) {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
     body: JSON.stringify({
       message: `ci: instagram card ${filename}`,
-      content: imageBuffer.toString('base64'),
+      content: buffer.toString('base64'),
       branch: IG_IMAGE_BRANCH,
     }),
     signal: AbortSignal.timeout(60000),
@@ -77,7 +96,7 @@ export async function uploadImageToGithub(imageBuffer) {
     throw new Error(`GitHub upload ${res.status}: ${text.slice(0, 200)}`);
   }
   const rawUrl = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${IG_IMAGE_BRANCH}/${apiPath}`;
-  console.log(`[IG] Image hosted: ${rawUrl}`);
+  console.log(`[IG] Media hosted: ${rawUrl}`);
   return rawUrl;
 }
 
@@ -99,6 +118,24 @@ export async function postToInstagram({ imageUrl, caption }) {
       const isNotReady = /not ready|not available|9007|not_ready|still processing/i.test(msg);
       if (attempt >= delays.length - 1 || !isNotReady) throw err;
       console.log(`[IG] Media not ready yet — retrying publish in ${delays[attempt]}s (${attempt + 1}/${delays.length})`);
+    }
+  }
+}
+
+export async function postToInstagramReel({ videoUrl, caption, coverUrl }) {
+  const igUserId = process.env.INSTAGRAM_USER_ID || await getInstagramUserId();
+  const creationId = await createReelContainer({ igUserId, videoUrl, caption, coverUrl });
+
+  const delays = [6000, 8000, 12000, 20000, 30000];
+  for (let attempt = 0; ; attempt++) {
+    if (attempt > 0) await sleep(delays[attempt - 1] || 30000);
+    try {
+      return await publishPost({ igUserId, creationId });
+    } catch (err) {
+      const msg = String(err?.message || err);
+      const isNotReady = /not ready|not available|9007|not_ready|still processing/i.test(msg);
+      if (attempt >= delays.length - 1 || !isNotReady) throw err;
+      console.log(`[IG] Reel not ready yet — retrying publish in ${delays[attempt]}s (${attempt + 1}/${delays.length})`);
     }
   }
 }
