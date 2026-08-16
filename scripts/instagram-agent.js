@@ -6,12 +6,28 @@ import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
 const IG_STATE_URL = `${FIREBASE_URL}/ig_state.json`;
+const APPLE_CHART_URL = 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/10/songs.json';
 
 async function loadIgState() {
   const res = await fetch(IG_STATE_URL);
   if (res.status === 404) return { previousPosts: [], postHashes: [], lastRun: null };
   const data = await res.json();
   return data || { previousPosts: [], postHashes: [], lastRun: null };
+}
+
+async function fetchLatestEnglishSong() {
+  try {
+    const res = await fetch(APPLE_CHART_URL, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`chart ${res.status}`);
+    const data = await res.json();
+    const results = data?.feed?.results || [];
+    const top = results.find(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit') || results.find(r => r.kind === 'songs') || results[0];
+    if (!top?.name) return null;
+    return `${top.name} — ${top.artistName}`;
+  } catch (err) {
+    console.warn(`      ⚠ Could not fetch latest song chart: ${err.message}`);
+    return null;
+  }
 }
 
 async function saveIgState(state) {
@@ -46,14 +62,15 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NO engagement bait ("comment YES", "share if you agree").
 - MAX 1 short Hinglish phrase max (English letters).
 
-## STRUCTURE (4 short blocks, blank line between)
+## STRUCTURE (5 short blocks, blank line between)
 - HOOK: First line under 30 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
 - STORY: One concrete student moment (hostel Wi-Fi, empty resume fear, the first PR, a proud parent call). Credible, sensory, real.
 - VALUE: "What you get" in 3 short bullet-ish lines, plain text: real industry projects, instant offer letter, verified certificate, mentorship.
-- ASK: ends with "Apply now → devcraft.fennark.xyz"
+- SONG: One line with the LATEST trending English song (title — artist) given in SITE FACTS, written naturally like "🎵 {song} — the hit of the season, press play and build". Max 1 line, no explicit content.
+- ASK: ends with "Apply now → https://devcraft.fennark.xyz"
 
 ## STYLE
-- 90-140 words total (aim ~110). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam (max 1 emoji).
+- 90-140 words total (aim ~110). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam (max 2 emoji — one in the hook, one on the SONG line).
 - Rotate angle each time: exams/college pressure, parental pride, hostel scene, cert-mill doubt, college-fest hype, budget-conscious student — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
 - Be specific and credible — name a concrete project type or skill. No generic filler like "amazing opportunity".
 
@@ -64,16 +81,17 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER reference jobs, hiring, placement, careers, salaries, or job outcomes.
 
 ## RESPONSE FORMAT
-Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 4 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
+Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 5 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
 
-async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
+async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback, song) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
   const home = siteData?.pages?.['/'];
   const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
   const homeText = (home?.textContent || '').slice(0, 1600);
+  const songHint = song ? `\nLatest trending English song for the SONG line: ${song}\n` : '\n(No chart available — invent a believable, current-sounding English song title.)\n';
   const siteFacts = `Title: ${siteData?.summary?.title || ''}
 Key phrases: ${phrases || 'virtual internship, real projects'}
-Home page: ${homeText}`;
+Home page: ${homeText}${songHint}`;
   const prompt = `${IG_CAPTION_PROMPT}
 
 SITE FACTS:
@@ -143,6 +161,10 @@ async function main() {
   const siteData = await scrapeSite();
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
+  console.log('      Fetching latest English song...');
+  const latestSong = await fetchLatestEnglishSong();
+  if (latestSong) console.log(`      ✓ Song: ${latestSong}`);
+
   let caption;
   let headline = '';
   let postOk = false;
@@ -150,7 +172,7 @@ async function main() {
   for (let i = 0; i < 5; i++) {
     console.log(`[2/3] Generating caption + headline (attempt ${i + 1})...`);
     try {
-      const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
+      const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback, latestSong);
       caption = buildCaption(r.caption);
       headline = r.headline;
     } catch (err) {
