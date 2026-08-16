@@ -126,7 +126,8 @@ export async function postToInstagramReel({ videoUrl, caption, coverUrl }) {
   const igUserId = process.env.INSTAGRAM_USER_ID || await getInstagramUserId();
   const creationId = await createReelContainer({ igUserId, videoUrl, caption, coverUrl });
 
-  const delays = [6000, 8000, 12000, 20000, 30000];
+  // Reels take longer to transcode than photos, so use a longer backoff window.
+  const delays = [10000, 15000, 20000, 30000, 45000];
   for (let attempt = 0; ; attempt++) {
     if (attempt > 0) await sleep(delays[attempt - 1] || 30000);
     try {

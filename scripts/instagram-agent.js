@@ -65,7 +65,9 @@ async function buildReelVideo(imageBuffer, audioUrl) {
     console.log('      Rendering reel (image + song audio) with ffmpeg...');
     await execFileAsync('ffmpeg', [
       '-y', '-loop', '1', '-i', imgPath, '-i', audioPath,
-      '-c:v', 'libx264', '-tune', 'stillimage', '-c:a', 'aac', '-b:a', '192k',
+      '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
+      '-c:v', 'libx264', '-preset', 'medium', '-tune', 'stillimage',
+      '-c:a', 'aac', '-b:a', '192k', '-r', '30',
       '-pix_fmt', 'yuv420p', '-shortest', '-movflags', '+faststart', videoPath,
     ], { timeout: 60000 });
     const buf = await fs.promises.readFile(videoPath);
