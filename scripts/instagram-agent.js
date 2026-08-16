@@ -230,14 +230,22 @@ async function main() {
   console.log(`\n${caption}\n`);
 
   console.log('[3/3] Generating cards + posting to Instagram...');
-  const { generateReelCards } = await import('./image-gen.js');
+  const { generateDesignerCards } = await import('./designer.js');
   const imageMeta = {
     headline: headline || extractHeadline(caption),
     subtext: extractSubtext(caption),
     site: 'devcraft.fennark.xyz',
     song: latestSong ? `${latestSong.title} — ${latestSong.artist}` : null,
   };
-  const cards = await generateReelCards({ post: caption, meta: imageMeta, apiKey: NVIDIA_API_KEY, count: 3 });
+  const { cards, themeName, postType } = await generateDesignerCards({
+    post: caption,
+    caption,
+    imageMeta,
+    count: 3,
+    previousTheme: state.lastTheme || null,
+  });
+
+  console.log(`      Theme: ${themeName} · post type: ${postType}`);
 
   let mediaId;
   try {
@@ -257,6 +265,7 @@ async function main() {
   state.previousPosts.push(caption);
   state.postHashes.push(hash(caption.slice(0, 100)));
   if (state.previousPosts.length > 50) { state.previousPosts.shift(); state.postHashes.shift(); }
+  state.lastTheme = themeName;
   state.lastRun = new Date().toISOString();
   await saveIgState(state);
   console.log(`\n═══ ✓ Done ═══`);
