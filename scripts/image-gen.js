@@ -205,10 +205,10 @@ async function compositeTextOverImage(fluxBuffer, meta) {
 }
 
 async function renderHtml(html, format = 'landscape') {
-  const size = format === 'portrait' ? { width: 1080, height: 1350 } : { width: 1200, height: 630 };
+  const size = format === 'portrait' ? { width: 1080, height: 1350 } : format === 'reel' ? { width: 1080, height: 1920 } : { width: 1200, height: 630 };
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1 });
-  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&family=DM+Sans:wght@500;700;800&display=swap');
+  const fullHtml = html.includes('<html') ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Mono:wght@700&family=Press+Start+2P&family=DM+Sans:wght@500;700;800&family=Sora:wght@500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}body{width:${size.width}px;height:${size.height}px;overflow:hidden;}</style></head><body>${html}</body></html>`;
   await page.setContent(fullHtml, { waitUntil: 'networkidle', timeout: 15000 });
   await page.waitForTimeout(500);
@@ -376,8 +376,8 @@ export async function generateImage({ html, post, imageMeta, designBrief, apiKey
     }
   }
 
-  // Fallback: render a code-based modern template (fast, reliable, no API dependency)
-  const templateHtml = format === 'portrait' ? portraitCard(meta) : pickTemplate(meta);
+  // Fallback / reel: render a code-based modern template (fast, reliable, no API dependency)
+  const templateHtml = format === 'portrait' ? portraitCard(meta) : format === 'reel' ? premiumReelCard(meta) : pickTemplate(meta);
   const buf = await renderHtml(templateHtml, format);
   console.log(`[IMAGE] Template card (${meta.style}, ${format}): ${buf.length} bytes`);
   if (buf && buf.length > 500) return buf;
@@ -709,6 +709,54 @@ function portraitCard(m) {
       <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:rgba(255,255,255,0.62);font-weight:500;">
         <span style="color:#2dd4bf;font-weight:700;">10,000+ learners</span><span style="color:#2dd4bf;font-weight:700;">MSME-registered</span>
       </div>
+    </div>
+  </div>`;
+}
+
+function premiumReelCard(m) {
+  const site = m.site || 'devcraft.fennark.xyz';
+  const benefits = [
+    { t: 'Real industry projects', s: 'Python · DSA · Web · AI/ML' },
+    { t: 'Offer letter + verified certificate', s: 'Instant, live-verified' },
+    { t: 'Mentorship from engineers', s: 'Portfolio you can show' },
+    { t: 'MSME-registered program', s: '10,000+ learners' },
+  ];
+  const benefitRow = benefits.map((b, i) => `
+    <div style="display:flex;align-items:center;gap:26px;padding:26px 30px;border-radius:22px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(12px);box-shadow:0 10px 34px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.08);">
+      <div style="width:60px;height:60px;min-width:60px;border-radius:18px;background:linear-gradient(135deg,#22d3ee,#a855f7);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;box-shadow:0 10px 26px rgba(168,85,247,0.45);">${i + 1}</div>
+      <div>
+        <div style="font-size:28px;font-weight:700;color:#fff;">${b.t}</div>
+        <div style="font-size:18px;color:rgba(255,255,255,0.58);font-weight:400;margin-top:3px;">${b.s}</div>
+      </div>
+    </div>`).join('');
+
+  return `<div style="width:1080px;height:1920px;background:linear-gradient(180deg,#070a18 0%,#0b1126 45%,#05070f 100%);font-family:'Sora',sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:64px 56px 48px;">
+    <div style="position:absolute;top:-220px;right:-160px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(34,211,238,0.32),transparent 65%);filter:blur(14px);"></div>
+    <div style="position:absolute;top:520px;left:-240px;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,0.26),transparent 65%);filter:blur(16px);"></div>
+    <div style="position:absolute;bottom:-200px;right:-140px;width:660px;height:660px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,0.28),transparent 65%);filter:blur(14px);"></div>
+    <div style="position:absolute;inset:0;opacity:0.05;background-image:linear-gradient(rgba(255,255,255,0.7) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.7) 1px,transparent 1px);background-size:72px 72px;"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:6px 2px;">
+      <span style="font-size:30px;font-weight:800;color:#fff;letter-spacing:2px;">DEV<span style="color:#22d3ee;">/</span>CRAFT</span>
+      <span style="font-size:15px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f97316,#f59e0b);padding:13px 28px;border-radius:999px;box-shadow:0 10px 28px rgba(249,115,22,0.5);letter-spacing:1px;">APPLY NOW</span>
+    </div>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:17px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#5eead4;margin-bottom:30px;">Virtual Internship &bull; 2026</div>
+      <div style="font-size:86px;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-1.5px;text-shadow:0 10px 44px rgba(0,0,0,0.55);">${m.headline}</div>
+      <div style="width:150px;height:8px;border-radius:4px;background:linear-gradient(90deg,#22d3ee,#a855f7,#f97316);margin:34px 0;box-shadow:0 4px 18px rgba(168,85,247,0.5);"></div>
+      <div style="font-size:28px;color:rgba(255,255,255,0.82);line-height:1.5;max-width:96%;font-weight:400;">${m.subtext}</div>
+    </div>
+    <div style="position:relative;display:flex;flex-direction:column;gap:18px;margin-bottom:38px;">${benefitRow}</div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:24px;padding:30px 34px;box-shadow:0 20px 54px rgba(124,58,237,0.5),0 6px 24px rgba(6,182,212,0.35);border:1px solid rgba(255,255,255,0.14);">
+      <span style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.92);text-transform:uppercase;letter-spacing:2px;">Apply at</span>
+      <span style="font-size:32px;font-weight:800;color:#fff;letter-spacing:0.3px;">${site}</span>
+      <span style="width:62px;height:62px;min-width:62px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">&rarr;</span>
+    </div>
+    <div style="position:relative;margin-top:26px;display:flex;align-items:center;gap:14px;justify-content:center;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:18px 30px;backdrop-filter:blur(10px);">
+      <span style="font-size:26px;">&#127925;</span>
+      <span style="font-size:21px;color:rgba(255,255,255,0.85);font-weight:600;">${m.song || 'Now playing — trending right now'}</span>
+    </div>
+    <div style="position:relative;margin-top:26px;display:flex;align-items:center;justify-content:space-between;font-size:18px;color:rgba(255,255,255,0.55);font-weight:500;">
+      <span style="color:#22d3ee;font-weight:700;">10,000+ learners</span><span style="color:#22d3ee;font-weight:700;">MSME-registered</span>
     </div>
   </div>`;
 }

@@ -252,9 +252,14 @@ async function main() {
   const { generateImage } = await import('./image-gen.js');
   const imgBuf = await generateImage({
     post: caption,
-    imageMeta: { headline: headline || extractHeadline(caption), subtext: extractSubtext(caption), site: 'devcraft.fennark.xyz' },
+    imageMeta: {
+      headline: headline || extractHeadline(caption),
+      subtext: extractSubtext(caption),
+      site: 'devcraft.fennark.xyz',
+      song: latestSong ? `${latestSong.title} — ${latestSong.artist}` : null,
+    },
     apiKey: NVIDIA_API_KEY,
-    format: 'portrait',
+    format: 'reel',
   });
 
   let mediaId;
