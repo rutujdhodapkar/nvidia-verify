@@ -75,10 +75,6 @@ export async function uploadImageToGithub(imageBuffer) {
   return uploadToGithub(imageBuffer, 'png', 'image/png');
 }
 
-export async function uploadVideoToGithub(videoBuffer) {
-  return uploadToGithub(videoBuffer, 'mp4', 'video/mp4');
-}
-
 export async function uploadToGithub(buffer, ext, contentType, index = 0) {
   const token = process.env.GITHUB_TOKEN;
   if (!token) throw new Error('GITHUB_TOKEN not set — needed to host the IG media publicly');
