@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { callWithRetry } from './generator.js';
-import { uploadToGithub, postToInstagram, postToInstagramCarousel } from './instagram-poster.js';
+import { uploadToGithub, postToInstagram, postToInstagramCarousel, postToInstagramReel, uploadVideoToGithub } from './instagram-poster.js';
+import { renderReel } from './reel-renderer.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
@@ -243,23 +244,38 @@ async function main() {
     imageMeta,
     count: 3,
     previousTheme: state.lastTheme || null,
+    format: 'reel',
   });
 
   console.log(`      Theme: ${themeName} · post type: ${postType}`);
 
   let mediaId;
   try {
-    const imageUrls = [];
-    for (let i = 0; i < cards.length; i++) {
-      imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
+    // Reel with actual hearable music gets the most impressions — try it first.
+    const { buffer: videoBuf, song: postedSong } = await renderReel({ cards, song: latestSong, caption });
+    if (videoBuf && videoBuf.length > 10000) {
+      const videoUrl = await uploadVideoToGithub(videoBuf);
+      const coverUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
+      mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl });
+      console.log(`      ✓ Reel published with ${postedSong ? `music "${postedSong.title} — ${postedSong.artist}"` : 'no audio track'}: ${mediaId}`);
+    } else {
+      throw new Error('Reel video render produced no usable output');
     }
-    mediaId = await postToInstagramCarousel({ imageUrls, caption });
-    console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
   } catch (err) {
-    console.log(`      ⚠ Carousel failed (${err.message.slice(0, 150)}) — falling back to photo`);
-    const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
-    mediaId = await postToInstagram({ imageUrl, caption });
-    console.log(`      ✓ Photo published: ${mediaId}`);
+    console.log(`      ⚠ Reel failed (${err.message.slice(0, 150)}) — falling back to carousel`);
+    try {
+      const imageUrls = [];
+      for (let i = 0; i < cards.length; i++) {
+        imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
+      }
+      mediaId = await postToInstagramCarousel({ imageUrls, caption });
+      console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
+    } catch (err2) {
+      console.log(`      ⚠ Carousel failed (${err2.message.slice(0, 150)}) — falling back to photo`);
+      const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
+      mediaId = await postToInstagram({ imageUrl, caption });
+      console.log(`      ✓ Photo published: ${mediaId}`);
+    }
   }
 
   state.previousPosts.push(caption);
