@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { callWithRetry } from './generator.js';
-import { uploadToGithub, postToInstagram, postToInstagramCarousel } from './instagram-poster.js';
+import { uploadToGithub, postToInstagramReel, postToInstagramCarousel } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
@@ -60,14 +60,13 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER write "industry-recognized".
 - MAX 3 hashtags (#DevCraft #VirtualInternship + 1 relevant).
 - MAX 2 short Hinglish phrases max (English letters), kept light and natural.
-- Exactly 2 emoji max (one in the hook, one on the SONG line).
+- Max 2 emoji, all inside the body (never on the URL line).
 
-## STRUCTURE (6 short blocks, blank line between)
+## STRUCTURE (5 short blocks, blank line between)
 - HOOK: First line under 25 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
 - LINK: IMMEDIATELY after the hook, put the full URL on its own line: "Apply now → https://devcraft.fennark.xyz" — so it's visible in the feed preview without tapping "more".
 - STORY: One concrete student moment (hostel Wi-Fi, empty resume fear, the first PR, a proud parent call). Credible, sensory, real.
 - VALUE: "What you get" in 3 short bullet-ish lines, plain text: real industry projects, instant offer letter, verified certificate, mentorship.
-- SONG: One line with the LATEST trending English song (title — artist) given in SITE FACTS, written naturally like "🎵 {song} — the hit of the season, press play and build". Max 1 line, no explicit content.
 - ASK + SHARE: ends with one short line that nudges sharing naturally (not bait): e.g. "Send this to your hostel group chat — they're stuck on the same thing." or "Forward it to the friend who keeps asking what you're building." then "Apply now → https://devcraft.fennark.xyz"
 
 ## STYLE
@@ -82,19 +81,16 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER reference jobs, hiring, placement, careers, salaries, or job outcomes.
 
 ## RESPONSE FORMAT
-Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 6 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
+Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do NOT repeat or summarize these instructions. Do NOT explain anything. Your reply must START with "{". Include an original "headline" (4-8 words, no period) and a "caption" (the 5 blocks separated with \\n\\n). Write both in your own words — never echo placeholder labels like "Story line". Behave like an API endpoint that answers with exactly one JSON object and nothing else.`;
 
-async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback, song) {
+async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
   const home = siteData?.pages?.['/'];
   const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
   const homeText = (home?.textContent || '').slice(0, 1600);
-  const songHint = song
-    ? `\nLatest trending English song for the SONG line: ${song.title} — ${song.artist}\n`
-    : '\n(No chart available — invent a believable, current-sounding English song title.)\n';
   const siteFacts = `Title: ${siteData?.summary?.title || ''}
 Key phrases: ${phrases || 'virtual internship, real projects'}
-Home page: ${homeText}${songHint}`;
+Home page: ${homeText}`;
   const prompt = `${IG_CAPTION_PROMPT}
 
 SITE FACTS:
@@ -141,10 +137,9 @@ function hasBannedWords(text) {
   return BANNED_WORDS.test((text || '').toLowerCase());
 }
 
-function buildFallbackCaption(siteData, latestSong) {
+function buildFallbackCaption(siteData) {
   const safePhrases = (siteData?.summary?.keyPhrases || []).filter(p => !hasBannedWords(p)).slice(0, 3).join(', ');
   const story = 'A final-year student finished a real project in 6 weeks and finally had something to show for all the late nights.';
-  const song = latestSong ? `\n\n🎵 ${latestSong.title} — ${latestSong.artist} — the hit of the season, press play and build.` : '';
   return buildCaption(`Stop scrolling past this one.
 
 Apply now → https://devcraft.fennark.xyz
@@ -152,8 +147,6 @@ Apply now → https://devcraft.fennark.xyz
 ${story}
 
 Real industry projects. Instant offer letter. Verified certificate. Mentorship from engineers. ${safePhrases}.
-
-${song}
 
 Send this to your hostel group chat — they're stuck on the same thing.
 
@@ -200,7 +193,7 @@ async function main() {
   for (let i = 0; i < 7; i++) {
     console.log(`[2/3] Generating caption + headline (attempt ${i + 1})...`);
     try {
-      const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback, latestSong);
+      const r = await generateIgCaption(siteData, state.previousPosts, NVIDIA_API_KEY, NVIDIA_MODEL, feedback);
       caption = buildCaption(r.caption);
       headline = r.headline;
     } catch (err) {
@@ -216,10 +209,10 @@ async function main() {
     break;
   }
   if (!postOk) {
-    caption = buildFallbackCaption(siteData, latestSong);
+    caption = buildFallbackCaption(siteData);
     headline = extractHeadline(caption);
     if (isDup(caption, state)) {
-      caption = buildCaption(`Real projects beat 100 tutorials. Apply now → https://devcraft.fennark.xyz\n\n6-week virtual internship. Offer letter + verified certificate. Mentorship. ${latestSong ? `\n\n🎵 ${latestSong.title} — ${latestSong.artist}, press play and build.` : ''}\n\nSend this to a friend stuck on tutorials.`);
+      caption = buildCaption(`Real projects beat 100 tutorials. Apply now → https://devcraft.fennark.xyz\n\n6-week virtual internship. Offer letter + verified certificate. Mentorship.\n\nSend this to a friend stuck on tutorials.`);
       headline = 'Ship Real Projects, Not Tutorials';
     }
     postOk = true;
@@ -235,7 +228,6 @@ async function main() {
     headline: headline || extractHeadline(caption),
     subtext: extractSubtext(caption),
     site: 'devcraft.fennark.xyz',
-    song: latestSong ? `${latestSong.title} — ${latestSong.artist}` : null,
   };
   const { cards, themeName, postType } = await generateDesignerCards({
     post: caption,
@@ -243,23 +235,27 @@ async function main() {
     imageMeta,
     count: 3,
     previousTheme: state.lastTheme || null,
+    format: 'reel',
   });
 
   console.log(`      Theme: ${themeName} · post type: ${postType}`);
 
   let mediaId;
   try {
+    const { renderReel } = await import('./reel-renderer.js');
+    const reel = await renderReel({ cards, song: latestSong, caption });
+    const videoUrl = await uploadToGithub(reel.buffer, 'mp4', 'video/mp4', 0);
+    const coverUrl = await uploadToGithub(cards[0], 'png', 'image/png', 1);
+    mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl });
+    console.log(`      ✓ Reel published (${latestSong ? `audio: ${latestSong.title} — ${latestSong.artist}` : 'no audio'}) — the song name stays out of the caption and cards: ${mediaId}`);
+  } catch (err) {
+    console.log(`      ⚠ Reel failed (${err.message.slice(0, 150)}) — falling back to photo carousel`);
     const imageUrls = [];
     for (let i = 0; i < cards.length; i++) {
       imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
     }
     mediaId = await postToInstagramCarousel({ imageUrls, caption });
     console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
-  } catch (err) {
-    console.log(`      ⚠ Carousel failed (${err.message.slice(0, 150)}) — falling back to photo`);
-    const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
-    mediaId = await postToInstagram({ imageUrl, caption });
-    console.log(`      ✓ Photo published: ${mediaId}`);
   }
 
   state.previousPosts.push(caption);

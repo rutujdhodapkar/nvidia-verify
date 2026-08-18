@@ -7,6 +7,10 @@ export const THEMES = [
   { name: 'paper-cream', bg: '#F5F0E8', accent: '#1A1A2E', pop: '#E8603C', text: '#1A1A2E', texture: 'grain', light: true, font: 'Bricolage Grotesque' },
   { name: 'cyber-cyan', bg: '#060B14', accent: '#00D9FF', pop: '#FF3EA5', text: '#F0FBFF', texture: 'halftone', light: false, font: 'Sora' },
   { name: 'sunset-grad', bg: 'linear-gradient(135deg,#2D1B4E 0%,#B83280 55%,#FF7849 100%)', accent: '#FF7849', pop: '#FFE45E', text: '#FFF9F0', texture: 'mesh', light: false, font: 'Bricolage Grotesque' },
+  { name: 'mint-forest', bg: '#08100D', accent: '#34D399', pop: '#FBBF24', text: '#ECFDF5', texture: 'shape', light: false, font: 'Space Grotesk' },
+  { name: 'royal-gold', bg: '#0B1026', accent: '#F5C518', pop: '#7C8CF8', text: '#F8FAFF', texture: 'halftone', light: false, font: 'Sora' },
+  { name: 'rose-quartz', bg: '#FDEAF0', accent: '#B23A6B', pop: '#FF7A9E', text: '#2B1620', texture: 'grain', light: true, font: 'Unbounded' },
+  { name: 'ocean-storm', bg: 'linear-gradient(135deg,#04293A 0%,#0F5E7A 60%,#1CB0B9 100%)', accent: '#7EE8FA', pop: '#FF6B6B', text: '#F0FEFF', texture: 'mesh', light: false, font: 'Archivo Black' },
 ];
 
 export const POST_TYPE_THEME = {
@@ -50,11 +54,16 @@ function detectPostType(post, caption) {
 }
 
 export function pickThemeForPost(postType, previousTheme) {
-  const pref = POST_TYPE_THEME[postType] || 'void-violet';
-  if (pref !== previousTheme) return THEMES.find(t => t.name === pref) || THEMES[0];
-  const idx = THEMES.findIndex(t => t.name === pref);
-  const next = THEMES[(idx + 1) % THEMES.length];
-  return next.name === previousTheme ? THEMES[(idx + 2) % THEMES.length] : next;
+  // Strict rotation: always use a DIFFERENT theme than the previous post.
+  // Cycles through all themes so every post gets a fresh look (never alternates between 2).
+  const pref = POST_TYPE_THEME[postType] || THEMES[0].name;
+  if (!previousTheme) {
+    const startIdx = Math.max(0, THEMES.findIndex(t => t.name === pref));
+    return THEMES[startIdx % THEMES.length];
+  }
+  const prevIdx = THEMES.findIndex(t => t.name === previousTheme);
+  const nextIdx = prevIdx >= 0 ? (prevIdx + 1) % THEMES.length : 0;
+  return THEMES[nextIdx];
 }
 
 function grainOverlay(light) {

@@ -101,10 +101,12 @@ Generate the post now. Hook must be a statement (no question). Body must be 150-
 const SITE_URL = 'https://devcraft.fennark.xyz';
 
 // Guarantee every post carries the signup URL in the body (plain text at the end of the CTA).
+// Normalizes any bare "devcraft.fennark.xyz" reference to the full clickable URL as well.
 function ensureLinkInPost(text) {
   const trimmed = (text || '').trim();
-  if (trimmed.includes(SITE_URL)) return trimmed;
-  return `${trimmed ? trimmed + '\n\n' : ''}Apply here → ${SITE_URL}`;
+  const normalized = trimmed.replace(/https?:\/\/devcraft\.fennark\.xyz/gi, SITE_URL).replace(/devcraft\.fennark\.xyz/gi, SITE_URL);
+  if (normalized.includes(SITE_URL)) return normalized;
+  return `${normalized ? normalized + '\n\n' : ''}Apply here → ${SITE_URL}`;
 }
 
 const BLOCKED_PATTERNS = [
@@ -180,9 +182,10 @@ Generate the post now. Return ONLY the JSON.`;
       throw new Error(`First-comment ${commentViolation}`);
     }
   }
+  const guaranteedFirstComment = ensureLinkInPost(firstComment);
 
   console.log(`[GENERATE] ✓ ${postText.length} chars, format: ${parsed.format || 'auto'}, angle: ${parsed.angle || 'auto'}, first_comment: ${firstComment.length} chars`);
-  return { post: postText, firstComment };
+  return { post: postText, firstComment: guaranteedFirstComment };
 }
 
 function checkBlockedContent(text) {
