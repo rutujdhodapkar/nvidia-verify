@@ -51,11 +51,15 @@ async function ffmpeg(args) {
   return stdout;
 }
 
-async function makeSegment(inputPath, outputPath, frames) {
+async function makeSegment(inputPath, outputPath, frames, staticShot = false) {
+  // staticShot renders the card as a still frame (no zoom/pan) so a single-card
+  // post looks like a plain photo with the song, not an animated reel.
+  const vf = staticShot
+    ? `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p`
+    : `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0015,1.15)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=${FPS},format=yuv420p`;
   await ffmpeg([
     '-i', inputPath,
-    '-vf',
-    `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0015,1.15)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=${FPS},format=yuv420p`,
+    '-vf', vf,
     '-c:v', 'libx264', '-preset', 'veryfast',
     '-t', String(SEG_DUR),
     outputPath,
@@ -71,7 +75,7 @@ export async function renderReelVideo({ cards, audio }) {
       const seg = join(work, `seg-${i}.mp4`);
       const img = join(work, `card-${i}.png`);
       await writeFile(img, cards[i]);
-      await makeSegment(img, seg, frames);
+      await makeSegment(img, seg, frames, cards.length === 1);
       segments.push(seg);
     }
 

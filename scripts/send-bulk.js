@@ -220,7 +220,10 @@ async function getMeta() {
 }
 
 async function saveMeta(meta) {
-  await pfPut('meta', meta);
+  // PATCH only the fields this script owns so it never overwrites the
+  // provider usage counters (usageDate/brevoCount/mailjetCount) that
+  // email-provider.js writes into the same meta node.
+  await pfPatch('meta', { templateCounter: meta.templateCounter, lastRunDate: meta.lastRunDate });
 }
 
 async function getAllWebEmails() {
