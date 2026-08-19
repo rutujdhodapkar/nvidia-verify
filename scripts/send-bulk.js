@@ -427,7 +427,6 @@ async function main() {
         subject,
         text,
         headers: isPromo ? {
-          'List-Unsubscribe': '<mailto:unsubscribe@fennark.xyz?subject=unsubscribe>',
           'X-Mailer': 'DEV/CRAFT-Bulk/1.0',
         } : undefined,
       });
