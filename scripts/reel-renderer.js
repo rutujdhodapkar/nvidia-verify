@@ -10,16 +10,29 @@ const FPS = 25;
 const SEG_DUR = 6;
 const FADE = 0.8;
 
-export async function fetchSongAudio(title, artist) {
+export async function fetchSongAudio(title, artist, trackId) {
   if (!title) return null;
-  const term = encodeURIComponent(`${title} ${artist || ''}`.trim());
   try {
-    const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=5`, {
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!res.ok) throw new Error(`iTunes search ${res.status}`);
-    const data = await res.json();
-    const track = (data.results || []).find(r => r.previewUrl) || (data.results || [])[0];
+    // Direct lookup by Apple track id is the most reliable way to grab the preview audio.
+    let track = null;
+    if (trackId) {
+      const lookupRes = await fetch(`https://itunes.apple.com/lookup?id=${encodeURIComponent(trackId)}`, {
+        signal: AbortSignal.timeout(12000),
+      });
+      if (lookupRes.ok) {
+        const lookupData = await lookupRes.json();
+        track = (lookupData.results || []).find(r => r.kind === 'song' && r.previewUrl) || (lookupData.results || [])[0];
+      }
+    }
+    if (!track?.previewUrl) {
+      const term = encodeURIComponent(`${title} ${artist || ''}`.trim());
+      const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=5`, {
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!res.ok) throw new Error(`iTunes search ${res.status}`);
+      const data = await res.json();
+      track = (data.results || []).find(r => r.previewUrl) || (data.results || [])[0];
+    }
     if (!track?.previewUrl) throw new Error('no previewUrl in iTunes results');
     const audioRes = await fetch(track.previewUrl, { signal: AbortSignal.timeout(30000) });
     if (!audioRes.ok) throw new Error(`preview download ${audioRes.status}`);
@@ -66,16 +79,21 @@ export async function renderReelVideo({ cards, audio }) {
     const total = cards.length * SEG_DUR - (cards.length - 1) * FADE;
     const concatPath = join(work, 'concat.mp4');
 
-    const inputs = segments.flatMap(s => ['-i', s]);
-    const steps = [];
-    for (let i = 0; i < cards.length - 1; i++) {
-      const offset = (i + 1) * SEG_DUR - (i + 1) * FADE;
-      const in0 = i === 0 ? `[0:v]` : `[v0${i - 1}]`;
-      const out = i === cards.length - 2 ? `[v]` : `[v0${i}]`;
-      steps.push(`${in0}[${i + 1}:v]xfade=transition=fade:duration=${FADE}:offset=${offset.toFixed(2)}${out}`);
+    if (cards.length === 1) {
+      // Single card — no xfade needed, just reuse the segment.
+      await ffmpeg(['-i', segments[0], '-c:v', 'copy', concatPath]);
+    } else {
+      const inputs = segments.flatMap(s => ['-i', s]);
+      const steps = [];
+      for (let i = 0; i < cards.length - 1; i++) {
+        const offset = (i + 1) * SEG_DUR - (i + 1) * FADE;
+        const in0 = i === 0 ? `[0:v]` : `[v0${i - 1}]`;
+        const out = i === cards.length - 2 ? `[v]` : `[v0${i}]`;
+        steps.push(`${in0}[${i + 1}:v]xfade=transition=fade:duration=${FADE}:offset=${offset.toFixed(2)}${out}`);
+      }
+      const fc = steps.join(';');
+      await ffmpeg([...inputs, '-filter_complex', fc, '-map', '[v]', '-c:v', 'libx264', '-preset', 'veryfast', '-t', total.toFixed(2), concatPath]);
     }
-    const fc = steps.join(';');
-    await ffmpeg([...inputs, '-filter_complex', fc, '-map', '[v]', '-c:v', 'libx264', '-preset', 'veryfast', '-t', total.toFixed(2), concatPath]);
 
     // Mix the song audio in, trimmed to the video length with an outro fade.
     const reelPath = join(work, 'reel.mp4');
@@ -108,7 +126,7 @@ export async function renderReelVideo({ cards, audio }) {
 }
 
 export async function renderReel({ cards, song, caption }) {
-  const audio = song ? await fetchSongAudio(song.title, song.artist) : null;
+  const audio = song ? await fetchSongAudio(song.title, song.artist, song.trackId) : null;
   const buf = await renderReelVideo({ cards, audio });
   return { buffer: buf, song: audio };
 }

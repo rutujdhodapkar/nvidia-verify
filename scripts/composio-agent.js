@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
-import { generatePost, reviewPost } from './generator.js';
+import { generatePost, reviewPost, ensureLinkInPost } from './generator.js';
 import { postToLinkedinPageWithComment } from './linkedin-poster.js';
 import { postToLinkedinPage as postToLinkedinViaZapier } from './zapier-poster.js';
 import { postToLinkedinPagePlaywright } from './linkedin-playwright.js';
@@ -65,10 +65,10 @@ async function main() {
     const cleaned = cleanPost(post);
     const review = await reviewPost(cleaned + '\n\n' + hashtagsBeforeClean, NVIDIA_API_KEY, NVIDIA_MODEL);
     console.log(`      Quality score: ${review.score}/10 — ${review.feedback}`);
-    if (review.score >= 7) { post = cleaned + '\n\n' + hashtagsBeforeClean; postOk = true; break; }
+    if (review.score >= 7) { post = ensureLinkInPost(cleaned + '\n\n' + hashtagsBeforeClean); postOk = true; break; }
     if (review.score > bestScore) {
       bestScore = review.score;
-      bestPost = cleaned + '\n\n' + hashtagsBeforeClean;
+      bestPost = ensureLinkInPost(cleaned + '\n\n' + hashtagsBeforeClean);
     }
     feedback = review.feedback || 'write a stronger hook and clearer value';
     console.log('      Below threshold, retry...\n');

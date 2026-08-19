@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { scrapeSite } from './scraper.js';
 import { callWithRetry } from './generator.js';
-import { uploadToGithub, postToInstagramReel, postToInstagramCarousel } from './instagram-poster.js';
+import { uploadToGithub, postToInstagramReel, postToInstagram } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
@@ -23,7 +23,7 @@ async function fetchLatestEnglishSong() {
     const results = data?.feed?.results || [];
     const top = results.find(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit') || results.find(r => r.kind === 'songs') || results[0];
     if (!top?.name) return null;
-    return { title: top.name, artist: top.artistName };
+    return { title: top.name, artist: top.artistName, trackId: top.id };}
   } catch (err) {
     console.warn(`      ⚠ Could not fetch latest song chart: ${err.message}`);
     return null;
@@ -50,7 +50,7 @@ function extractSubtext(post) {
   return lines.find(l => !l.startsWith('#') && l !== extractHeadline(post)) || 'Industry projects. Mentorship. A portfolio that proves you can build.';
 }
 
-const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions for DEV/CRAFT — a virtual internship platform for Indian engineering students (MSME-registered, 10,000+ learners, from devcraft.fennark.xyz).
+const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions for DEV/CRAFT — a 100% virtual internship platform for serious students around the world who need real, verifiable experience (MSME-registered, 10,000+ learners, from devcraft.fennark.xyz).
 
 ## HARD RULES — breaking any fails
 - NEVER mention: jobs, placement, hiring, recruiters, employment, interviews, salaries, packages, career outcomes.
@@ -59,19 +59,19 @@ const IG_CAPTION_PROMPT = `You write short, scroll-stopping Instagram captions f
 - NEVER promise or imply job outcomes or third-party internships.
 - NEVER write "industry-recognized".
 - MAX 3 hashtags (#DevCraft #VirtualInternship + 1 relevant).
-- MAX 2 short Hinglish phrases max (English letters), kept light and natural.
+- Plain, universally understood English — no country-specific slang.
 - Max 2 emoji, all inside the body (never on the URL line).
 
 ## STRUCTURE (5 short blocks, blank line between)
 - HOOK: First line under 25 words, a bold specific claim or a student's real feeling — never "Are you...?" or a greeting.
 - LINK: IMMEDIATELY after the hook, put the full URL on its own line: "Apply now → https://devcraft.fennark.xyz" — so it's visible in the feed preview without tapping "more".
-- STORY: One concrete student moment (hostel Wi-Fi, empty resume fear, the first PR, a proud parent call). Credible, sensory, real.
+- STORY: One concrete student moment (empty portfolio fear, months of tutorials without shipping, the first real project finally done). Credible, sensory, real.
 - VALUE: "What you get" in 3 short bullet-ish lines, plain text: real industry projects, instant offer letter, verified certificate, mentorship.
-- ASK + SHARE: ends with one short line that nudges sharing naturally (not bait): e.g. "Send this to your hostel group chat — they're stuck on the same thing." or "Forward it to the friend who keeps asking what you're building." then "Apply now → https://devcraft.fennark.xyz"
+- ASK + SHARE: ends with one short line that nudges sharing naturally (not bait): e.g. "Send this to a friend still stuck on tutorials." or "Forward it to someone building in private." then "Apply now → https://devcraft.fennark.xyz"
 
 ## STYLE
 - 70-120 words total (aim ~95). Sounds human, sharp, senior-student tone. No corporate speak, no emoji spam.
-- Rotate angle each time: exams/college pressure, parental pride, hostel scene, cert-mill doubt, college-fest hype, budget-conscious student — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
+- Rotate angle each time: empty portfolio fear, tutorial-hell burnout, cert-mill doubt, access gap (no internships where you live), building in private, late nights that finally paid off — pick ONE that fits the SITE FACTS, avoid repeating the angle from prior posts.
 - Be specific and credible — name a concrete project type or skill. No generic filler like "amazing opportunity".
 
 ## CARD HEADLINE (separate from caption)
@@ -139,7 +139,7 @@ function hasBannedWords(text) {
 
 function buildFallbackCaption(siteData) {
   const safePhrases = (siteData?.summary?.keyPhrases || []).filter(p => !hasBannedWords(p)).slice(0, 3).join(', ');
-  const story = 'A final-year student finished a real project in 6 weeks and finally had something to show for all the late nights.';
+  const story = 'A student finished a real project in 6 weeks and finally had something to show for all the late nights.';
   return buildCaption(`Stop scrolling past this one.
 
 Apply now → https://devcraft.fennark.xyz
@@ -148,7 +148,7 @@ ${story}
 
 Real industry projects. Instant offer letter. Verified certificate. Mentorship from engineers. ${safePhrases}.
 
-Send this to your hostel group chat — they're stuck on the same thing.
+Send this to a friend still stuck on tutorials.
 
 Apply now → https://devcraft.fennark.xyz`);
 }
@@ -222,7 +222,7 @@ async function main() {
   console.log(`HEADLINE: ${headline}\n`);
   console.log(`\n${caption}\n`);
 
-  console.log('[3/3] Generating cards + posting to Instagram...');
+  console.log('[3/3] Generating single card + posting to Instagram...');
   const { generateDesignerCards } = await import('./designer.js');
   const imageMeta = {
     headline: headline || extractHeadline(caption),
@@ -233,9 +233,11 @@ async function main() {
     post: caption,
     caption,
     imageMeta,
-    count: 3,
+    count: 1,
     previousTheme: state.lastTheme || null,
     format: 'reel',
+    forceTheme: 'brutalism',
+    single: true,
   });
 
   console.log(`      Theme: ${themeName} · post type: ${postType}`);
@@ -249,13 +251,10 @@ async function main() {
     mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl });
     console.log(`      ✓ Reel published (${latestSong ? `audio: ${latestSong.title} — ${latestSong.artist}` : 'no audio'}) — the song name stays out of the caption and cards: ${mediaId}`);
   } catch (err) {
-    console.log(`      ⚠ Reel failed (${err.message.slice(0, 150)}) — falling back to photo carousel`);
-    const imageUrls = [];
-    for (let i = 0; i < cards.length; i++) {
-      imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
-    }
-    mediaId = await postToInstagramCarousel({ imageUrls, caption });
-    console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
+    console.log(`      ⚠ Reel failed (${err.message.slice(0, 150)}) — falling back to single photo post`);
+    const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
+    mediaId = await postToInstagram({ imageUrl, caption });
+    console.log(`      ✓ Photo published (single card, brutalist): ${mediaId}`);
   }
 
   state.previousPosts.push(caption);

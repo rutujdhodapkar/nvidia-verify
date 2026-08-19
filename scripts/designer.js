@@ -11,6 +11,10 @@ export const THEMES = [
   { name: 'royal-gold', bg: '#0B1026', accent: '#F5C518', pop: '#7C8CF8', text: '#F8FAFF', texture: 'halftone', light: false, font: 'Sora' },
   { name: 'rose-quartz', bg: '#FDEAF0', accent: '#B23A6B', pop: '#FF7A9E', text: '#2B1620', texture: 'grain', light: true, font: 'Unbounded' },
   { name: 'ocean-storm', bg: 'linear-gradient(135deg,#04293A 0%,#0F5E7A 60%,#1CB0B9 100%)', accent: '#7EE8FA', pop: '#FF6B6B', text: '#F0FEFF', texture: 'mesh', light: false, font: 'Archivo Black' },
+  { name: 'brutalism', bg: '#EDEAE3', accent: '#111111', pop: '#FF4D00', text: '#111111', texture: 'brutal', light: true, font: 'Archivo Black', brutal: true },
+  { name: 'acid-lime', bg: '#0B0F00', accent: '#D8FF3E', pop: '#FF2E9A', text: '#F2FFE0', texture: 'halftone', light: false, font: 'Space Grotesk' },
+  { name: 'ink-paper', bg: '#FBF7F0', accent: '#1A1A1A', pop: '#C1121F', text: '#111111', texture: 'grain', light: true, font: 'Bricolage Grotesque' },
+  { name: 'neon-midnight', bg: '#0E0B1F', accent: '#00F5D4', pop: '#FF5FA2', text: '#EAFEFF', texture: 'mesh', light: false, font: 'Sora' },
 ];
 
 export const POST_TYPE_THEME = {
@@ -53,9 +57,14 @@ function detectPostType(post, caption) {
   return 'community';
 }
 
-export function pickThemeForPost(postType, previousTheme) {
+export function pickThemeForPost(postType, previousTheme, forceTheme) {
   // Strict rotation: always use a DIFFERENT theme than the previous post.
   // Cycles through all themes so every post gets a fresh look (never alternates between 2).
+  // forceTheme overrides rotation entirely (e.g. always brutalism).
+  if (forceTheme) {
+    const forced = THEMES.find(t => t.name === forceTheme) || THEMES.find(t => t.name === 'brutalism');
+    return forced;
+  }
   const pref = POST_TYPE_THEME[postType] || THEMES[0].name;
   if (!previousTheme) {
     const startIdx = Math.max(0, THEMES.findIndex(t => t.name === pref));
@@ -82,10 +91,15 @@ function meshOverlay() {
   return `<div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 15%,rgba(255,228,94,0.16),transparent 40%),radial-gradient(circle at 85% 70%,rgba(255,255,255,0.14),transparent 42%),radial-gradient(circle at 60% 110%,rgba(255,255,255,0.12),transparent 45%);"></div>`;
 }
 
+function brutalOverlay(accent) {
+  return `<div style="position:absolute;inset:0;pointer-events:none;opacity:0.5;background-image:linear-gradient(${accent} 1px,transparent 1px),linear-gradient(90deg,${accent} 1px,transparent 1px);background-size:56px 56px;"></div>`;
+}
+
 function textureFor(theme) {
   if (theme.texture === 'halftone') return halftoneOverlay(theme.accent);
   if (theme.texture === 'mesh') return meshOverlay();
   if (theme.texture === 'shape') return shapeOverlay(theme.accent);
+  if (theme.texture === 'brutal') return brutalOverlay(theme.accent);
   return grainOverlay(theme.light);
 }
 
@@ -102,7 +116,10 @@ function wordmark(theme) {
 
 function ctaPill(theme, link) {
   const display = (link || 'devcraft.fennark.xyz').replace(/^https?:\/\//, '');
-  return `<div style="position:absolute;left:56px;bottom:48px;z-index:5;display:inline-flex;align-items:center;gap:14px;padding:22px 30px;border-radius:999px;background:${theme.pop};color:${theme.light ? '#111' : '#050505'};box-shadow:0 14px 40px rgba(0,0,0,0.4);">
+  const isBrutal = theme.brutal;
+  const radius = isBrutal ? '0px' : '999px';
+  const border = isBrutal ? `6px solid ${theme.text}` : 'none';
+  return `<div style="position:absolute;left:56px;bottom:48px;z-index:5;display:inline-flex;align-items:center;gap:14px;padding:${isBrutal ? '20px 34px' : '22px 30px'};border-radius:${radius};border:${border};background:${theme.pop};color:${theme.light ? '#111' : '#050505'};box-shadow:${isBrutal ? '10px 10px 0 rgba(17,17,17,0.85)' : '0 14px 40px rgba(0,0,0,0.4)'};">
     <span style="${displayFont(theme)}font-weight:700;font-size:24px;letter-spacing:0.5px;">${display} ↗</span>
   </div>`;
 }
@@ -162,7 +179,7 @@ const SHARE_NOOK = {
   curriculum_highlight: 'Send this to the friend still watching tutorials.',
   testimonial: 'Tell a friend who needs to hear this.',
   stat_card: 'Numbers don\u2019t lie \u2014 share the proof.',
-  community: 'Forward it to your hostel group chat.',
+  community: 'Forward it to your study group chat.',
 };
 
 function shell(theme, inner, song, format = 'portrait') {
@@ -278,6 +295,35 @@ function bento(theme, meta, mode) {
 </div>`;
 }
 
+function brutalHero(theme, meta) {
+  const h = meta.headline;
+  const size = h && h.split(/\s+/).length <= 5 ? '92px' : '74px';
+  const rows = BENEFITS.map((b, i) => `
+    <div style="display:flex;align-items:center;gap:24px;border-top:${theme.brutal ? '5px' : '1px'} solid ${theme.text};padding:20px 6px;">
+      <div style="width:58px;height:58px;min-width:58px;border:5px solid ${theme.text};background:${theme.pop};display:flex;align-items:center;justify-content:center;${displayFont(theme)}font-weight:800;font-size:30px;color:${theme.text};">${i + 1}</div>
+      <div>
+        <div style="${displayFont(theme)}font-weight:800;font-size:30px;line-height:1.1;color:${theme.text};">${b.t}</div>
+        <div style="font-family:'Inter',sans-serif;font-size:22px;color:${theme.text};opacity:0.62;margin-top:2px;">${b.s}</div>
+      </div>
+    </div>`).join('');
+  const stats = STATS.map(([n, l]) => `
+    <div style="flex:1;border-right:${theme.brutal ? '5px' : '1px'} solid ${theme.text};text-align:center;padding:10px 4px;">
+      <div style="${displayFont(theme)}font-weight:800;font-size:44px;color:${theme.pop};line-height:1;">${n}</div>
+      <div style="font-family:'Inter',sans-serif;font-size:19px;color:${theme.text};opacity:0.7;margin-top:6px;">${l}</div>
+    </div>`).join('');
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:22px;justify-content:center;">
+  <div style="display:flex;align-items:center;gap:18px;">
+    <span style="width:16px;height:16px;background:${theme.pop};${theme.brutal ? '' : 'border-radius:50%;'}"></span>
+    ${kicker(theme, 'VIRTUAL INTERNSHIP · 2026')}
+  </div>
+  <div style="${displayFont(theme)}font-weight:800;font-size:${size};line-height:0.98;letter-spacing:-1px;color:${theme.text};">${h}</div>
+  <div style="font-family:'Inter',sans-serif;font-size:26px;line-height:1.4;color:${theme.text};opacity:0.8;">${meta.subtext}</div>
+  <div style="${displayFont(theme)}font-weight:800;font-size:32px;text-transform:uppercase;color:${theme.text};margin-top:8px;">WHAT YOU GET <span style="color:${theme.pop};">↓</span></div>
+  ${rows}
+  <div style="display:flex;border:${theme.brutal ? '5px' : '1px'} solid ${theme.text};background:${theme.light ? 'rgba(17,17,17,0.03)' : 'rgba(255,255,255,0.06)'};">${stats}</div>
+</div>`;
+}
+
 export function buildCardHtml(meta, theme, archetype, mode, format = 'portrait') {
   let inner;
   if (archetype === 'split-screen') inner = splitScreen(theme, meta, mode);
@@ -285,6 +331,7 @@ export function buildCardHtml(meta, theme, archetype, mode, format = 'portrait')
   else if (archetype === 'stacked-cards') inner = stackedCards(theme, meta, mode);
   else if (archetype === 'collage') inner = collage(theme, meta, mode);
   else if (archetype === 'bento') inner = bento(theme, meta, mode);
+  else if (archetype === 'brutal-hero') inner = brutalHero(theme, meta);
   else inner = diagonalSlab(theme, meta, mode);
   return shell(theme, inner, meta.song && mode === 'cover' ? meta.song : null, format);
 }
@@ -299,11 +346,12 @@ async function renderHtml(html, format = 'portrait') {
   return buf;
 }
 
-export async function generateDesignerCards({ post, caption, imageMeta, count = 3, previousTheme = null, format = 'portrait' }) {
+export async function generateDesignerCards({ post, caption, imageMeta, count = 3, previousTheme = null, format = 'portrait', forceTheme = null, single = false }) {
   const postType = detectPostType(post, caption);
-  const theme = pickThemeForPost(postType, previousTheme);
-  const archetypes = POST_TYPE_ARCHETYPES[postType] || POST_TYPE_ARCHETYPES.default;
-  const modes = ['cover', 'benefits', 'stats'];
+  const theme = pickThemeForPost(postType, previousTheme, forceTheme);
+  const isSingle = single || count === 1;
+  const archetypes = isSingle ? ['brutal-hero'] : (POST_TYPE_ARCHETYPES[postType] || POST_TYPE_ARCHETYPES.default);
+  const modes = isSingle ? ['hero'] : ['cover', 'benefits', 'stats'];
   const meta = {
     headline: imageMeta.headline || 'Build Real Skills.',
     subtext: imageMeta.subtext || 'Real industry projects. Mentorship. A portfolio that proves you can build.',
@@ -316,7 +364,7 @@ export async function generateDesignerCards({ post, caption, imageMeta, count = 
     const mode = modes[i % modes.length];
     const html = buildCardHtml(meta, theme, archetype, mode, format);
     try {
-      const buf = await renderHtml(html);
+      const buf = await renderHtml(html, format);
       console.log(`[DESIGNER] Card #${i} (${theme.name} · ${archetype} · ${mode}): ${buf.length} bytes`);
       cards.push(buf);
     } catch (err) {
