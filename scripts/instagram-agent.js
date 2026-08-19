@@ -23,7 +23,7 @@ async function fetchLatestEnglishSong() {
     const results = data?.feed?.results || [];
     const top = results.find(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit') || results.find(r => r.kind === 'songs') || results[0];
     if (!top?.name) return null;
-    return { title: top.name, artist: top.artistName, trackId: top.id };}
+    return { title: top.name, artist: top.artistName, trackId: top.id };
   } catch (err) {
     console.warn(`      ⚠ Could not fetch latest song chart: ${err.message}`);
     return null;
