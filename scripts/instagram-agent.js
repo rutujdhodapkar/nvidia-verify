@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { scrapeSite } from './scraper.js';
+import { ensureFreshSiteData, createErrorBudget } from '../lib/site-scraper.js';
 import { callWithRetry } from './generator.js';
 import { uploadToGithub, postToInstagramReel, postToInstagramCarousel } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
@@ -196,8 +196,9 @@ async function main() {
   const { NVIDIA_API_KEY, NVIDIA_MODEL } = process.env;
   if (!NVIDIA_API_KEY) { console.error('[!] Missing NVIDIA_API_KEY'); process.exit(1); }
 
-  console.log('[1/3] Scraping devcraft.fennark.xyz...');
-  const siteData = await scrapeSite();
+  const igBudget = createErrorBudget();
+    console.log('[1/3] Loading site data (DB cache, re-scrapes every 5 days)...');
+    const siteData = await ensureFreshSiteData({ budget: igBudget });
   console.log(`      ${Object.keys(siteData.pages).length} pages\n`);
 
   console.log('      Fetching latest English song...');

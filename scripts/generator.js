@@ -127,7 +127,7 @@ function hasViolations(text) {
   return null;
 }
 
-export async function generatePost(siteData, previousPosts = [], apiKey, model, previousFeedback) {
+export async function generatePost(siteData, previousPosts = [], apiKey, model, previousFeedback, angleHint) {
   const { siteCtx, dupGuard } = buildContext(siteData, previousPosts);
   const feedbackHint = previousFeedback ? `\n## FEEDBACK FROM PREVIOUS ATTEMPT — apply this fix:\n${previousFeedback}\n` : '';
 
@@ -135,6 +135,11 @@ export async function generatePost(siteData, previousPosts = [], apiKey, model, 
 
 SITE DATA:
 ${siteCtx}${dupGuard}${feedbackHint}
+
+ANGLE / VARIETY DIRECTIVE FOR THIS POST:
+${angleHint || 'Pick any fresh angle not covered by previous posts.'}
+
+Use tasteful emojis as visual anchors (1-4 total): line-start markers like 🎯 🔥 💡 ⚡ 📌 or inline. Never spam. No emoji in the hook line.
 
 Generate the post now. Return ONLY the JSON.`;
 
