@@ -104,7 +104,7 @@ const SITE_URL = 'https://devcraft.fennark.xyz';
 // Normalizes any bare "devcraft.fennark.xyz" reference to the full clickable URL as well.
 function ensureLinkInPost(text) {
   const trimmed = (text || '').trim();
-  const normalized = trimmed.replace(/https?:\/\/devcraft\.fennark\.xyz/gi, SITE_URL).replace(/devcraft\.fennark\.xyz/gi, SITE_URL);
+  const normalized = trimmed.replace(/(https?:\/\/)?devcraft\.fennark\.xyz/gi, SITE_URL); // single pass — no double https://
   if (normalized.includes(SITE_URL)) return normalized;
   return `${normalized ? normalized + '\n\n' : ''}Apply here → ${SITE_URL}`;
 }
