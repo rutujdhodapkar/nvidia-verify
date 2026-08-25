@@ -7,3 +7,6 @@ images/
 *.html
 oauth-callback.html
 .oauth-url.txt
+
+data/leads.csv
+data/harvest-log.txt

@@ -1,0 +1,12 @@
+{
+  "_comment": "Lead sources for DEV/CRAFT. type: 'search' (Bing query -> visits result sites) | 'website' | 'linkedin'. Focused on engineering CSE students + Training & Placement (T&P) heads. Tip: keep search queries simple (no excessive quotes) or Bing relaxes the site: filter.",
+  "targets": [
+    { "type": "search", "query": "placement cell contact email site:ac.in", "maxResults": 6 },
+    { "type": "search", "query": "training placement officer TPO contact site:ac.in", "maxResults": 6 },
+    { "type": "search", "query": "TPO training placement cell email engineering college site:ac.in", "maxResults": 5 },
+    { "type": "search", "query": "computer science department placement coordinator contact site:ac.in", "maxResults": 5 },
+    { "type": "website", "url": "https://devcraft.fennark.xyz" },
+    { "type": "linkedin", "url": "https://www.linkedin.com/search/results/people/?keywords=training%20and%20placement%20officer%20engineering%20college" },
+    { "type": "linkedin", "url": "https://www.linkedin.com/search/results/people/?keywords=head%20of%20training%20placement%20cse" }
+  ]
+}
