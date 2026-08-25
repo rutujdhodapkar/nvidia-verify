@@ -1,0 +1,83 @@
+name: DEV/CRAFT Lifecycle Automations
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'
+      timezone: 'Asia/Kolkata'
+    - cron: '30 20 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '30 4 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '37 5 * * *'
+      timezone: 'Asia/Kolkata'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Which task to run'
+        required: true
+        default: 'lifecycle'
+        type: choice
+        options:
+          - lifecycle
+          - reminders
+          - sync-mirror
+          - backup
+
+jobs:
+  sync-mirror:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 22 * * 0' || github.event.inputs.task == 'sync-mirror'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Weekly Cosmos → Firebase mirror
+        env:
+          COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
+        run: node scripts/sync-mirror.js --force
+
+  backup:
+    if: github.event_name == 'schedule' && github.event.schedule == '30 20 * * *' || github.event.inputs.task == 'backup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 5-day Firebase snapshot
+        env:
+          BACKUP_EVERY_DAYS: '5'
+        run: node scripts/backup.js
+
+  lifecycle:
+    if: github.event_name == 'schedule' && github.event.schedule == '30 4 * * *' || github.event.inputs.task == 'lifecycle'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Daily NPS + referrals
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: DEV/CRAFT <onboarding@resend.dev>
+          SEND_MIN_DELAY_MS: '20000'
+          SEND_MAX_DELAY_MS: '60000'
+        run: node scripts/lifecycle.js run
+
+  reminders:
+    if: github.event_name == 'schedule' && github.event.schedule == '37 5 * * *' || github.event.inputs.task == 'reminders'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 10-day reminder cycle (self-gated)
+        env:
+          COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: DEV/CRAFT <onboarding@resend.dev>
+          REMINDER_CYCLE_DAYS: '10'
+        run: node scripts/reminders.js

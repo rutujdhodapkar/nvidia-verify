@@ -11,6 +11,12 @@
     "generate": "node scripts/generator.js",
     "post": "node scripts/poster.js",
     "send-promo": "node scripts/send-promo.js",
+    "inbox-test": "node scripts/send-test.js",
+    "sync-mirror": "node scripts/sync-mirror.js",
+    "backup": "node scripts/backup.js",
+    "lifecycle": "node scripts/lifecycle.js",
+    "reminders": "node scripts/reminders.js",
+    "best-time": "node scripts/best-time.js",
     "load-contacts": "node scripts/load-contacts.js",
     "send-bulk": "node scripts/send-bulk.js",
     "mailjet": "node scripts/mailjet-automation.js",
@@ -24,13 +30,19 @@
     "mailjet:analyze": "node scripts/mailjet-automation.js analyze",
     "mailjet:logs": "node scripts/mailjet-automation.js logs",
     "mailjet:test": "node scripts/mailjet-automation.js all",
-    "mailjet:prod": "set NODE_ENV=production && node scripts/mailjet-automation.js all"
+    "mailjet:prod": "set NODE_ENV=production && node scripts/mailjet-automation.js all",
+    "harvest": "node scripts/lead-harvester.js",
+    "harvest:dryrun": "node scripts/lead-harvester.js --dry-run",
+    "winback": "node scripts/reengagement-drip.js",
+    "winback:dryrun": "node scripts/reengagement-drip.js --dry-run",
+    "winback:send": "set NODE_ENV=production&& set WINBACK_SEND=1&& node scripts/reengagement-drip.js --send"
   },
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
     "dotenv": "^16.4.7",
     "node-mailjet": "^6.0.11",
     "nodemailer": "^6.9.16",
-    "playwright": "^1.52.0"
+    "playwright": "^1.52.0",
+    "resend": "^6.22.1"
   }
 }
