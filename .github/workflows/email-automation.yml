@@ -1,0 +1,27 @@
+name: DEV/CRAFT Email Automation (Brevo)
+
+on:
+  schedule:
+    - cron: '30 3 * * *'
+      timezone: 'Asia/Kolkata'
+  workflow_dispatch:
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run email automation
+        env:
+          NODE_ENV: production
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          PORTFOLIO_FIREBASE_URL: https://portfolio-cfe62-default-rtdb.firebaseio.com
+          SITE_URL: ${{ secrets.SITE_URL || 'https://fennark.xyz' }}
+          APPLY_URL: ${{ secrets.APPLY_URL || 'https://fennark.xyz/apply' }}
+          FROM_EMAIL: support@fennark.xyz
+        run: node scripts/promo-email-automation.js
