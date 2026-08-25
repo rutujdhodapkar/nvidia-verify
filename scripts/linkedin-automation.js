@@ -4,6 +4,7 @@
 // Content: NVIDIA AI generation with curated fallbacks; theme rotation avoids repeats.
 
 import { postToLinkedinViaZapier } from '../lib/zapier-mcp.js';
+import { createLinkedInPost } from '../lib/composio-linkedin.js';
 import { postToLinkedinPageWithComment } from './linkedin-poster.js';
 import { pfGet as fbGet, pfPut as fbPut } from '../lib/portfolio-firebase.js';
 
@@ -169,8 +170,8 @@ async function main() {
   console.log(`=== LinkedIn Automation ${new Date().toISOString()} ===`);
   console.log(`Slot: ${slot} | DRY_RUN=${DRY_RUN}\n`);
 
-  if (!DRY_RUN && !ZAPIER_TOKEN && !process.env.LINKEDIN_CLIENT_ID) {
-    console.error('Missing posting credentials — set ZAPIER_TOKEN or LINKEDIN_CLIENT_ID/SECRET/REFRESH_TOKEN');
+  if (!DRY_RUN && !process.env.COMPOSIO_API_KEY && !ZAPIER_TOKEN && !process.env.LINKEDIN_CLIENT_ID) {
+    console.error('Missing posting credentials — set COMPOSIO_API_KEY, ZAPIER_TOKEN, or LINKEDIN_* OAuth vars');
     process.exit(1);
   }
 
@@ -195,7 +196,18 @@ async function main() {
     return;
   }
 
-  // Primary: Zapier MCP (no OAuth expiry). Fallback: direct LinkedIn API.
+  // Chain: Composio (active connection) -> Zapier MCP -> direct LinkedIn API
+  if (process.env.COMPOSIO_API_KEY) {
+    try {
+      await createLinkedInPost({ text: body });
+      await markPosted(slot, { theme: theme.id, hook: theme.hook, via: 'composio' });
+      console.log('Done (via Composio).');
+      return;
+    } catch (err) {
+      console.error(`[WARN] Composio failed: ${err.message.slice(0, 200)} — trying Zapier`);
+    }
+  }
+
   if (ZAPIER_TOKEN) {
     try {
       await postToLinkedinViaZapier({ token: ZAPIER_TOKEN, text: body, pageId: process.env.LINKEDIN_PAGE_ID });

@@ -29,6 +29,9 @@ jobs:
 
       - name: Generate and post to LinkedIn
         env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          LINKEDIN_CONNECTION_ID: ${{ secrets.LINKEDIN_CONNECTION_ID || 'ca_aALairrVKGhQ' }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
           ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
