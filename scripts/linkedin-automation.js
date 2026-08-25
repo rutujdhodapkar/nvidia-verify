@@ -74,7 +74,7 @@ Rules:
 - Relatable student pain or aspiration -> insight -> soft CTA mentioning ${LINK}.
 - 3-5 hashtags at the end (#EngineeringStudents #CSE #Internship style).
 - No emojis spam: max 2-3 emojis total. No false claims (no "guaranteed job").
-- Output ONLY the post text.`;
+- Wrap ONLY the final post text in <post> and </post> tags. Nothing outside the tags.`;
 
 const USER_PROMPTS = {
   skills: 'Write about the #1 skill CSE students should build this semester beyond the syllabus, and why projects beat marks.',
@@ -94,7 +94,20 @@ const USER_PROMPTS = {
   community: 'The power of learning in public and peer communities for engineering students.',
 };
 
-// ---------- content generation ----------
+// Reasoning models emit chain-of-thought — extract only the final post
+function extractPost(raw) {
+  let text = String(raw || '');
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');          // explicit think blocks
+  const tagged = text.match(/<post>([\s\S]*?)<\/post>/i);          // our delimiter
+  if (tagged) return tagged[1].trim();
+  // Heuristic: if the model planned aloud, the real post is the LAST quoted block
+  const quoted = [...text.matchAll(/"([^"]{80,})"/g)];
+  if (quoted.length > 0 && /user wants|hook|hashtag|CTA/i.test(text.slice(0, 400))) {
+    return quoted[quoted.length - 1][1].trim();
+  }
+  return text.trim();
+}
+
 async function generatePost(slot) {
   const theme = pickTheme(slot);
   console.log(`[THEME] slot=${slot} id=${theme.id}`);
@@ -117,7 +130,7 @@ async function generatePost(slot) {
       });
       if (res.ok) {
         const data = await res.json();
-        text = data?.choices?.[0]?.message?.content?.trim() || null;
+        text = extractPost(data?.choices?.[0]?.message?.content) || null;
         if (text) console.log('[AI] generated via NVIDIA');
       } else {
         console.log(`[AI] NVIDIA failed ${res.status}, using fallback`);
