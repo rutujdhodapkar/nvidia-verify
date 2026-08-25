@@ -198,7 +198,7 @@ async function main() {
   // Primary: Zapier MCP (no OAuth expiry). Fallback: direct LinkedIn API.
   if (ZAPIER_TOKEN) {
     try {
-      await postToLinkedinViaZapier({ token: ZAPIER_TOKEN, text: body });
+      await postToLinkedinViaZapier({ token: ZAPIER_TOKEN, text: body, pageId: process.env.LINKEDIN_PAGE_ID });
       await markPosted(slot, { theme: theme.id, hook: theme.hook, via: 'zapier' });
       console.log('Done (via Zapier).');
       return;
