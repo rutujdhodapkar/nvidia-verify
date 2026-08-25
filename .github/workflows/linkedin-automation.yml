@@ -29,6 +29,7 @@ jobs:
 
       - name: Generate and post to LinkedIn
         env:
+          ZAPIER_TOKEN: ${{ secrets.ZAPIER_TOKEN }}
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
           LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}

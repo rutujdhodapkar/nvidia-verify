@@ -3,6 +3,7 @@
 // Every post carries devcraft.fennark.xyz (body CTA + full link as first comment).
 // Content: NVIDIA AI generation with curated fallbacks; theme rotation avoids repeats.
 
+import { postToLinkedinViaZapier } from '../lib/zapier-mcp.js';
 import { postToLinkedinPageWithComment } from './linkedin-poster.js';
 import { pfGet as fbGet, pfPut as fbPut } from '../lib/portfolio-firebase.js';
 
@@ -13,6 +14,7 @@ const DRY_RUN = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-r
 
 const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
 const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
+const ZAPIER_TOKEN = process.env.ZAPIER_TOKEN;
 
 // ---------- theme engine ----------
 // Each slot has a rotation of angles; day-of-year picks which angle runs today.
@@ -167,8 +169,8 @@ async function main() {
   console.log(`=== LinkedIn Automation ${new Date().toISOString()} ===`);
   console.log(`Slot: ${slot} | DRY_RUN=${DRY_RUN}\n`);
 
-  if (!DRY_RUN && !process.env.LINKEDIN_CLIENT_ID) {
-    console.error('Missing LinkedIn credentials — set LINKEDIN_CLIENT_ID/SECRET/REFRESH_TOKEN');
+  if (!DRY_RUN && !ZAPIER_TOKEN && !process.env.LINKEDIN_CLIENT_ID) {
+    console.error('Missing posting credentials — set ZAPIER_TOKEN or LINKEDIN_CLIENT_ID/SECRET/REFRESH_TOKEN');
     process.exit(1);
   }
 
@@ -191,6 +193,18 @@ async function main() {
   if (DRY_RUN) {
     console.log('[DRY RUN] Would post above content.');
     return;
+  }
+
+  // Primary: Zapier MCP (no OAuth expiry). Fallback: direct LinkedIn API.
+  if (ZAPIER_TOKEN) {
+    try {
+      await postToLinkedinViaZapier({ token: ZAPIER_TOKEN, text: body });
+      await markPosted(slot, { theme: theme.id, hook: theme.hook, via: 'zapier' });
+      console.log('Done (via Zapier).');
+      return;
+    } catch (err) {
+      console.error(`[WARN] Zapier failed: ${err.message.slice(0, 200)} — falling back to direct API`);
+    }
   }
 
   try {
