@@ -143,10 +143,12 @@ Use tasteful emojis as visual anchors (1-4 total): line-start markers like 🎯 
 
 Generate the post now. Return ONLY the JSON.`;
 
-  const raw = await callWithRetry(postPrompt, apiKey, model, 3500);
+  const raw = await callWithRetry(postPrompt, apiKey, model, 12000);
   if (!raw) throw new Error('Post generation failed');
 
-  let cleaned = raw.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
+  let cleaned = raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, '') // strip reasoning-model CoT
+    .replace(/```(?:json)?\s*/gi, '').replace(/\s*```/g, '').trim();
   let parsed;
   try {
     parsed = JSON.parse(cleaned);

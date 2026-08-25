@@ -47,7 +47,7 @@ const ANGLES = {
   ],
   evening: [
     'Project/portfolio angle — build-in-public, GitHub presence, proof of work beats bullets.',
-    'Placement-prep angle — what interviewers actually ask vs what students prepare.',
+    'Interview-readiness angle — what interviewers actually ask vs what students prepare.',
     'Peer-proof / community angle — shipping together, sharing wins, year-2 students already building.',
   ],
 };
