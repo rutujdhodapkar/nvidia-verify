@@ -1,0 +1,40 @@
+name: DEV/CRAFT LinkedIn Posts (3x Daily IST)
+
+on:
+  schedule:
+    - cron: '0 4 * * *'    # 9:30 AM IST — morning (skills/career angle)
+    - cron: '0 8 * * *'    # 1:30 PM IST — afternoon (internship CTA)
+    - cron: '0 14 * * *'   # 7:30 PM IST — evening (projects/placement angle)
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'Slot to run (blank = auto by time)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - morning
+          - afternoon
+          - evening
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate and post to LinkedIn
+        env:
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
+          LINKEDIN_PAGE_ID: ${{ secrets.LINKEDIN_PAGE_ID }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
+          SITE_URL: https://devcraft.fennark.xyz
+          SLOT: ${{ github.event.inputs.slot }}
+        run: node scripts/linkedin-automation.js $SLOT
