@@ -11,6 +11,10 @@ export const THEMES = [
   { name: 'royal-gold', bg: '#0B1026', accent: '#F5C518', pop: '#7C8CF8', text: '#F8FAFF', texture: 'halftone', light: false, font: 'Sora' },
   { name: 'rose-quartz', bg: '#FDEAF0', accent: '#B23A6B', pop: '#FF7A9E', text: '#2B1620', texture: 'grain', light: true, font: 'Unbounded' },
   { name: 'ocean-storm', bg: 'linear-gradient(135deg,#04293A 0%,#0F5E7A 60%,#1CB0B9 100%)', accent: '#7EE8FA', pop: '#FF6B6B', text: '#F0FEFF', texture: 'mesh', light: false, font: 'Archivo Black' },
+  { name: 'neo-mint', bg: '#07211C', accent: '#2DD4BF', pop: '#FDE68A', text: '#ECFDF5', texture: 'shape', light: false, font: 'Sora' },
+  { name: 'cocoa-ember', bg: '#160D08', accent: '#F97316', pop: '#FACC15', text: '#FFF7ED', texture: 'grain', light: false, font: 'Archivo Black' },
+  { name: 'blueprint', bg: '#0B2447', accent: '#A5D7E8', pop: '#FFD166', text: '#EFF6FF', texture: 'halftone', light: false, font: 'Space Grotesk' },
+  { name: 'lavender-haze', bg: 'linear-gradient(135deg,#1E1B4B 0%,#6D28D9 55%,#DB2777 100%)', accent: '#F0ABFC', pop: '#FDE68A', text: '#FDF4FF', texture: 'mesh', light: false, font: 'Unbounded' },
 ];
 
 export const POST_TYPE_THEME = {
@@ -111,8 +115,8 @@ function headlineSize(text) {
   const n = (text || '').split(/\s+/).length;
   if (n <= 3) return '104px';
   if (n <= 5) return '92px';
-  if (n <= 7) return '80px';
-  return '68px';
+  if (n <= 7) return '78px';
+  return '62px';
 }
 
 function subheadlineSize(text) {
@@ -286,7 +290,8 @@ export function buildCardHtml(meta, theme, archetype, mode, format = 'portrait')
   else if (archetype === 'collage') inner = collage(theme, meta, mode);
   else if (archetype === 'bento') inner = bento(theme, meta, mode);
   else inner = diagonalSlab(theme, meta, mode);
-  return shell(theme, inner, meta.song && mode === 'cover' ? meta.song : null, format);
+  // Song badge on every card — the post carries trending music, so show it.
+  return shell(theme, inner, meta.song || null, format);
 }
 
 async function renderHtml(html, format = 'portrait') {
@@ -316,7 +321,7 @@ export async function generateDesignerCards({ post, caption, imageMeta, count = 
     const mode = modes[i % modes.length];
     const html = buildCardHtml(meta, theme, archetype, mode, format);
     try {
-      const buf = await renderHtml(html);
+      const buf = await renderHtml(html, format);
       console.log(`[DESIGNER] Card #${i} (${theme.name} · ${archetype} · ${mode}): ${buf.length} bytes`);
       cards.push(buf);
     } catch (err) {

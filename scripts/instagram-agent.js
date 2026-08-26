@@ -104,11 +104,20 @@ Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do 
 async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
   const home = siteData?.pages?.['/'];
-  const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
-  const homeText = (home?.textContent || '').slice(0, 1600);
+  const summary = siteData?.summary || {};
+  // Rich, properly-scraped facts: headings from every page + real numbers + CTAs.
+  const headings = (summary.keyPhrases || []).slice(0, 12).join(' | ');
+  const stats = (summary.stats || []).slice(0, 8).join(' · ');
+  const ctas = (summary.ctas || []).slice(0, 5).join(' | ');
+  const about = siteData?.pages?.['/about']?.textContent || '';
+  const homeText = (home?.textContent || '').slice(0, 2000);
   const siteFacts = `Title: ${siteData?.summary?.title || ''}
-Key phrases: ${phrases || 'virtual internship, real projects'}
-Home page: ${homeText}`;
+Meta description: ${siteData?.summary?.description || ''}
+Site headings (real sections): ${headings || 'virtual internship, real projects'}
+Real numbers on the site: ${stats || 'not found'}
+CTAs on the site: ${ctas || 'apply now'}
+Home page: ${homeText}
+About page: ${about.slice(0, 700)}`;
   const prompt = `${IG_CAPTION_PROMPT}
 
 SITE FACTS:
@@ -241,12 +250,13 @@ async function main() {
   console.log(`HEADLINE: ${headline}\n`);
   console.log(`\n${caption}\n`);
 
-  console.log('[3/3] Generating cards + posting to Instagram...');
+  console.log('[3/3] Generating cards + posting static photo-with-song to Instagram...');
   const { generateDesignerCards } = await import('./designer.js');
   const imageMeta = {
     headline: headline || extractHeadline(caption),
     subtext: extractSubtext(caption),
     site: 'devcraft.fennark.xyz',
+    song: latestSong ? `🎵 ${latestSong.title} — ${latestSong.artist}` : null,
   };
   const { cards, themeName, postType } = await generateDesignerCards({
     post: caption,
@@ -266,9 +276,9 @@ async function main() {
     const videoUrl = await uploadToGithub(reel.buffer, 'mp4', 'video/mp4', 0);
     const coverUrl = await uploadToGithub(cards[0], 'png', 'image/png', 1);
     mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl });
-    console.log(`      ✓ Reel published (${latestSong ? `audio: ${latestSong.title} — ${latestSong.artist}` : 'no audio'}) — the song name stays out of the caption and cards: ${mediaId}`);
+    console.log(`      ✓ Static photo-with-song published (still frames, audio: ${latestSong ? `${latestSong.title} — ${latestSong.artist}` : 'none'}): ${mediaId}`);
   } catch (err) {
-    console.log(`      ⚠ Reel failed (${err.message.slice(0, 150)}) — falling back to photo carousel`);
+    console.log(`      ⚠ Static video failed (${err.message.slice(0, 150)}) — falling back to photo carousel`);
     const imageUrls = [];
     for (let i = 0; i < cards.length; i++) {
       imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));

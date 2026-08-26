@@ -120,10 +120,44 @@ function extractTheme(data) {
 
 function buildSummary(data) {
   const home = data.pages['/'];
+
+  // Aggregate real facts from EVERY scraped page so posts cite specifics.
+  const headings = [];
+  const seenHeadings = new Set();
+  const stats = [];
+  const seenStats = new Set();
+  const ctas = [];
+  const seenCtas = new Set();
+
+  for (const [path, page] of Object.entries(data.pages)) {
+    for (const h of page.headings || []) {
+      const text = (h.text || '').replace(/\s+/g, ' ').trim();
+      if (text.length > 3 && text.length < 120 && !seenHeadings.has(text.toLowerCase())) {
+        seenHeadings.add(text.toLowerCase());
+        headings.push(text);
+      }
+    }
+    const text = page.textContent || '';
+    for (const m of text.matchAll(/\b\d[\d,.]*\s*(?:\+|k\b|%|★|x\b|LPA\b)?/g)) {
+      const s = m[0].trim();
+      if (/^\d{1}$/.test(s)) continue; // skip single digits / years noise handled below
+      if (/^(19|20)\d{2}$/.test(s)) continue;
+      if (!seenStats.has(s)) { seenStats.add(s); stats.push(s); }
+    }
+    for (const b of page.buttons || []) {
+      const t = (b.text || '').replace(/\s+/g, ' ').trim();
+      if (t && t.length < 40 && !seenCtas.has(t.toLowerCase())) { seenCtas.add(t.toLowerCase()); ctas.push(t); }
+    }
+  }
+
+  // Prefer meaningful headings first (h1/h2 from home already lead).
   return {
     title: home?.title || '',
     description: home?.metaDescription || '',
-    keyPhrases: home?.headings?.map(h => h.text).filter(Boolean) || [],
+    keyPhrases: headings.slice(0, 16),
+    stats: stats.slice(0, 12),
+    ctas: ctas.slice(0, 8),
+    pagesScraped: Object.keys(data.pages).length,
     primaryColor: data.theme?.primary || '#6366f1',
     sections: home?.sections?.length || 0,
     buttonCount: home?.buttons?.length || 0,
