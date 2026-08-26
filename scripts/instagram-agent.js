@@ -6,7 +6,7 @@ import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
 const IG_STATE_URL = `${FIREBASE_URL}/ig_state.json`;
-const APPLE_CHART_URL = 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/50/songs.json';
+const APPLE_CHART_URL = 'https://rss.marketingtools.apple.com/api/v2/in/music/most-played/50/songs.json';
 
 async function loadIgState() {
   const res = await fetch(IG_STATE_URL);
@@ -17,16 +17,23 @@ async function loadIgState() {
 
 async function fetchLatestEnglishSong() {
   try {
-    // Wide pool of current hits (50) + deterministic rotation so every post
-    // (morning/evening, day to day) features a different trending English song.
+    // India most-played chart (50), Hindi-first: Bollywood/Hindi genres win,
+    // then Hindi indie pop; Tamil/Telugu/Punjabi only as last resort. Every
+    // post (morning/evening, day to day) features a different trending song.
     const res = await fetch(APPLE_CHART_URL, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) throw new Error(`chart ${res.status}`);
     const data = await res.json();
     let results = data?.feed?.results || [];
 
-    let candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit');
+    const genreNames = (r) => (r.genres || []).map(g => g.name);
+    const isHindi = (r) => genreNames(r).some(g => g === 'Bollywood' || g === 'Hindi');
+    const isHindiPop = (r) => genreNames(r).some(g => g === 'Indian Pop');
+    const isOtherIndian = (r) => genreNames(r).some(g => ['Tamil', 'Telugu', 'Punjabi', 'Regional Indian'].includes(g));
+
+    let candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && isHindi(r));
+    if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && isHindiPop(r));
+    if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && !isOtherIndian(r));
     if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs');
-    if (candidates.length === 0) candidates = results;
     if (candidates.length === 0) return null;
 
     const now = new Date();

@@ -13,7 +13,7 @@ export async function fetchSongAudio(title, artist) {
   if (!title) return null;
   const term = encodeURIComponent(`${title} ${artist || ''}`.trim());
   try {
-    const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=5`, {
+    const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=5&country=IN`, {
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) throw new Error(`iTunes search ${res.status}`);
