@@ -109,6 +109,13 @@ function ensureLinkInPost(text) {
   return `${normalized ? normalized + '\n\n' : ''}Apply here → ${SITE_URL}`;
 }
 
+function scrubBlockedOutcomeTerms(text) {
+  return (text || '').replace(
+    /\b(jobs?|placements?|employ(?:ment|er|ed)?|hire|hiring|career|recruit(?:er|ing|ment)?|interview|salary|package|ctc|lpa)\b/gi,
+    'internship readiness',
+  );
+}
+
 const BLOCKED_PATTERNS = [
   /\b(job|placement|employ(?:ment|er|ed)|hire|hiring|career|recruit(?:er|ing|ment)?|interview|salary|package|ctc|lpa)\b/i,
   /\b(industry[- ]?recognized|industry[- ]?accepted|employer[- ]?recognized|globally recognized|widely accepted|accredited)\b/i,
@@ -176,20 +183,24 @@ Generate the post now. Return ONLY the JSON.`;
   const postParts = [hook, '', body, '', engagement, '', ctaLine, '', hashtags];
   let postText = postParts.filter(Boolean).join('\n');
   postText = ensureLinkInPost(postText);
+  postText = scrubBlockedOutcomeTerms(postText);
 
   const violation = hasViolations(postText);
   if (violation) {
     console.log(`      ${violation}`);
     throw new Error(violation);
   }
+  let sanitizedFirstComment = firstComment;
   if (firstComment) {
-    const commentViolation = hasViolations(firstComment);
+    const sanitizedComment = scrubBlockedOutcomeTerms(firstComment);
+    const commentViolation = hasViolations(sanitizedComment);
     if (commentViolation) {
       console.log(`      First-comment ${commentViolation}`);
       throw new Error(`First-comment ${commentViolation}`);
     }
+    sanitizedFirstComment = sanitizedComment;
   }
-  const guaranteedFirstComment = ensureLinkInPost(firstComment);
+  const guaranteedFirstComment = ensureLinkInPost(sanitizedFirstComment);
 
   console.log(`[GENERATE] ✓ ${postText.length} chars, format: ${parsed.format || 'auto'}, angle: ${parsed.angle || 'auto'}, first_comment: ${firstComment.length} chars`);
   return { post: postText, firstComment: guaranteedFirstComment };
