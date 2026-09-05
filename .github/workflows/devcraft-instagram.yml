@@ -1,9 +1,8 @@
-name: DEV/CRAFT Instagram Posts (2x Daily IST)
+name: DEV/CRAFT Instagram Posts (1x Daily IST)
 
 on:
   schedule:
-    - cron: '0 7 * * *'
-    - cron: '0 14 * * *'
+    - cron: '0 8 * * *'    # 13:30 IST — optimal midday peak
   workflow_dispatch:
 
 permissions:
@@ -23,17 +22,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install ffmpeg (reel audio rendering)
-        run: |
-          if ! command -v ffmpeg >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y ffmpeg
-          fi
-          ffmpeg -version | head -1
-
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Generate, render card and post to Instagram
+      - name: Generate Swiss-style card and post to Instagram
         run: node scripts/instagram-agent.js
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}

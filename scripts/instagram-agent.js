@@ -1,12 +1,12 @@
 import 'dotenv/config';
 import { ensureFreshSiteData, createErrorBudget } from '../lib/site-scraper.js';
 import { callWithRetry } from './generator.js';
-import { uploadToGithub, postToInstagramReel, postToInstagramCarousel } from './instagram-poster.js';
+import { uploadToGithub, postToInstagramWithRetry } from './instagram-poster.js';
 import { hash, isDup } from './state.js';
 
 const FIREBASE_URL = 'https://laptop-privacy-default-rtdb.firebaseio.com';
 const IG_STATE_URL = `${FIREBASE_URL}/ig_state.json`;
-const APPLE_CHART_URL = 'https://rss.marketingtools.apple.com/api/v2/in/music/most-played/50/songs.json';
+const APPLE_CHART_URL = 'https://rss.marketingtools.apple.com/api/v2/us/music/most-played/50/songs.json';
 
 async function loadIgState() {
   const res = await fetch(IG_STATE_URL);
@@ -17,23 +17,14 @@ async function loadIgState() {
 
 async function fetchLatestEnglishSong() {
   try {
-    // India most-played chart (50), Hindi-first: Bollywood/Hindi genres win,
-    // then Hindi indie pop; Tamil/Telugu/Punjabi only as last resort. Every
-    // post (morning/evening, day to day) features a different trending song.
     const res = await fetch(APPLE_CHART_URL, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) throw new Error(`chart ${res.status}`);
     const data = await res.json();
     let results = data?.feed?.results || [];
 
-    const genreNames = (r) => (r.genres || []).map(g => g.name);
-    const isHindi = (r) => genreNames(r).some(g => g === 'Bollywood' || g === 'Hindi');
-    const isHindiPop = (r) => genreNames(r).some(g => g === 'Indian Pop');
-    const isOtherIndian = (r) => genreNames(r).some(g => ['Tamil', 'Telugu', 'Punjabi', 'Regional Indian'].includes(g));
-
-    let candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && isHindi(r));
-    if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && isHindiPop(r));
-    if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit' && !isOtherIndian(r));
+    let candidates = results.filter(r => r.kind === 'songs' && r.contentAdvisoryRating !== 'Explicit');
     if (candidates.length === 0) candidates = results.filter(r => r.kind === 'songs');
+    if (candidates.length === 0) candidates = results;
     if (candidates.length === 0) return null;
 
     const now = new Date();
@@ -42,7 +33,6 @@ async function fetchLatestEnglishSong() {
     const istHour = (now.getUTCHours() + 5.5) % 24;
     const slot = istHour < 12 ? 0 : 1;
 
-    // Rotate through the chart; step 7 keeps morning/evening picks far apart
     const idx = (doy * 2 + slot * 7) % candidates.length;
     for (let i = 0; i < candidates.length; i++) {
       const pick = candidates[(idx + i) % candidates.length];
@@ -111,20 +101,11 @@ Respond with ONLY a JSON object — no reasoning, no drafts, no code fences. Do 
 async function generateIgCaption(siteData, previousPosts, apiKey, model, feedback) {
   const feedbackHint = feedback ? `\n## FIX THIS: ${feedback}\n` : '';
   const home = siteData?.pages?.['/'];
-  const summary = siteData?.summary || {};
-  // Rich, properly-scraped facts: headings from every page + real numbers + CTAs.
-  const headings = (summary.keyPhrases || []).slice(0, 12).join(' | ');
-  const stats = (summary.stats || []).slice(0, 8).join(' · ');
-  const ctas = (summary.ctas || []).slice(0, 5).join(' | ');
-  const about = siteData?.pages?.['/about']?.textContent || '';
-  const homeText = (home?.textContent || '').slice(0, 2000);
+  const phrases = (siteData?.summary?.keyPhrases || []).join(' | ').slice(0, 400);
+  const homeText = (home?.textContent || '').slice(0, 1600);
   const siteFacts = `Title: ${siteData?.summary?.title || ''}
-Meta description: ${siteData?.summary?.description || ''}
-Site headings (real sections): ${headings || 'virtual internship, real projects'}
-Real numbers on the site: ${stats || 'not found'}
-CTAs on the site: ${ctas || 'apply now'}
-Home page: ${homeText}
-About page: ${about.slice(0, 700)}`;
+Key phrases: ${phrases || 'virtual internship, real projects'}
+Home page: ${homeText}`;
   const prompt = `${IG_CAPTION_PROMPT}
 
 SITE FACTS:
@@ -140,7 +121,6 @@ Write the headline + caption now. Return ONLY the JSON.`;
   let parsed;
   try { parsed = JSON.parse(cleaned); }
   catch {
-    // Model often reasons out loud before JSON — pull the LAST {key:...} block containing "caption".
     const lastIdx = cleaned.lastIndexOf('"caption"');
     if (lastIdx > -1) {
       const open = cleaned.lastIndexOf('{', lastIdx);
@@ -171,16 +151,17 @@ function hasBannedWords(text) {
   return BANNED_WORDS.test((text || '').toLowerCase());
 }
 
-function buildFallbackCaption(siteData) {
+function buildFallbackCaption(siteData, song) {
   const safePhrases = (siteData?.summary?.keyPhrases || []).filter(p => !hasBannedWords(p)).slice(0, 3).join(', ');
   const story = 'A final-year student finished a real project in 6 weeks and finally had something to show for all the late nights.';
+  const songLine = song ? `\n\nSoundtrack: ${song.title} — ${song.artist} 🎵` : '';
   return buildCaption(`Stop scrolling past this one.
 
 Apply now → https://devcraft.fennark.xyz
 
 ${story}
 
-Real industry projects. Instant offer letter. Verified certificate. Mentorship from engineers. ${safePhrases}.
+Real industry projects. Instant offer letter. Verified certificate. Mentorship from engineers. ${safePhrases}.${songLine}
 
 Send this to your hostel group chat — they're stuck on the same thing.
 
@@ -206,7 +187,7 @@ function buildCaption(post) {
 }
 
 async function main() {
-  console.log(`\n═══ DEV/CRAFT Instagram Agent ═══\n${new Date().toISOString()}\n`);
+  console.log(`\n═══ DEV/CRAFT Instagram Agent (Single Photo) ═══\n${new Date().toISOString()}\n`);
 
   const state = await loadIgState();
   const { NVIDIA_API_KEY, NVIDIA_MODEL } = process.env;
@@ -244,7 +225,7 @@ async function main() {
     break;
   }
   if (!postOk) {
-    caption = buildFallbackCaption(siteData);
+    caption = buildFallbackCaption(siteData, latestSong);
     headline = extractHeadline(caption);
     if (isDup(caption, state)) {
       caption = buildCaption(`Real projects beat 100 tutorials. Apply now → https://devcraft.fennark.xyz\n\n6-week virtual internship. Offer letter + verified certificate. Mentorship.\n\nSend this to a friend stuck on tutorials.`);
@@ -254,44 +235,40 @@ async function main() {
     console.log('      ✓ Using fallback caption (model kept failing)');
   }
 
+  // Add song reference to caption if not already present
+  if (latestSong && !caption.toLowerCase().includes(latestSong.title.toLowerCase())) {
+    caption += `\n\nSoundtrack: ${latestSong.title} — ${latestSong.artist} 🎵`;
+  }
+
   console.log(`HEADLINE: ${headline}\n`);
   console.log(`\n${caption}\n`);
 
-  console.log('[3/3] Generating cards + posting static photo-with-song to Instagram...');
+  console.log('[3/3] Generating Swiss-style card + posting to Instagram...');
   const { generateDesignerCards } = await import('./designer.js');
   const imageMeta = {
     headline: headline || extractHeadline(caption),
     subtext: extractSubtext(caption),
     site: 'devcraft.fennark.xyz',
-    song: latestSong ? `🎵 ${latestSong.title} — ${latestSong.artist}` : null,
   };
   const { cards, themeName, postType } = await generateDesignerCards({
     post: caption,
     caption,
     imageMeta,
-    count: 3,
+    count: 1,
     previousTheme: state.lastTheme || null,
-    format: 'reel',
+    format: 'portrait',
   });
 
   console.log(`      Theme: ${themeName} · post type: ${postType}`);
 
-  let mediaId;
-  try {
-    const { renderReel } = await import('./reel-renderer.js');
-    const reel = await renderReel({ cards, song: latestSong, caption });
-    const videoUrl = await uploadToGithub(reel.buffer, 'mp4', 'video/mp4', 0);
-    const coverUrl = await uploadToGithub(cards[0], 'png', 'image/png', 1);
-    mediaId = await postToInstagramReel({ videoUrl, caption, coverUrl });
-    console.log(`      ✓ Static photo-with-song published (still frames, audio: ${latestSong ? `${latestSong.title} — ${latestSong.artist}` : 'none'}): ${mediaId}`);
-  } catch (err) {
-    console.log(`      ⚠ Static video failed (${err.message.slice(0, 150)}) — falling back to photo carousel`);
-    const imageUrls = [];
-    for (let i = 0; i < cards.length; i++) {
-      imageUrls.push(await uploadToGithub(cards[i], 'png', 'image/png', i));
-    }
-    mediaId = await postToInstagramCarousel({ imageUrls, caption });
-    console.log(`      ✓ Carousel published (${imageUrls.length} images): ${mediaId}`);
+  const imageUrl = await uploadToGithub(cards[0], 'png', 'image/png', 0);
+  const mediaId = await postToInstagramWithRetry({ imageUrl, caption });
+
+  if (mediaId) {
+    console.log(`      ✓ Single photo published: ${mediaId}`);
+  } else {
+    console.log(`      ✗ Failed to publish after retries`);
+    process.exit(1);
   }
 
   state.previousPosts.push(caption);

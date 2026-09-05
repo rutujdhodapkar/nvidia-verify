@@ -5,6 +5,7 @@
 // Self-healing: retries with error budgets (max 10), stale-cache rescue,
 //               every failure logged to Firebase for later inspection.
 
+import 'dotenv/config';
 import { postToLinkedinViaZapier } from '../lib/zapier-mcp.js';
 import { createLinkedInPost } from '../lib/composio-linkedin.js';
 import { postToLinkedinPageWithComment } from './linkedin-poster.js';
@@ -24,13 +25,38 @@ const MAX_TOTAL_ERRORS = 10;
 const HISTORY_LIMIT = 10;
 
 // ---------- slot & angle ----------
+const VALID_SLOTS = ['morning', 'midday', 'afternoon', 'evening-early', 'evening-late', 'evening'];
+
+// Optimal posting times in IST (from best-time.js analysis)
+// Each slot has a target time and a ±15 minute window
+const OPTIMAL_SLOTS = [
+  { slot: 'midday',       hour: 13, minute: 30, window: 15 },
+  { slot: 'evening-early', hour: 19, minute: 30, window: 15 },
+  { slot: 'evening-late',  hour: 20, minute: 30, window: 15 },
+];
+
 function slotFromArgOrTime() {
-  const arg = process.argv.find(a => ['morning', 'afternoon', 'evening'].includes(a));
+  const arg = process.argv.find(a => VALID_SLOTS.includes(a));
   if (arg) return arg;
-  const istHour = (new Date().getUTCHours() + 5.5) % 24;
-  if (istHour < 12) return 'morning';
-  if (istHour < 17) return 'afternoon';
-  return 'evening';
+
+  const now = new Date();
+  const istHour = (now.getUTCHours() + 5.5) % 24;
+  const istMinute = now.getUTCMinutes();
+  const currentMinutes = istHour * 60 + istMinute;
+
+  // Check if current time matches any optimal slot window
+  for (const s of OPTIMAL_SLOTS) {
+    const targetMinutes = s.hour * 60 + s.minute;
+    const diff = Math.abs(currentMinutes - targetMinutes);
+    // Handle wrap-around at midnight (not needed for our slots but safe)
+    const diffWrapped = Math.min(diff, 24 * 60 - diff);
+    if (diffWrapped <= s.window) {
+      return s.slot;
+    }
+  }
+
+  // No optimal slot matches — skip posting
+  return null;
 }
 
 // Rotation keeps the 3 daily posts in different lanes; day-of-year shifts them daily
@@ -40,10 +66,25 @@ const ANGLES = {
     'Learning-roadmap or skill-gap angle. Concrete steps a 2nd/3rd year can start tonight.',
     'Trend-explainer angle (AI tools, cloud, web dev) tied to student careers.',
   ],
+  midday: [
+    'Internship pitch angle — what you get: real tasks, mentor reviews, offer letter, LOR, completion certificate.',
+    'Domain-showcase angle — help students pick between Web/Python/Data/AI/Design tracks.',
+    'Flexibility angle — virtual, college-friendly timelines, async tasks.',
+  ],
   afternoon: [
     'Internship pitch angle — what you get: real tasks, mentor reviews, offer letter, LOR, completion certificate.',
     'Domain-showcase angle — help students pick between Web/Python/Data/AI/Design tracks.',
     'Flexibility angle — virtual, college-friendly timelines, async tasks.',
+  ],
+  'evening-early': [
+    'Project/portfolio angle — build-in-public, GitHub presence, proof of work beats bullets.',
+    'Interview-readiness angle — what interviewers actually ask vs what students prepare.',
+    'Peer-proof / community angle — shipping together, sharing wins, year-2 students already building.',
+  ],
+  'evening-late': [
+    'Day-1 walkthrough angle — exactly what happens from enrollment to first deliverable.',
+    'Certificate-mill myth-busting — MSME-registered, live verification, 10K+ learners, 7K+ certificates.',
+    'Branch-specific angle (CSE/ECE/Mech/Civil) — why non-CSE students gain the most.',
   ],
   evening: [
     'Project/portfolio angle — build-in-public, GitHub presence, proof of work beats bullets.',
@@ -53,10 +94,12 @@ const ANGLES = {
 };
 
 function pickAngle(slot) {
-  const list = ANGLES[slot];
+  const list = ANGLES[slot] || ANGLES.evening;
   const now = new Date();
   const doy = Math.floor((now - new Date(Date.UTC(now.getUTCFullYear(), 0, 0))) / 86400000);
-  return list[(doy * 3 + ['morning', 'afternoon', 'evening'].indexOf(slot)) % list.length];
+  const slotOrder = ['morning', 'midday', 'afternoon', 'evening-early', 'evening-late', 'evening'];
+  const slotIndex = slotOrder.indexOf(slot) >= 0 ? slotOrder.indexOf(slot) : 2;
+  return list[(doy * 3 + slotIndex) % list.length];
 }
 
 // ---------- firebase state ----------
@@ -82,6 +125,10 @@ async function recentPostSummaries(limit = HISTORY_LIMIT) {
 // ---------- main ----------
 export async function main() {
   const slot = slotFromArgOrTime();
+  if (!slot) {
+    console.log('[SKIP] Current time does not match any optimal posting window. Exiting.');
+    return;
+  }
   const budget = createErrorBudget(MAX_TOTAL_ERRORS);
   console.log(`=== LinkedIn Automation ${new Date().toISOString()} ===`);
   console.log(`Slot: ${slot} | DRY_RUN=${DRY_RUN}\n`);

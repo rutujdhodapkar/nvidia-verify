@@ -234,19 +234,21 @@ async function phaseWebMails(webStates) {
   console.log(`[Phase 1] done — ${eligible} eligible, ${skipped} skipped (< ${WEB_MAIL_COOLDOWN_DAYS}d)`);
 }
 
-// ---------- phase 2: promo mails (daily, remaining quota) ----------
+// ---------- phase 2: promo mails (once per user, then move to sent) ----------
 async function phasePromoMails(promoStates) {
-  console.log('\n[Phase 2] Promo mails — queue users, daily');
+  console.log('\n[Phase 2] Promo mails — queue users, once then moved to sent');
   const queue = (await get('queue')) || {};
-  let sent = 0, alreadyToday = 0;
+  let sent = 0, alreadySent = 0;
 
   for (const [key, user] of Object.entries(queue)) {
     const email = user?.email || decodeQueueKey(key);
     if (!email || !email.includes('@')) continue;
 
     const state = promoStates[encodeKey(email)] || {};
-    if (state.lastSentAt && state.lastSentAt.slice(0, 10) === todayStr()) {
-      alreadyToday++;
+    // If already has a promo send recorded, move to sent and skip
+    if (state.lastSentAt) {
+      alreadySent++;
+      await moveToSent(key, user);
       continue;
     }
     const ok = await trySend({
@@ -254,9 +256,18 @@ async function phasePromoMails(promoStates) {
       type: 'promo',
     });
     if (!ok) break;
+    // After successful send, move to sent bucket
+    await moveToSent(key, user);
     sent++;
   }
-  console.log(`[Phase 2] done — ${sent} sent, ${alreadyToday} already got promo today`);
+  console.log(`[Phase 2] done — ${sent} sent, ${alreadySent} already sent (moved to sent)`);
+}
+
+async function moveToSent(key, user) {
+  const sentRef = `queue/sent/${key}`;
+  await patch(sentRef, { ...user, sentAt: new Date().toISOString() });
+  // Remove from active queue
+  await fb(`queue/${key}`, 'DELETE').catch(() => {});
 }
 
 function decodeQueueKey(key) {

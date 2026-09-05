@@ -205,21 +205,47 @@ export async function generateImageAndPost({ post, imageMeta, caption, apiKey })
   return postToInstagram({ imageUrl, caption });
 }
 
-async function main() {
-  const { caption, imageUrl } = {
-    caption: process.env.INSTAGRAM_CAPTION,
-    imageUrl: process.env.INSTAGRAM_IMAGE_URL,
-  };
-  if (!caption) {
-    console.error('Usage: INSTAGRAM_CAPTION="..." INSTAGRAM_IMAGE_URL="https://..." node scripts/instagram-poster.js');
-    process.exit(1);
+export async function postToInstagramWithRetry({ imageUrl, caption, maxRetries = 3 }) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await postToInstagram({ imageUrl, caption });
+    } catch (err) {
+      console.log(`[IG] Post attempt ${attempt}/${maxRetries} failed: ${err.message.slice(0, 150)}`);
+      if (attempt === maxRetries) {
+        console.log(`[IG] Giving up after ${maxRetries} attempts — skipping this post`);
+        return null;
+      }
+      await sleep(5000 * attempt);
+    }
   }
-  const mediaId = imageUrl
-    ? await postToInstagram({ imageUrl, caption })
-    : await generateImageAndPost({ caption, apiKey: process.env.NVIDIA_API_KEY });
-  console.log(`\n=== Done — Instagram post published: ${mediaId} ===`);
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}` || process.argv[1]?.endsWith('instagram-poster.js')) {
-  main().catch(err => { console.error('[FATAL]', err); process.exit(1); });
+export async function postToInstagramReelWithRetry({ videoUrl, caption, coverUrl, maxRetries = 3 }) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await postToInstagramReel({ videoUrl, caption, coverUrl });
+    } catch (err) {
+      console.log(`[IG] Reel attempt ${attempt}/${maxRetries} failed: ${err.message.slice(0, 150)}`);
+      if (attempt === maxRetries) {
+        console.log(`[IG] Giving up after ${maxRetries} attempts — skipping this reel`);
+        return null;
+      }
+      await sleep(5000 * attempt);
+    }
+  }
+}
+
+export async function postToInstagramCarouselWithRetry({ imageUrls, caption, maxRetries = 3 }) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await postToInstagramCarousel({ imageUrls, caption });
+    } catch (err) {
+      console.log(`[IG] Carousel attempt ${attempt}/${maxRetries} failed: ${err.message.slice(0, 150)}`);
+      if (attempt === maxRetries) {
+        console.log(`[IG] Giving up after ${maxRetries} attempts — skipping this carousel`);
+        return null;
+      }
+      await sleep(5000 * attempt);
+    }
+  }
 }

@@ -17,7 +17,7 @@ import { sendResendEmail } from '../lib/resend.js';
 import { isBlocked } from '../lib/blocklist.js';
 
 const FIREBASE_URL = process.env.PORTFOLIO_FIREBASE_URL || 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
-const SITE_URL = process.env.SITE_URL || 'https://fennark.xyz';
+const SITE_URL = process.env.SITE_URL || 'https://devcraft.fennark.xyz';
 const APPLY_URL = process.env.APPLY_URL || `${SITE_URL}/apply`;
 
 const WINBACK_AFTER_DAYS = Number(process.env.WINBACK_AFTER_DAYS || 30);

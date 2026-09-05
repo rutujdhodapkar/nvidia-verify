@@ -2,9 +2,8 @@ name: DEV/CRAFT LinkedIn Posts (3x Daily IST)
 
 on:
   schedule:
-    - cron: '0 4 * * *'    # 9:30 AM IST — morning (skills/career angle)
-    - cron: '0 8 * * *'    # 1:30 PM IST — afternoon (internship CTA)
-    - cron: '0 14 * * *'   # 7:30 PM IST — evening (projects/placement angle)
+    # Run every 30 minutes during IST daytime (04:00-16:00 UTC = 09:30-21:30 IST)
+    - cron: '0,30 4-16 * * *'
   workflow_dispatch:
     inputs:
       slot:
@@ -14,7 +13,10 @@ on:
         options:
           - ''
           - morning
+          - midday
           - afternoon
+          - evening-early
+          - evening-late
           - evening
 
 jobs:
@@ -46,5 +48,4 @@ jobs:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
           SITE_URL: https://devcraft.fennark.xyz
-          SLOT: ${{ github.event.inputs.slot }}
-        run: node scripts/linkedin-automation.js $SLOT
+        run: node scripts/linkedin-automation.js ${{ github.event.inputs.slot }}

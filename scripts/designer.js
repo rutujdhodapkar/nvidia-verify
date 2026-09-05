@@ -1,6 +1,12 @@
 import { chromium } from 'playwright';
 
 export const THEMES = [
+  // Swiss / International Typographic Style — clean grid, bold typography, high contrast
+  { name: 'swiss-black', bg: '#000000', accent: '#FFFFFF', pop: '#FF0000', text: '#FFFFFF', texture: 'none', light: false, font: 'Helvetica Neue, Helvetica, Arial, sans-serif', weights: ['700', '500', '400'] },
+  { name: 'swiss-white', bg: '#FFFFFF', accent: '#000000', pop: '#FF0000', text: '#000000', texture: 'none', light: true, font: 'Helvetica Neue, Helvetica, Arial, sans-serif', weights: ['700', '500', '400'] },
+  { name: 'swiss-red-grid', bg: '#FFFFFF', accent: '#000000', pop: '#FF0000', text: '#000000', texture: 'grid', light: true, font: 'Helvetica Neue, Helvetica, Arial, sans-serif', weights: ['700', '500', '400'] },
+  { name: 'swiss-blue-grid', bg: '#0A0A0A', accent: '#FFFFFF', pop: '#0066FF', text: '#FFFFFF', texture: 'grid', light: false, font: 'Helvetica Neue, Helvetica, Arial, sans-serif', weights: ['700', '500', '400'] },
+  // Legacy themes (kept for rotation fallback)
   { name: 'void-violet', bg: '#0A0A0F', accent: '#7C3AED', pop: '#C4F000', text: '#FAFAF7', texture: 'shape', light: false, font: 'Unbounded' },
   { name: 'signal-coral', bg: '#1A0E0E', accent: '#FF5A5F', pop: '#FFD166', text: '#FFF5F0', texture: 'grain', light: false, font: 'Archivo Black' },
   { name: 'terminal-green', bg: '#0D1117', accent: '#39FF14', pop: '#58A6FF', text: '#E6EDF3', texture: 'halftone', light: false, font: 'Space Grotesk' },
@@ -18,20 +24,20 @@ export const THEMES = [
 ];
 
 export const POST_TYPE_THEME = {
-  deadline: 'signal-coral',
-  curriculum_highlight: 'terminal-green',
-  testimonial: 'paper-cream',
-  stat_card: 'cyber-cyan',
-  community: 'sunset-grad',
+  deadline: 'swiss-black',
+  curriculum_highlight: 'swiss-white',
+  testimonial: 'swiss-red-grid',
+  stat_card: 'swiss-blue-grid',
+  community: 'swiss-black',
 };
 
 export const POST_TYPE_ARCHETYPES = {
-  deadline: ['split-screen', 'stacked-cards', 'framed-center'],
-  curriculum_highlight: ['diagonal-slab', 'stacked-cards', 'split-screen'],
-  testimonial: ['framed-center', 'split-screen', 'bento'],
-  stat_card: ['split-screen', 'stacked-cards', 'framed-center'],
-  community: ['collage', 'diagonal-slab', 'bento'],
-  default: ['diagonal-slab', 'stacked-cards', 'split-screen'],
+  deadline: ['swiss-banner', 'swiss-grid', 'swiss-typo-poster'],
+  curriculum_highlight: ['swiss-modular', 'swiss-grid', 'swiss-typo-poster'],
+  testimonial: ['swiss-quote', 'swiss-grid', 'swiss-typo-poster'],
+  stat_card: ['swiss-stats', 'swiss-grid', 'swiss-typo-poster'],
+  community: ['swiss-banner', 'swiss-grid', 'swiss-typo-poster'],
+  default: ['swiss-modular', 'swiss-grid', 'swiss-typo-poster'],
 };
 
 const BENEFITS = [
@@ -86,10 +92,19 @@ function meshOverlay() {
   return `<div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 15%,rgba(255,228,94,0.16),transparent 40%),radial-gradient(circle at 85% 70%,rgba(255,255,255,0.14),transparent 42%),radial-gradient(circle at 60% 110%,rgba(255,255,255,0.12),transparent 45%);"></div>`;
 }
 
+function gridOverlay(theme) {
+  const color = theme.light ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+  return `<div style="position:absolute;inset:0;pointer-events:none;background-image:
+    linear-gradient(${color} 1px, transparent 1px),
+    linear-gradient(90deg, ${color} 1px, transparent 1px);
+  background-size: 60px 60px;"></div>`;
+}
+
 function textureFor(theme) {
   if (theme.texture === 'halftone') return halftoneOverlay(theme.accent);
   if (theme.texture === 'mesh') return meshOverlay();
   if (theme.texture === 'shape') return shapeOverlay(theme.accent);
+  if (theme.texture === 'grid') return gridOverlay(theme);
   return grainOverlay(theme.light);
 }
 
@@ -262,29 +277,121 @@ function collage(theme, meta, mode) {
 </div>`;
 }
 
-function bento(theme, meta, mode) {
+// ===== SWISS / INTERNATIONAL TYPOGRAPHIC STYLE ARCHETYPES =====
+
+function swissBanner(theme, meta, mode) {
   const h = meta.headline;
-  const tile = (label, sub, idx) => `
-    <div style="border-radius:24px;padding:26px 24px;background:${theme.light ? 'rgba(26,26,46,0.05)' : 'rgba(255,255,255,0.07)'};border:1px solid ${theme.light ? 'rgba(26,26,46,0.12)' : 'rgba(255,255,255,0.12)'};box-shadow:0 10px 30px rgba(0,0,0,0.16);">
-      <div style="font-size:17px;color:${theme.accent};font-weight:700;letter-spacing:2px;text-transform:uppercase;">${idx + 1}</div>
-      <div style="${displayFont(theme)}font-weight:700;font-size:24px;color:${theme.text};margin-top:10px;line-height:1.1;">${label}</div>
-      <div style="font-family:'Inter',sans-serif;font-size:16px;color:${theme.text};opacity:0.6;margin-top:6px;">${sub}</div>
+  const size = headlineSize(h);
+  const isDark = !theme.light;
+  const lineColor = isDark ? '#FF0000' : '#000000';
+  
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 80px;">
+    <div style="width:100%;height:4px;background:${lineColor};margin-bottom:40px;"></div>
+    <div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:0.95;letter-spacing:-2px;color:${theme.text};text-transform:uppercase;max-width:800px;">${h}</div>
+    <div style="width:120px;height:2px;background:${theme.pop};margin:40px 0;"></div>
+    <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:28px;line-height:1.5;color:${theme.text};opacity:0.7;max-width:600px;">${meta.subtext}</div>
+    ${mode === 'stats' ? `<div style="margin-top:50px;width:100%;">${statGrid(theme)}</div>` : ''}
+    ${mode === 'benefits' ? `<div style="margin-top:50px;width:100%;">${benefitRows(theme)}</div>` : ''}
+  </div>`;
+}
+
+function swissGrid(theme, meta, mode) {
+  const h = meta.headline;
+  const size = headlineSize(h);
+  
+  if (mode === 'stats') {
+    return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 60px;">
+      <div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:1.0;letter-spacing:-1px;color:${theme.text};text-align:center;text-transform:uppercase;margin-bottom:60px;">${h}</div>
+      ${statGrid(theme)}
     </div>`;
-  const grid = mode === 'stats'
-    ? STATS.map(([n, l], i) => tile(`${n}`, l, i)).join('')
-    : BENEFITS.slice(0, 4).map((b, i) => tile(b.t, b.s, i)).join('');
-  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:26px;justify-content:center;">
-  <div>
-    <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:34px;color:${theme.accent};">${mode === 'stats' ? 'proof, not promises' : 'what you get'}</div>
-    <div style="${displayFont(theme)}font-weight:700;font-size:${subheadlineSize(h)};line-height:1.0;color:${theme.text};margin-top:12px;">${h}</div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">${grid}</div>
-</div>`;
+  }
+  
+  if (mode === 'benefits') {
+    return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 60px;">
+      <div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:1.0;letter-spacing:-1px;color:${theme.text};text-align:center;text-transform:uppercase;margin-bottom:60px;">${h}</div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:20px;">${benefitRows(theme)}</div>
+    </div>`;
+  }
+  
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 60px;text-align:center;">
+    <div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:1.0;letter-spacing:-1px;color:${theme.text};text-transform:uppercase;margin-bottom:40px;">${h}</div>
+    <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:28px;line-height:1.5;color:${theme.text};opacity:0.7;max-width:700px;">${meta.subtext}</div>
+  </div>`;
+}
+
+function swissTypoPoster(theme, meta, mode) {
+  const h = meta.headline;
+  const size = headlineSize(h);
+  const words = h.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (testLine.length > 12 && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  const typoLines = lines.map((line, i) => 
+    `<div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:0.92;letter-spacing:-1px;color:${theme.text};text-transform:uppercase;${i % 2 === 1 ? 'margin-left:80px;' : ''}">${line}</div>`
+  ).join('');
+  
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 80px;">
+    <div style="margin-bottom:30px;">${typoLines}</div>
+    <div style="width:100px;height:3px;background:${theme.pop};margin:30px 0;"></div>
+    <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:26px;line-height:1.5;color:${theme.text};opacity:0.6;max-width:500px;">${meta.subtext}</div>
+  </div>`;
+}
+
+function swissModular(theme, meta, mode) {
+  const h = meta.headline;
+  
+  return `<div style="width:100%;height:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px;padding:40px 60px;">
+    <div style="display:flex;flex-direction:column;justify-content:center;padding-right:30px;border-right:2px solid ${theme.light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};">
+      <div style="font-family:'Inter',sans-serif;font-weight:500;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:${theme.accent};margin-bottom:20px;">VIRTUAL INTERNSHIP · 2026</div>
+      <div style="${displayFont(theme)}font-weight:700;font-size:${subheadlineSize(h)};line-height:1.0;letter-spacing:-1px;color:${theme.text};">${h}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center;padding-left:30px;">
+      <div style="font-family:'Inter',sans-serif;font-weight:400;font-size:26px;line-height:1.5;color:${theme.text};opacity:0.7;">${meta.subtext}</div>
+    </div>
+    <div style="grid-column:span 2;display:flex;flex-direction:column;gap:20px;padding-top:20px;border-top:2px solid ${theme.light ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};">
+      ${mode === 'stats' ? statGrid(theme) : benefitRows(theme)}
+    </div>
+  </div>`;
+}
+
+function swissStats(theme, meta, mode) {
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 60px;">
+    <div style="${displayFont(theme)}font-weight:700;font-size:${subheadlineSize(meta.headline)};line-height:1.0;letter-spacing:-1px;color:${theme.text};text-align:center;text-transform:uppercase;margin-bottom:60px;">${meta.headline}</div>
+    ${statGrid(theme)}
+  </div>`;
+}
+
+function swissQuote(theme, meta, mode) {
+  const h = meta.headline;
+  const size = headlineSize(h);
+  
+  return `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 80px;text-align:center;">
+    <div style="font-family:'Inter',sans-serif;font-weight:300;font-size:48px;line-height:1.4;letter-spacing:0.5px;color:${theme.text};opacity:0.8;margin-bottom:30px;">${meta.subtext}</div>
+    <div style="width:200px;height:1px;background:${theme.pop};margin-bottom:30px;"></div>
+    <div style="${displayFont(theme)}font-weight:700;font-size:${size};line-height:1.0;letter-spacing:-1px;color:${theme.text};text-transform:uppercase;">${h}</div>
+  </div>`;
 }
 
 export function buildCardHtml(meta, theme, archetype, mode, format = 'portrait') {
   let inner;
-  if (archetype === 'split-screen') inner = splitScreen(theme, meta, mode);
+  if (archetype === 'swiss-banner') inner = swissBanner(theme, meta, mode);
+  else if (archetype === 'swiss-grid') inner = swissGrid(theme, meta, mode);
+  else if (archetype === 'swiss-typo-poster') inner = swissTypoPoster(theme, meta, mode);
+  else if (archetype === 'swiss-modular') inner = swissModular(theme, meta, mode);
+  else if (archetype === 'swiss-stats') inner = swissStats(theme, meta, mode);
+  else if (archetype === 'swiss-quote') inner = swissQuote(theme, meta, mode);
+  else if (archetype === 'split-screen') inner = splitScreen(theme, meta, mode);
   else if (archetype === 'framed-center') inner = framedCenter(theme, meta, mode);
   else if (archetype === 'stacked-cards') inner = stackedCards(theme, meta, mode);
   else if (archetype === 'collage') inner = collage(theme, meta, mode);
