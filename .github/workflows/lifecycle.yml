@@ -63,6 +63,9 @@ jobs:
       - run: npm ci
       - name: Daily NPS + referrals
         env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FROM: DEV/CRAFT <onboarding@resend.dev>
           SEND_MIN_DELAY_MS: '20000'
@@ -81,6 +84,9 @@ jobs:
       - name: 10-day reminder cycle (self-gated)
         env:
           COSMOS_DB_CONNECTION_STRING: ${{ secrets.COSMOS_DB_CONNECTION_STRING }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FROM: DEV/CRAFT <onboarding@resend.dev>
           REMINDER_CYCLE_DAYS: '10'
