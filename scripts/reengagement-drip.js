@@ -1,4 +1,4 @@
-// DEV/CRAFT Re-engagement Drip (win-back preview via Resend)
+// DEV/CRAFT Re-engagement Drip (win-back preview via Brevo/Mailjet)
 // Finds mailing-list contacts (Firebase `queue`) who haven't been engaged in
 // 30+ days, excludes anyone already converted (present in root CSVs), and
 // PREVIEWS a 3-step win-back sequence spaced a few days apart.
@@ -13,7 +13,7 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { sendResendEmail } from '../lib/resend.js';
+import { sendEmail } from '../lib/email-provider.js';
 import { isBlocked } from '../lib/blocklist.js';
 
 const FIREBASE_URL = process.env.PORTFOLIO_FIREBASE_URL || 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
@@ -193,7 +193,7 @@ async function main() {
     }
 
     try {
-      await sendResendEmail({ to, subject, html });
+      await sendEmail({ to, subject, html });
       await patch(`winback/${encodeKey(contact.email)}`, {
         email: contact.email,
         name: contact.name || '',

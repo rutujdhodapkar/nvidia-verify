@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { getCachedEnrollments } from '../lib/cosmos-cache.js';
 import { fbGet, fbPut, fbPatch } from '../lib/firebase.js';
-import { sendResendEmail } from '../lib/resend.js';
+import { sendEmail } from '../lib/email-provider.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-run');
 const SANDBOX_EMAIL = process.env.SANDBOX_EMAIL || (process.argv.includes('--sandbox') ? process.argv[process.argv.indexOf('--sandbox') + 1] : null);
@@ -22,8 +22,8 @@ async function deliver({ to, toName, subject, text }) {
   const target = SANDBOX_EMAIL || email;
   if (DRY_RUN) { console.log(`  ○ [dry-run] ${email} ← ${subject}`); return true; }
   try {
-    const r = await sendResendEmail({ to: target, toName, subject, text });
-    console.log(`  ✓ ${email} ← ${subject} (${r.messageId})`);
+    const r = await sendEmail({ to: target, toName, subject, text });
+    console.log(`  ✓ ${email} ← ${subject} (${r.provider}: ${r.messageId})`);
     await new Promise((res) => setTimeout(res, SEND_DELAY_MS));
     return true;
   } catch (err) {

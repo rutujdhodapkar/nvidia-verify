@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { CosmosClient } from '@azure/cosmos';
-import { sendResendEmail } from '../lib/resend.js';
+import { sendEmail } from '../lib/email-provider.js';
 import { fbGet, fbPut, fbPatch } from '../lib/firebase.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.argv.includes('--dry-run');
@@ -48,9 +48,9 @@ async function deliver({ to, toName, subject, text }) {
   const target = SANDBOX_EMAIL || email;
   if (DRY_RUN) { console.log(`  ○ [dry-run] ${email} ← ${subject}`); return true; }
   try {
-    const r = await sendResendEmail({ to: target, toName, subject, text });
-    console.log(`  ✓ ${email} ← ${subject} (${r.messageId})`);
-    await fbPatch(`reminders/sent/${encodeKey(email)}`, { lastSubject: subject, lastSentAt: new Date().toISOString(), messageId: r.messageId });
+    const r = await sendEmail({ to: target, toName, subject, text });
+    console.log(`  ✓ ${email} ← ${subject} (${r.provider}: ${r.messageId})`);
+    await fbPatch(`reminders/sent/${encodeKey(email)}`, { lastSubject: subject, lastSentAt: new Date().toISOString(), messageId: r.messageId, provider: r.provider });
     return true;
   } catch (err) {
     console.log(`  ✗ ${email}: ${err.message}`);

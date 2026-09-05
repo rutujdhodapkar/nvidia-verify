@@ -17,7 +17,7 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { isBlocked } from '../lib/blocklist.js';
-import { sendResendEmail } from '../lib/resend.js';
+import { sendEmail } from '../lib/email-provider.js';
 
 const FIREBASE_URL = process.env.PORTFOLIO_FIREBASE_URL || 'https://portfolio-cfe62-default-rtdb.firebaseio.com';
 const REPORT_TO = process.env.HARVEST_REPORT_TO || '';
@@ -296,7 +296,7 @@ async function sendReport(leads, stats) {
   if (!REPORT_TO) { console.log('[REPORT] HARVEST_REPORT_TO not set — skipping report email'); return; }
   const date = new Date().toISOString().slice(0, 10);
   try {
-    await sendResendEmail({
+    await sendEmail({
       to: REPORT_TO,
       subject: `[Lead Harvester] ${date}: ${leads.length} new lead(s)`,
       html: buildReport(leads, stats),
